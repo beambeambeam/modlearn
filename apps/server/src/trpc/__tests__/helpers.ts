@@ -16,6 +16,7 @@ export function makeAuthenticatedContext(userId: string): Context {
 				name: "Test User",
 				emailVerified: false,
 				image: null,
+				banned: false,
 				createdAt: new Date(),
 				updatedAt: new Date(),
 			},
