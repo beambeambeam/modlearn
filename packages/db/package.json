@@ -10,6 +10,7 @@
     }
   },
   "scripts": {
+    "auth:generate": "bun x @better-auth/cli generate --config ./auth.ts --output ./src/schema/auth.ts --yes",
     "db:push": "drizzle-kit push",
     "db:generate": "drizzle-kit generate",
     "db:studio": "drizzle-kit studio",
@@ -21,12 +22,14 @@
   },
   "dependencies": {
     "@modlearn/env": "workspace:*",
+    "better-auth": "catalog:",
     "dotenv": "catalog:",
     "drizzle-orm": "^0.45.1",
     "pg": "^8.17.1",
     "zod": "catalog:"
   },
   "devDependencies": {
+    "@better-auth/cli": "catalog:",
     "@modlearn/config": "workspace:*",
     "@types/pg": "^8.16.0",
     "drizzle-kit": "^0.31.8",
