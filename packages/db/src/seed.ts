@@ -1,5 +1,5 @@
-import { auth } from "@modlearn/auth";
 import { eq } from "drizzle-orm";
+import { auth } from "../auth.js";
 import { db } from "./index.js";
 import { user } from "./schema/auth.js";
 
