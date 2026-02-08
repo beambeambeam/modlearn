@@ -5,7 +5,8 @@
       "mcp__context7__query-docs",
       "Bash(bun run typecheck:*)",
       "Bash(bun run check-types:*)",
-      "Bash(bun run db:push:*)"
+      "Bash(bun run db:push:*)",
+      "WebSearch"
     ]
   },
   "enableAllProjectMcpServers": true,
