@@ -13,7 +13,7 @@
   "dependencies": {
     "@base-ui/react": "^1.0.0",
     "@hookform/resolvers": "^5.1.1",
-    "@modlearn/api": "workspace:*",
+    "server": "workspace:*",
     "@modlearn/auth": "workspace:*",
     "@modlearn/env": "workspace:*",
     "@tailwindcss/vite": "^4.0.15",
