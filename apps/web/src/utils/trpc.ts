@@ -1,9 +1,8 @@
-import type { AppRouter } from "@modlearn/api/routers/index";
-
 import { env } from "@modlearn/env/web";
 import { QueryCache, QueryClient } from "@tanstack/react-query";
 import { createTRPCClient, httpBatchLink } from "@trpc/client";
 import { createTRPCOptionsProxy } from "@trpc/tanstack-react-query";
+import type { AppRouter } from "server/trpc/routers/index";
 import { toast } from "sonner";
 
 export const queryClient = new QueryClient({

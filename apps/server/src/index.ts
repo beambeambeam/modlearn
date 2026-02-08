@@ -1,10 +1,10 @@
 import { cors } from "@elysiajs/cors";
-import { createContext } from "@modlearn/api/context";
-import { appRouter } from "@modlearn/api/routers/index";
 import { auth } from "@modlearn/auth";
 import { env } from "@modlearn/env/server";
 import { fetchRequestHandler } from "@trpc/server/adapters/fetch";
 import { Elysia } from "elysia";
+import { createContext } from "./trpc/context";
+import { appRouter } from "./trpc/routers/index";
 
 new Elysia()
 	.use(
