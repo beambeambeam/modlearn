@@ -13,13 +13,30 @@ If you cannot follow TDD, stop and ask.
 
 ## Test Runner And File Layout
 
-The server uses Bun's built-in test runner.
+The server uses Vitest as the test runner.
 
 - Place tests in files matching `*.test.ts` or `*.spec.ts`.
 - Prefer a `tests/` or `__tests__/` folder close to the code under test.
 - Use `beforeEach` / `afterEach` for isolation when shared resources exist.
-- Avoid `test.concurrent` unless the test is fully isolated and stateless.
-- Use `bun test --randomize` occasionally to detect hidden ordering dependencies.
+- Vitest runs tests in isolated environments by default (configured in vitest.config.ts).
+- Use `vitest run --sequence.shuffle` occasionally to detect hidden ordering dependencies.
+
+### Vitest Features Available
+
+- **describe**: Group related tests together
+- **it / test**: Define individual test cases
+- **expect**: Assertions (expect(value).toBe(expected))
+- **vi.fn()**: Create mock functions
+- **vi.mock()**: Mock modules (use sparingly, prefer dependency injection)
+- **beforeEach / afterEach**: Setup and teardown per test
+- **beforeAll / afterAll**: Setup and teardown per suite
+
+### Running Tests
+
+- `bun run test` - Run all tests once
+- `bun run test:watch` - Watch mode (rerun on changes)
+- `bun run test:ui` - Interactive browser UI
+- `bun run test:coverage` - Generate coverage report
 
 ## tRPC Procedure Testing (Router Layer)
 

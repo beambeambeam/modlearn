@@ -6,7 +6,9 @@
       "Bash(bun run typecheck:*)",
       "Bash(bun run check-types:*)",
       "Bash(bun run db:push:*)",
-      "WebSearch"
+      "WebSearch",
+      "Bash(bun install:*)",
+      "Bash(bun run test:*)"
     ]
   },
   "enableAllProjectMcpServers": true,
