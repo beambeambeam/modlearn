@@ -1,0 +1,24 @@
+{
+  "name": "@modlearn/auth",
+  "type": "module",
+  "exports": {
+    ".": {
+      "default": "./src/index.ts"
+    },
+    "./*": {
+      "default": "./src/*.ts"
+    }
+  },
+  "scripts": {},
+  "dependencies": {
+    "@modlearn/db": "workspace:*",
+    "@modlearn/env": "workspace:*",
+    "better-auth": "catalog:",
+    "dotenv": "catalog:",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@modlearn/config": "workspace:*",
+    "typescript": "catalog:"
+  }
+}

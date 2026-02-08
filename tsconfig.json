@@ -1,0 +1,6 @@
+{
+  "extends": "@modlearn/config/tsconfig.base.json",
+  "compilerOptions": {
+    "strictNullChecks": true
+  }
+}
