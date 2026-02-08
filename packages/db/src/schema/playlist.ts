@@ -1,6 +1,7 @@
 import { relations } from "drizzle-orm";
 import {
 	boolean,
+	date,
 	decimal,
 	index,
 	integer,
@@ -9,6 +10,7 @@ import {
 	timestamp,
 	uuid,
 } from "drizzle-orm/pg-core";
+import { timestamps } from "./_helpers";
 import { user } from "./auth";
 import { content, file } from "./content";
 
@@ -24,21 +26,17 @@ export const playlist = pgTable(
 		thumbnailImageId: uuid("thumbnail_image_id").references(() => file.id, {
 			onDelete: "set null",
 		}),
-		isCourse: boolean("is_course").default(true).notNull(),
-		createdAt: timestamp("created_at").defaultNow().notNull(),
-		updatedAt: timestamp("updated_at")
-			.defaultNow()
-			.$onUpdate(() => /* @__PURE__ */ new Date())
-			.notNull(),
+		isSeries: boolean("is_series").default(true).notNull(),
+		...timestamps,
 	},
 	(table) => [
 		index("playlist_creatorId_idx").on(table.creatorId),
-		index("playlist_course_idx").on(table.isCourse),
+		index("playlist_series_idx").on(table.isSeries),
 	]
 );
 
-export const playlistItem = pgTable(
-	"playlist_item",
+export const playlistEpisode = pgTable(
+	"playlist_episode",
 	{
 		id: uuid("id").primaryKey().defaultRandom(),
 		playlistId: uuid("playlist_id")
@@ -47,25 +45,27 @@ export const playlistItem = pgTable(
 		contentId: uuid("content_id")
 			.notNull()
 			.references(() => content.id, { onDelete: "cascade" }),
-		itemOrder: integer("item_order").notNull(),
-		sectionNumber: integer("section_number"),
-		itemNumber: integer("item_number"),
+		episodeOrder: integer("episode_order").notNull(),
+		seasonNumber: integer("season_number"),
+		episodeNumber: integer("episode_number"),
 		title: text("title"),
-		addedAt: timestamp("added_at").defaultNow().notNull(),
+		addedAt: timestamp("added_at", { withTimezone: true })
+			.defaultNow()
+			.notNull(),
 	},
 	(table) => [
-		index("playlistItem_playlistId_idx").on(table.playlistId),
-		index("playlistItem_contentId_idx").on(table.contentId),
-		index("playlistItem_order_idx").on(
+		index("playlistEpisode_playlistId_idx").on(table.playlistId),
+		index("playlistEpisode_contentId_idx").on(table.contentId),
+		index("playlistEpisode_order_idx").on(
 			table.playlistId,
-			table.sectionNumber,
-			table.itemOrder
+			table.seasonNumber,
+			table.episodeOrder
 		),
 	]
 );
 
-export const playlistProgress = pgTable(
-	"playlist_progress",
+export const playlistContent = pgTable(
+	"playlist_content",
 	{
 		id: uuid("id").primaryKey().defaultRandom(),
 		playlistId: uuid("playlist_id")
@@ -78,15 +78,15 @@ export const playlistProgress = pgTable(
 			.notNull()
 			.references(() => user.id, { onDelete: "cascade" }),
 		isLatestWatched: boolean("is_latest_watched").default(false).notNull(),
-		updatedAt: timestamp("updated_at")
+		updatedAt: timestamp("updated_at", { withTimezone: true })
 			.defaultNow()
-			.$onUpdate(() => /* @__PURE__ */ new Date())
+			.$onUpdate(() => new Date())
 			.notNull(),
 	},
 	(table) => [
-		index("playlistProgress_playlistId_idx").on(table.playlistId),
-		index("playlistProgress_userId_idx").on(table.userId),
-		index("playlistProgress_latest_idx").on(
+		index("playlistContent_playlistId_idx").on(table.playlistId),
+		index("playlistContent_userId_idx").on(table.userId),
+		index("playlistContent_latest_idx").on(
 			table.userId,
 			table.playlistId,
 			table.isLatestWatched
@@ -103,12 +103,14 @@ export const playlistPricing = pgTable(
 			.references(() => playlist.id, { onDelete: "cascade" }),
 		price: decimal("price", { precision: 10, scale: 2 }).notNull(),
 		currency: text("currency").notNull(),
-		effectiveFrom: timestamp("effective_from").notNull(),
-		effectiveTo: timestamp("effective_to"),
+		effectiveFrom: date("effective_from", { mode: "date" }).notNull(),
+		effectiveTo: date("effective_to", { mode: "date" }),
 		createdBy: text("created_by")
 			.notNull()
 			.references(() => user.id, { onDelete: "restrict" }),
-		createdAt: timestamp("created_at").defaultNow().notNull(),
+		createdAt: timestamp("created_at", { withTimezone: true })
+			.defaultNow()
+			.notNull(),
 	},
 	(table) => [
 		index("playlistPricing_playlistId_idx").on(table.playlistId),
@@ -128,35 +130,38 @@ export const playlistRelations = relations(playlist, ({ one, many }) => ({
 		fields: [playlist.thumbnailImageId],
 		references: [file.id],
 	}),
-	playlistItems: many(playlistItem),
-	playlistProgresses: many(playlistProgress),
+	playlistEpisodes: many(playlistEpisode),
+	playlistContents: many(playlistContent),
 	playlistPricings: many(playlistPricing),
 }));
 
-export const playlistItemRelations = relations(playlistItem, ({ one }) => ({
-	playlist: one(playlist, {
-		fields: [playlistItem.playlistId],
-		references: [playlist.id],
-	}),
-	content: one(content, {
-		fields: [playlistItem.contentId],
-		references: [content.id],
-	}),
-}));
-
-export const playlistProgressRelations = relations(
-	playlistProgress,
+export const playlistEpisodeRelations = relations(
+	playlistEpisode,
 	({ one }) => ({
 		playlist: one(playlist, {
-			fields: [playlistProgress.playlistId],
+			fields: [playlistEpisode.playlistId],
 			references: [playlist.id],
 		}),
 		content: one(content, {
-			fields: [playlistProgress.contentId],
+			fields: [playlistEpisode.contentId],
+			references: [content.id],
+		}),
+	})
+);
+
+export const playlistContentRelations = relations(
+	playlistContent,
+	({ one }) => ({
+		playlist: one(playlist, {
+			fields: [playlistContent.playlistId],
+			references: [playlist.id],
+		}),
+		content: one(content, {
+			fields: [playlistContent.contentId],
 			references: [content.id],
 		}),
 		user: one(user, {
-			fields: [playlistProgress.userId],
+			fields: [playlistContent.userId],
 			references: [user.id],
 		}),
 	})

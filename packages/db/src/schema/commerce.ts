@@ -6,8 +6,10 @@ import {
 	pgTable,
 	text,
 	timestamp,
+	unique,
 	uuid,
 } from "drizzle-orm/pg-core";
+import { timestamps } from "./_helpers";
 import { user } from "./auth";
 import { content } from "./content";
 import { playlist } from "./playlist";
@@ -37,11 +39,7 @@ export const cart = pgTable(
 		userId: text("user_id")
 			.notNull()
 			.references(() => user.id, { onDelete: "cascade" }),
-		createdAt: timestamp("created_at").defaultNow().notNull(),
-		updatedAt: timestamp("updated_at")
-			.defaultNow()
-			.$onUpdate(() => /* @__PURE__ */ new Date())
-			.notNull(),
+		...timestamps,
 	},
 	(table) => [index("cart_userId_idx").on(table.userId)]
 );
@@ -61,7 +59,9 @@ export const cartItem = pgTable(
 		}),
 		itemType: cartItemTypeEnum("item_type").notNull(),
 		price: decimal("price", { precision: 10, scale: 2 }).notNull(),
-		addedAt: timestamp("added_at").defaultNow().notNull(),
+		addedAt: timestamp("added_at", { withTimezone: true })
+			.defaultNow()
+			.notNull(),
 	},
 	(table) => [
 		index("cartItem_cartId_idx").on(table.cartId),
@@ -77,14 +77,13 @@ export const order = pgTable(
 		userId: text("user_id")
 			.notNull()
 			.references(() => user.id, { onDelete: "cascade" }),
-		totalAmount: decimal("total_amount", { precision: 10, scale: 2 }).notNull(),
+		totalAmount: decimal("total_amount", {
+			precision: 10,
+			scale: 2,
+		}).notNull(),
 		currency: text("currency").notNull(),
 		status: orderStatusEnum("status").notNull(),
-		createdAt: timestamp("created_at").defaultNow().notNull(),
-		updatedAt: timestamp("updated_at")
-			.defaultNow()
-			.$onUpdate(() => /* @__PURE__ */ new Date())
-			.notNull(),
+		...timestamps,
 	},
 	(table) => [
 		index("order_userId_idx").on(table.userId),
@@ -128,7 +127,7 @@ export const payment = pgTable(
 		amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
 		currency: text("currency").notNull(),
 		status: paymentStatusEnum("status").notNull(),
-		paidAt: timestamp("paid_at"),
+		paidAt: timestamp("paid_at", { withTimezone: true }),
 		failureReason: text("failure_reason"),
 	},
 	(table) => [
@@ -151,7 +150,9 @@ export const contentPurchase = pgTable(
 		userId: text("user_id")
 			.notNull()
 			.references(() => user.id, { onDelete: "cascade" }),
-		purchasedAt: timestamp("purchased_at").defaultNow().notNull(),
+		purchasedAt: timestamp("purchased_at", { withTimezone: true })
+			.defaultNow()
+			.notNull(),
 		price: decimal("price", { precision: 10, scale: 2 }).notNull(),
 		status: text("status").notNull(),
 		orderId: uuid("order_id").references(() => order.id, {
@@ -161,7 +162,10 @@ export const contentPurchase = pgTable(
 	(table) => [
 		index("contentPurchase_userId_idx").on(table.userId),
 		index("contentPurchase_contentId_idx").on(table.contentId),
-		index("contentPurchase_userContent_idx").on(table.userId, table.contentId),
+		unique("contentPurchase_userContent_unique").on(
+			table.userId,
+			table.contentId
+		),
 	]
 );
 
@@ -181,14 +185,16 @@ export const userLibrary = pgTable(
 		orderId: uuid("order_id")
 			.notNull()
 			.references(() => order.id, { onDelete: "cascade" }),
-		acquiredAt: timestamp("acquired_at").defaultNow().notNull(),
-		expiresAt: timestamp("expires_at"),
+		acquiredAt: timestamp("acquired_at", { withTimezone: true })
+			.defaultNow()
+			.notNull(),
+		expiresAt: timestamp("expires_at", { withTimezone: true }),
 	},
 	(table) => [
 		index("userLibrary_userId_idx").on(table.userId),
 		index("userLibrary_contentId_idx").on(table.contentId),
 		index("userLibrary_orderId_idx").on(table.orderId),
-		index("userLibrary_userContent_idx").on(table.userId, table.contentId),
+		unique("userLibrary_userContent_unique").on(table.userId, table.contentId),
 	]
 );
 

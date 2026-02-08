@@ -6,6 +6,7 @@ import {
 	pgTable,
 	text,
 	timestamp,
+	unique,
 	uuid,
 } from "drizzle-orm/pg-core";
 import { session, user } from "./auth";
@@ -23,8 +24,10 @@ export const streamingToken = pgTable(
 			.notNull()
 			.references(() => user.id, { onDelete: "cascade" }),
 		token: text("token").notNull().unique(),
-		expiresAt: timestamp("expires_at").notNull(),
-		createdAt: timestamp("created_at").defaultNow().notNull(),
+		expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+		createdAt: timestamp("created_at", { withTimezone: true })
+			.defaultNow()
+			.notNull(),
 		ipAddress: text("ip_address"),
 	},
 	(table) => [
@@ -51,16 +54,19 @@ export const watchProgress = pgTable(
 		lastPosition: bigint("last_position", { mode: "number" }).notNull(),
 		duration: bigint("duration", { mode: "number" }).notNull(),
 		isCompleted: boolean("is_completed").default(false).notNull(),
-		updatedAt: timestamp("updated_at")
+		updatedAt: timestamp("updated_at", { withTimezone: true })
 			.defaultNow()
-			.$onUpdate(() => /* @__PURE__ */ new Date())
+			.$onUpdate(() => new Date())
 			.notNull(),
 		deviceType: text("device_type"),
 	},
 	(table) => [
 		index("watchProgress_userId_idx").on(table.userId),
 		index("watchProgress_contentId_idx").on(table.contentId),
-		index("watchProgress_userContent_idx").on(table.userId, table.contentId),
+		unique("watchProgress_userContent_unique").on(
+			table.userId,
+			table.contentId
+		),
 		index("watchProgress_completed_idx").on(table.userId, table.isCompleted),
 	]
 );
@@ -75,10 +81,12 @@ export const contentView = pgTable(
 		userId: text("user_id").references(() => user.id, {
 			onDelete: "set null",
 		}),
-		sessionId: uuid("session_id").references(() => session.id, {
+		sessionId: text("session_id").references(() => session.id, {
 			onDelete: "set null",
 		}),
-		viewedAt: timestamp("viewed_at").defaultNow().notNull(),
+		viewedAt: timestamp("viewed_at", { withTimezone: true })
+			.defaultNow()
+			.notNull(),
 		watchDuration: bigint("watch_duration", { mode: "number" }).default(0),
 		deviceType: text("device_type"),
 	},

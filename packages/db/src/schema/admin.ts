@@ -20,7 +20,9 @@ export const adminAuditLog = pgTable(
 		entityType: text("entity_type").notNull(),
 		action: text("action").notNull(),
 		metadata: jsonb("metadata"),
-		createdAt: timestamp("created_at").defaultNow().notNull(),
+		createdAt: timestamp("created_at", { withTimezone: true })
+			.defaultNow()
+			.notNull(),
 		ipAddress: text("ip_address"),
 	},
 	(table) => [
