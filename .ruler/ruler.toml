@@ -1,6 +1,8 @@
 # Ruler Configuration File
 # See https://okigu.com/ruler for documentation.
 
+nested = true
+
 # Default agents to run when --agents is not specified
 default_agents = ["claude", "agentsmd", "copilot"]
 
