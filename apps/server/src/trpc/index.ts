@@ -1,5 +1,4 @@
 import { initTRPC, TRPCError } from "@trpc/server";
-
 import type { Context } from "./context";
 
 export const t = initTRPC.context<Context>().create();
@@ -21,5 +20,21 @@ export const protectedProcedure = t.procedure.use(({ ctx, next }) => {
 			...ctx,
 			session: ctx.session,
 		},
+	});
+});
+
+const adminRoles = new Set(["admin", "superadmin"]);
+
+export const adminProcedure = protectedProcedure.use(({ ctx, next }) => {
+	const role = ctx.session.user.role ?? "user";
+	if (!adminRoles.has(role)) {
+		throw new TRPCError({
+			code: "FORBIDDEN",
+			message: "Admin access required",
+			cause: "Insufficient role",
+		});
+	}
+	return next({
+		ctx,
 	});
 });

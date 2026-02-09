@@ -89,6 +89,15 @@ Integration tests:
 - Use deterministic seed data when needed.
 - Clean up data in `afterEach` / `afterAll` to avoid cross-test contamination.
 
+## Test Database (PGlite)
+
+Integration tests use an in-memory Postgres database via PGlite. Use the shared helpers to keep setup consistent:
+
+- Create and teardown a DB instance with `createTestDatabase()` from [src/__tests__/helpers/test-db.ts](src/__tests__/helpers/test-db.ts).
+- Reset tables between tests with `resetTestDatabase()` in the same helper file.
+- Use factory helpers in [src/__tests__/helpers/factories.ts](src/__tests__/helpers/factories.ts) to create users and sessions.
+- Migrations are loaded from [packages/db/src/migrations](packages/db/src/migrations); if you add migrations, tests should pick them up automatically.
+
 ## Service Layer Testing
 
 Service functions are tested without tRPC.

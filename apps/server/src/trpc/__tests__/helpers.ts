@@ -1,4 +1,4 @@
-import type { Context } from "../context";
+import type { Context } from "@/trpc/context";
 
 export function makeTestContext(overrides?: Partial<Context>): Context {
 	return {
@@ -7,7 +7,10 @@ export function makeTestContext(overrides?: Partial<Context>): Context {
 	};
 }
 
-export function makeAuthenticatedContext(userId: string): Context {
+export function makeAuthenticatedContext(
+	userId: string,
+	role = "user"
+): Context {
 	return {
 		session: {
 			user: {
@@ -16,6 +19,7 @@ export function makeAuthenticatedContext(userId: string): Context {
 				name: "Test User",
 				emailVerified: false,
 				image: null,
+				role,
 				banned: false,
 				createdAt: new Date(),
 				updatedAt: new Date(),
