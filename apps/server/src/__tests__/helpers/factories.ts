@@ -73,6 +73,14 @@ export async function createTestUser(
 	return row;
 }
 
+export function createTestAdminUser(
+	client: PGlite,
+	input: CreateUserInput = {}
+): Promise<typeof user.$inferSelect> {
+	const role = input.role ?? "admin";
+	return createTestUser(client, { ...input, role });
+}
+
 export interface CreateSessionInput {
 	id?: string;
 	userId: string;
@@ -149,4 +157,12 @@ export async function createAuthenticatedUser(
 	const session = await createTestSession(client, { userId: user.id });
 
 	return { user, session };
+}
+
+export function createAuthenticatedAdminUser(
+	client: PGlite,
+	userInput: CreateUserInput = {}
+): Promise<CreateAuthenticatedUserResult> {
+	const role = userInput.role ?? "admin";
+	return createAuthenticatedUser(client, { ...userInput, role });
 }

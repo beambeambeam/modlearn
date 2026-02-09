@@ -23,3 +23,19 @@ export const protectedProcedure = t.procedure.use(({ ctx, next }) => {
 		},
 	});
 });
+
+const adminRoles = new Set(["admin", "superadmin"]);
+
+export const adminProcedure = protectedProcedure.use(({ ctx, next }) => {
+	const role = ctx.session.user.role ?? "user";
+	if (!adminRoles.has(role)) {
+		throw new TRPCError({
+			code: "FORBIDDEN",
+			message: "Admin access required",
+			cause: "Insufficient role",
+		});
+	}
+	return next({
+		ctx,
+	});
+});
