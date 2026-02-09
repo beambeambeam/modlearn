@@ -1,7 +1,7 @@
 import { CreateBucketCommand, HeadBucketCommand } from "@aws-sdk/client-s3";
 import { beforeEach, describe, expect, it } from "vitest";
 import { S3_ERROR_CODES, S3StorageError } from "../s3-types";
-import { s3Mock } from "./mocks/s3-mock";
+import { s3Mock } from "./helpers/s3-mock";
 
 describe("S3 Bucket Operations", () => {
 	beforeEach(() => {

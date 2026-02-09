@@ -1,7 +1,7 @@
 import { S3Client } from "@aws-sdk/client-s3";
 import { beforeEach, describe, expect, it } from "vitest";
 import { s3Client } from "../s3-client";
-import { s3Mock } from "./mocks/s3-mock";
+import { s3Mock } from "./helpers/s3-mock";
 
 describe("S3 Client Initialization", () => {
 	beforeEach(() => {
