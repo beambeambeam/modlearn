@@ -1,6 +1,7 @@
 import { HeadObjectCommand } from "@aws-sdk/client-s3";
 import { beforeEach, describe, expect, it } from "vitest";
 import type { UploadUrlInput } from "../s3-types";
+import { S3_ERROR_CODES, S3StorageError } from "../s3-types";
 import { s3Mock } from "./mocks/s3-mock";
 
 describe("S3 Operations", () => {
@@ -120,6 +121,27 @@ describe("S3 Operations", () => {
 				generateUploadUrl(input as UploadUrlInput)
 			).rejects.toThrow();
 		});
+
+		it("should wrap Zod validation errors in S3StorageError with INVALID_KEY code", async () => {
+			const { generateUploadUrl } = await import("../s3-operations");
+
+			const input = {
+				key: "",
+				contentType: "image/jpeg",
+				contentLength: 1024,
+			};
+
+			await expect(
+				generateUploadUrl(input as UploadUrlInput)
+			).rejects.toSatisfy((error: unknown) => {
+				const err = error as S3StorageError;
+				return (
+					err instanceof S3StorageError &&
+					err.code === S3_ERROR_CODES.INVALID_KEY &&
+					err.message.includes("Invalid upload parameters")
+				);
+			});
+		});
 	});
 
 	describe("generateDownloadUrl", () => {
@@ -196,6 +218,21 @@ describe("S3 Operations", () => {
 				generateDownloadUrl({ key: "/invalid/key" })
 			).rejects.toThrow();
 		});
+
+		it("should wrap Zod validation errors in S3StorageError with INVALID_KEY code", async () => {
+			const { generateDownloadUrl } = await import("../s3-operations");
+
+			await expect(
+				generateDownloadUrl({ key: "/invalid/key" })
+			).rejects.toSatisfy((error: unknown) => {
+				const err = error as S3StorageError;
+				return (
+					err instanceof S3StorageError &&
+					err.code === S3_ERROR_CODES.INVALID_KEY &&
+					err.message.includes("Invalid download parameters")
+				);
+			});
+		});
 	});
 
 	describe("deleteObject", () => {
@@ -224,6 +261,40 @@ describe("S3 Operations", () => {
 			const { deleteObject } = await import("../s3-operations");
 
 			await expect(deleteObject({ key: "" })).rejects.toThrow();
+		});
+
+		it("should throw S3StorageError with ACCESS_DENIED code on access denied", async () => {
+			const { deleteObject } = await import("../s3-operations");
+
+			s3Mock.rejects({ name: "AccessDenied", message: "Access Denied" });
+
+			await expect(deleteObject({ key: "test/file.jpg" })).rejects.toSatisfy(
+				(error: unknown) => {
+					const err = error as S3StorageError;
+					return (
+						err instanceof S3StorageError &&
+						err.code === S3_ERROR_CODES.ACCESS_DENIED &&
+						err.message.includes("Access denied")
+					);
+				}
+			);
+		});
+
+		it("should throw S3StorageError with NETWORK_ERROR code on network error", async () => {
+			const { deleteObject } = await import("../s3-operations");
+
+			s3Mock.rejects({ name: "NetworkError", message: "Network Error" });
+
+			await expect(deleteObject({ key: "test/file.jpg" })).rejects.toSatisfy(
+				(error: unknown) => {
+					const err = error as S3StorageError;
+					return (
+						err instanceof S3StorageError &&
+						err.code === S3_ERROR_CODES.NETWORK_ERROR &&
+						err.message.includes("Network error")
+					);
+				}
+			);
 		});
 	});
 
