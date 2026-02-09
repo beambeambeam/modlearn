@@ -3,7 +3,7 @@ import {
 	protectedProcedure,
 	publicProcedure,
 	router,
-} from "@/trpc";
+} from "../index";
 
 export const appRouter = router({
 	healthCheck: publicProcedure.query(() => {
