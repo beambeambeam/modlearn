@@ -9,15 +9,6 @@ import {
 	S3StorageError,
 } from "./s3-types";
 
-/**
- * Check if Bucket Exists
- *
- * Verifies if an S3 bucket exists by attempting to HEAD the bucket.
- *
- * @param bucketName The name of the bucket to check
- * @returns true if bucket exists, false if it doesn't exist
- * @throws S3StorageError for access denied, network errors, or other failures
- */
 export async function bucketExists(bucketName: string): Promise<boolean> {
 	try {
 		const validated = bucketNameSchema.parse(bucketName);
@@ -77,16 +68,6 @@ export async function bucketExists(bucketName: string): Promise<boolean> {
 	}
 }
 
-/**
- * Create Bucket
- *
- * Creates a new S3 bucket. If the bucket already exists (globally or owned by you),
- * returns success but indicates it wasn't created.
- *
- * @param bucketName The name of the bucket to create
- * @returns CreateBucketResponse with success status and whether it was actually created
- * @throws S3StorageError for access denied or other failures
- */
 export async function createBucket(
 	bucketName: string
 ): Promise<CreateBucketResponse> {
@@ -148,16 +129,6 @@ export async function createBucket(
 	}
 }
 
-/**
- * Ensure Bucket Exists
- *
- * Idempotent operation that checks if a bucket exists and creates it if it doesn't.
- * Safe to call multiple times on server startup.
- *
- * @param bucketName The name of the bucket to ensure exists
- * @returns EnsureBucketExistsResponse with success status and whether it was created
- * @throws S3StorageError for access denied, network errors, or other failures
- */
 export async function ensureBucketExists(
 	bucketName: string
 ): Promise<EnsureBucketExistsResponse> {

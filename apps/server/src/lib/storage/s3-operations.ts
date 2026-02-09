@@ -22,15 +22,6 @@ import {
 	uploadUrlInputSchema,
 } from "./s3-types";
 
-/**
- * Generate Presigned Upload URL
- *
- * Creates a time-limited URL for uploading files directly to S3.
- * The client uploads directly to S3 without going through our server.
- *
- * @param params Upload parameters (key, contentType, contentLength, etc.)
- * @returns Presigned upload URL with expiration
- */
 export async function generateUploadUrl(
 	params: UploadUrlInput
 ): Promise<PresignedUploadResponse> {
@@ -67,15 +58,6 @@ export async function generateUploadUrl(
 	}
 }
 
-/**
- * Generate Presigned Download URL
- *
- * Creates a time-limited URL for downloading files from S3.
- * Supports optional filename suggestion and inline/attachment disposition.
- *
- * @param params Download parameters (key, optional filename, inline flag, expiration)
- * @returns Presigned download URL with expiration
- */
 export async function generateDownloadUrl(
 	params: DownloadUrlInput
 ): Promise<PresignedDownloadResponse> {
@@ -110,18 +92,6 @@ export async function generateDownloadUrl(
 	}
 }
 
-/**
- * Delete Object
- *
- * Deletes an object from S3 storage.
- * S3 DeleteObject is idempotent - succeeds even if object doesn't exist.
- *
- * IMPORTANT: Always soft-delete in database first, then hard-delete from S3.
- * This ensures data integrity if S3 deletion fails.
- *
- * @param params Object key to delete
- * @returns Success status
- */
 export async function deleteObject(params: {
 	key: string;
 }): Promise<DeleteObjectResponse> {
@@ -170,14 +140,6 @@ export async function deleteObject(params: {
 	}
 }
 
-/**
- * Check if Object Exists
- *
- * Verifies if an object exists in S3 and retrieves its metadata.
- *
- * @param params Object key to check
- * @returns Existence status and metadata (if exists)
- */
 export async function objectExists(params: {
 	key: string;
 }): Promise<ObjectExistsResponse> {

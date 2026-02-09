@@ -1,14 +1,10 @@
 import { z } from "zod";
 
 /**
- * S3 Key Validation
- *
  * S3 keys must:
  * - Be 1-1024 characters long
  * - Use safe characters: alphanumeric, !, -, _, ., *, ', (, ), /
  * - Not start or end with slashes (enforced by refine)
- *
- * Reference: https://docs.aws.amazon.com/AmazonS3/latest/userguide/object-keys.html
  */
 export const s3KeySchema = z
 	.string()
@@ -23,12 +19,6 @@ export const s3KeySchema = z
 		"S3 key cannot start or end with a slash"
 	);
 
-/**
- * Allowed Content Types
- *
- * Restricts uploads to specific MIME types for security.
- * Prevents MIME confusion attacks and ensures only expected file types are stored.
- */
 export const ALLOWED_CONTENT_TYPES = [
 	"image/jpeg",
 	"image/png",
@@ -41,28 +31,13 @@ export const ALLOWED_CONTENT_TYPES = [
 	"text/plain",
 ] as const;
 
-/**
- * File Size Limits
- *
- * Maximum file size: 500 MB (suitable for video files)
- * Adjust based on your infrastructure and use case.
- */
 export const MAX_FILE_SIZE = 500 * 1024 * 1024; // 500 MB in bytes
 
-/**
- * Presigned URL Expiration Times (in seconds)
- */
 export const DEFAULT_UPLOAD_EXPIRATION = 900; // 15 minutes
 export const DEFAULT_DOWNLOAD_EXPIRATION = 3600; // 1 hour
 export const MAX_UPLOAD_EXPIRATION = 3600; // 1 hour max
 export const MAX_DOWNLOAD_EXPIRATION = 86_400; // 24 hours max
 
-/**
- * Upload URL Input Schema
- *
- * Validates parameters for generating a presigned upload URL.
- * Enforces content-type restrictions and file size limits.
- */
 export const uploadUrlInputSchema = z.object({
 	key: s3KeySchema,
 	contentType: z
@@ -92,11 +67,6 @@ export const uploadUrlInputSchema = z.object({
 
 export type UploadUrlInput = z.input<typeof uploadUrlInputSchema>;
 
-/**
- * Download URL Input Schema
- *
- * Validates parameters for generating a presigned download URL.
- */
 export const downloadUrlInputSchema = z.object({
 	key: s3KeySchema,
 	expiresIn: z
@@ -112,11 +82,6 @@ export const downloadUrlInputSchema = z.object({
 
 export type DownloadUrlInput = z.input<typeof downloadUrlInputSchema>;
 
-/**
- * Object Metadata
- *
- * Information returned when checking if an object exists.
- */
 export interface ObjectMetadata {
 	size: number;
 	contentType: string;
@@ -124,42 +89,27 @@ export interface ObjectMetadata {
 	etag: string;
 }
 
-/**
- * Presigned Upload Response
- */
 export interface PresignedUploadResponse {
 	uploadUrl: string;
 	key: string;
 	expiresAt: Date;
 }
 
-/**
- * Presigned Download Response
- */
 export interface PresignedDownloadResponse {
 	downloadUrl: string;
 	expiresAt: Date;
 }
 
-/**
- * Object Exists Response
- */
 export interface ObjectExistsResponse {
 	exists: boolean;
 	metadata?: ObjectMetadata;
 }
 
-/**
- * Delete Object Response
- */
 export interface DeleteObjectResponse {
 	success: boolean;
 	key: string;
 }
 
-/**
- * S3 Storage Error Codes
- */
 export const S3_ERROR_CODES = {
 	INVALID_KEY: "INVALID_KEY",
 	INVALID_CONTENT_TYPE: "INVALID_CONTENT_TYPE",
@@ -173,11 +123,6 @@ export const S3_ERROR_CODES = {
 
 export type S3ErrorCode = (typeof S3_ERROR_CODES)[keyof typeof S3_ERROR_CODES];
 
-/**
- * Custom S3 Storage Error
- *
- * Wraps AWS SDK errors with semantic error codes.
- */
 export class S3StorageError extends Error {
 	code: S3ErrorCode;
 	override cause?: unknown;
@@ -190,16 +135,6 @@ export class S3StorageError extends Error {
 	}
 }
 
-/**
- * Bucket Name Validation
- *
- * S3 bucket names must:
- * - Be 3-63 characters long
- * - Consist only of lowercase letters, numbers, hyphens, and underscores
- * - Start and end with a letter or number
- *
- * Reference: https://docs.aws.amazon.com/AmazonS3/latest/userguide/bucketnamingrules.html
- */
 export const bucketNameSchema = z
 	.string()
 	.min(3, "Bucket name must be at least 3 characters")
@@ -209,16 +144,10 @@ export const bucketNameSchema = z
 		"Bucket name must be lowercase alphanumeric with hyphens"
 	);
 
-/**
- * Create Bucket Response
- */
 export interface CreateBucketResponse {
 	success: boolean;
 	bucketName: string;
 	created: boolean;
 }
 
-/**
- * Ensure Bucket Exists Response
- */
 export interface EnsureBucketExistsResponse extends CreateBucketResponse {}
