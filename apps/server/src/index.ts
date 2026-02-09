@@ -3,7 +3,7 @@ import { auth } from "@modlearn/auth";
 import { env } from "@modlearn/env/server";
 import { fetchRequestHandler } from "@trpc/server/adapters/fetch";
 import { Elysia } from "elysia";
-import { ensureBucketExists } from "./lib/storage";
+import { ensureBucketExists } from "@/lib/storage/s3-bucket";
 import { createContext } from "./trpc/context";
 import { appRouter } from "./trpc/routers/index";
 
