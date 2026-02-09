@@ -1,5 +1,5 @@
 import type { DbClient } from "@modlearn/db/orm";
-import { and, eq } from "@modlearn/db/orm";
+import { sql } from "@modlearn/db/orm";
 import { file, storage } from "@modlearn/db/schema/index";
 import { env } from "@modlearn/env/server";
 import {
@@ -61,17 +61,27 @@ export function createFileUploadRequest(
 	const { db, input } = params;
 
 	return db.transaction(async (tx) => {
-		const [insertedFile] = await tx
-			.insert(file)
-			.values({
-				uploaderId: input.uploaderId,
-				name: input.name,
-				size: input.size,
-				mimeType: input.mimeType,
-				extension: input.extension,
-				checksum: input.checksum,
-			})
-			.returning();
+		const insertResult = await tx.execute(
+			sql`
+				insert into ${file} (
+					${sql.identifier(file.uploaderId.name)},
+					${sql.identifier(file.name.name)},
+					${sql.identifier(file.size.name)},
+					${sql.identifier(file.mimeType.name)},
+					${sql.identifier(file.extension.name)},
+					${sql.identifier(file.checksum.name)}
+				) values (
+					${input.uploaderId},
+					${input.name},
+					${input.size},
+					${input.mimeType},
+					${input.extension},
+					${input.checksum}
+				)
+				returning ${file.id} as "id"
+			`
+		);
+		const insertedFile = insertResult.rows[0] as { id: string } | undefined;
 
 		if (!insertedFile?.id) {
 			throw new Error("Failed to create file record");
@@ -79,12 +89,21 @@ export function createFileUploadRequest(
 
 		const storageKey = `files/${insertedFile.id}.${input.extension}`;
 
-		await tx.insert(storage).values({
-			fileId: insertedFile.id,
-			storageProvider: STORAGE_PROVIDER,
-			bucket: env.S3_BUCKET_NAME,
-			storageKey,
-		});
+		await tx.execute(
+			sql`
+				insert into ${storage} (
+					${sql.identifier(storage.fileId.name)},
+					${sql.identifier(storage.storageProvider.name)},
+					${sql.identifier(storage.bucket.name)},
+					${sql.identifier(storage.storageKey.name)}
+				) values (
+					${insertedFile.id},
+					${STORAGE_PROVIDER},
+					${env.S3_BUCKET_NAME},
+					${storageKey}
+				)
+			`
+		);
 
 		const presigned = await generateUploadUrl({
 			key: storageKey,
@@ -107,10 +126,18 @@ export async function createFileDownloadUrl(
 ): Promise<CreateFileDownloadUrlResult> {
 	const { db, fileId } = params;
 
-	const [fileRow] = await db
-		.select({ id: file.id, isDeleted: file.isDeleted })
-		.from(file)
-		.where(eq(file.id, fileId));
+	const fileResult = await db.execute(
+		sql`
+			select
+				${file.id} as "id",
+				${file.isDeleted} as "isDeleted"
+			from ${file}
+			where ${file.id} = ${fileId}
+		`
+	);
+	const fileRow = fileResult.rows[0] as
+		| { id: string; isDeleted: boolean }
+		| undefined;
 
 	if (!fileRow) {
 		throw new Error("File not found");
@@ -120,15 +147,17 @@ export async function createFileDownloadUrl(
 		throw new Error("File is deleted");
 	}
 
-	const [storageRow] = await db
-		.select({ storageKey: storage.storageKey })
-		.from(storage)
-		.where(
-			and(
-				eq(storage.fileId, fileId),
-				eq(storage.storageProvider, STORAGE_PROVIDER)
-			)
-		);
+	const storageResult = await db.execute(
+		sql`
+			select ${storage.storageKey} as "storageKey"
+			from ${storage}
+			where ${storage.fileId} = ${fileId}
+				and ${storage.storageProvider} = ${STORAGE_PROVIDER}
+		`
+	);
+	const storageRow = storageResult.rows[0] as
+		| { storageKey: string }
+		| undefined;
 
 	if (!storageRow) {
 		throw new Error("Storage record not found");
@@ -151,10 +180,18 @@ export function deleteFile(
 	const { db, fileId } = params;
 
 	return db.transaction(async (tx) => {
-		const [fileRow] = await tx
-			.select({ id: file.id, isDeleted: file.isDeleted })
-			.from(file)
-			.where(eq(file.id, fileId));
+		const fileResult = await tx.execute(
+			sql`
+				select
+					${file.id} as "id",
+					${file.isDeleted} as "isDeleted"
+				from ${file}
+				where ${file.id} = ${fileId}
+			`
+		);
+		const fileRow = fileResult.rows[0] as
+			| { id: string; isDeleted: boolean }
+			| undefined;
 
 		if (!fileRow) {
 			throw new Error("File not found");
@@ -164,15 +201,17 @@ export function deleteFile(
 			throw new Error("File is already deleted");
 		}
 
-		const [storageRow] = await tx
-			.select({ storageKey: storage.storageKey })
-			.from(storage)
-			.where(
-				and(
-					eq(storage.fileId, fileId),
-					eq(storage.storageProvider, STORAGE_PROVIDER)
-				)
-			);
+		const storageResult = await tx.execute(
+			sql`
+				select ${storage.storageKey} as "storageKey"
+				from ${storage}
+				where ${storage.fileId} = ${fileId}
+					and ${storage.storageProvider} = ${STORAGE_PROVIDER}
+			`
+		);
+		const storageRow = storageResult.rows[0] as
+			| { storageKey: string }
+			| undefined;
 
 		if (!storageRow) {
 			throw new Error("Storage record not found");
@@ -182,10 +221,15 @@ export function deleteFile(
 
 		const deletedAt = new Date();
 
-		await tx
-			.update(file)
-			.set({ isDeleted: true, deletedAt })
-			.where(eq(file.id, fileId));
+		await tx.execute(
+			sql`
+				update ${file}
+				set
+					${sql.identifier(file.isDeleted.name)} = ${true},
+					${sql.identifier(file.deletedAt.name)} = ${deletedAt}
+				where ${file.id} = ${fileId}
+			`
+		);
 
 		return {
 			fileId,
