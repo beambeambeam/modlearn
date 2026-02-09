@@ -52,12 +52,7 @@ export async function createTestDatabase(): Promise<TestDatabase> {
 	};
 }
 
-/**
- * Resets all data in the test database
- * Useful for cleaning between tests while keeping the same DB instance
- */
 export async function resetTestDatabase(client: PGlite): Promise<void> {
-	// Get all table names from the schema
 	const tables = [
 		"account",
 		"session",

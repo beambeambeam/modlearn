@@ -1,11 +1,6 @@
 import type { PGlite } from "@electric-sql/pglite";
 import type { session, user } from "@modlearn/db/schema/auth";
 
-/**
- * Test factories for creating database records
- * These helpers make it easy to seed test data with sensible defaults
- */
-
 export interface CreateUserInput {
 	id?: string;
 	name?: string;
@@ -145,10 +140,6 @@ export interface CreateAuthenticatedUserResult {
 	session: typeof session.$inferSelect;
 }
 
-/**
- * Creates a user with an active session
- * Useful for testing authenticated endpoints
- */
 export async function createAuthenticatedUser(
 	client: PGlite,
 	userInput: CreateUserInput = {}
