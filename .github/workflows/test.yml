@@ -1,24 +1,26 @@
-name: Server Tests
+name: Tests
 
 on:
   push:
     branches: [main, docs/**]
     paths:
       - "apps/server/**"
+      - "apps/web/**"
       - "packages/**"
       - "bun.lockb"
-      - ".github/workflows/test-server.yml"
+      - ".github/workflows/test.yml"
   pull_request:
     branches: [main]
     paths:
       - "apps/server/**"
+      - "apps/web/**"
       - "packages/**"
       - "bun.lockb"
-      - ".github/workflows/test-server.yml"
+      - ".github/workflows/test.yml"
 
 jobs:
   test:
-    name: Run Server Tests
+    name: Run Web + Server Tests
     runs-on: ubuntu-latest
 
     steps:
@@ -37,6 +39,14 @@ jobs:
         run: bun run test
         working-directory: ./apps/server
 
-      - name: Run type check
+      - name: Run server type check
         run: bun run check-types
         working-directory: ./apps/server
+
+      - name: Run web tests
+        run: bun run test
+        working-directory: ./apps/web
+
+      - name: Run web type check
+        run: bun run check-types
+        working-directory: ./apps/web
