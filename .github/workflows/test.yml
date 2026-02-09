@@ -20,7 +20,7 @@ on:
 
 jobs:
   test:
-    name: Run Web + Server Tests
+    name: Tests
     runs-on: ubuntu-latest
 
     steps:
