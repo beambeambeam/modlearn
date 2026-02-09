@@ -1,8 +1,8 @@
 import { HeadObjectCommand } from "@aws-sdk/client-s3";
 import { beforeEach, describe, expect, it } from "vitest";
-import type { UploadUrlInput } from "../s3-types";
-import { S3_ERROR_CODES, S3StorageError } from "../s3-types";
-import { s3Mock } from "./helpers/s3-mock";
+import { s3Mock } from "@/lib/storage/__tests__/helpers/s3-mock";
+import type { UploadUrlInput } from "@/lib/storage/s3-types";
+import { S3_ERROR_CODES, S3StorageError } from "@/lib/storage/s3-types";
 
 describe("S3 Operations", () => {
 	beforeEach(() => {

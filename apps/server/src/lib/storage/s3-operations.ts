@@ -7,7 +7,7 @@ import {
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { env } from "@modlearn/env/server";
 import { z } from "zod";
-import { s3Client } from "./s3-client";
+import { s3Client } from "@/lib/storage/s3-client";
 import {
 	type DeleteObjectResponse,
 	type DownloadUrlInput,
@@ -20,7 +20,7 @@ import {
 	s3KeySchema,
 	type UploadUrlInput,
 	uploadUrlInputSchema,
-} from "./s3-types";
+} from "@/lib/storage/s3-types";
 
 export async function generateUploadUrl(
 	params: UploadUrlInput

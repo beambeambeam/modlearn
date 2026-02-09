@@ -1,4 +1,4 @@
-import type { Context } from "../context";
+import type { Context } from "@/trpc/context";
 
 export function makeTestContext(overrides?: Partial<Context>): Context {
 	return {

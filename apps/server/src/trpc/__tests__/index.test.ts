@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { publicProcedure, router } from "../index";
-import { appRouter } from "../routers/index";
+import { publicProcedure, router } from "@/trpc";
+import { appRouter } from "@/trpc/routers";
 import { makeAuthenticatedContext, makeTestContext } from "./helpers";
 
 describe("trpc procedures", () => {

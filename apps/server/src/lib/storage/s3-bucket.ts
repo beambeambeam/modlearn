@@ -1,13 +1,13 @@
 import { CreateBucketCommand, HeadBucketCommand } from "@aws-sdk/client-s3";
 import { z } from "zod";
-import { s3Client } from "./s3-client";
+import { s3Client } from "@/lib/storage/s3-client";
 import {
 	bucketNameSchema,
 	type CreateBucketResponse,
 	type EnsureBucketExistsResponse,
 	S3_ERROR_CODES,
 	S3StorageError,
-} from "./s3-types";
+} from "@/lib/storage/s3-types";
 
 export async function bucketExists(bucketName: string): Promise<boolean> {
 	try {

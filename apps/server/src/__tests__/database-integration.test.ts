@@ -3,13 +3,13 @@ import {
 	createAuthenticatedUser,
 	createTestUser,
 } from "@/__tests__/helpers/factories";
-import { makeTestContext } from "@/trpc/__tests__/helpers";
-import { appRouter } from "@/trpc/routers/index";
 import {
 	createTestDatabase,
 	resetTestDatabase,
 	type TestDatabase,
-} from "./helpers/test-db";
+} from "@/__tests__/helpers/test-db";
+import { makeTestContext } from "@/trpc/__tests__/helpers";
+import { appRouter } from "@/trpc/routers/index";
 
 describe("Database Integration Example", () => {
 	let testDb: TestDatabase;
