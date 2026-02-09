@@ -21,8 +21,12 @@
  * ```
  */
 
-// Core operations
 // biome-ignore lint/performance/noBarrelFile: Intentional public API surface
+export {
+	bucketExists,
+	createBucket,
+	ensureBucketExists,
+} from "./s3-bucket";
 export {
 	deleteObject,
 	generateDownloadUrl,
@@ -32,8 +36,10 @@ export {
 
 // Types
 export type {
+	CreateBucketResponse,
 	DeleteObjectResponse,
 	DownloadUrlInput,
+	EnsureBucketExistsResponse,
 	ObjectExistsResponse,
 	ObjectMetadata,
 	PresignedDownloadResponse,
@@ -41,10 +47,11 @@ export type {
 	S3ErrorCode,
 	UploadUrlInput,
 } from "./s3-types";
-// Constants
-// Error class
+
+// Constants and error class
 export {
 	ALLOWED_CONTENT_TYPES,
+	bucketNameSchema,
 	DEFAULT_DOWNLOAD_EXPIRATION,
 	DEFAULT_UPLOAD_EXPIRATION,
 	MAX_DOWNLOAD_EXPIRATION,

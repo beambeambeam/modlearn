@@ -165,6 +165,7 @@ export const S3_ERROR_CODES = {
 	INVALID_CONTENT_TYPE: "INVALID_CONTENT_TYPE",
 	FILE_TOO_LARGE: "FILE_TOO_LARGE",
 	OBJECT_NOT_FOUND: "OBJECT_NOT_FOUND",
+	BUCKET_NOT_FOUND: "BUCKET_NOT_FOUND",
 	ACCESS_DENIED: "ACCESS_DENIED",
 	NETWORK_ERROR: "NETWORK_ERROR",
 	UNKNOWN_ERROR: "UNKNOWN_ERROR",
@@ -188,3 +189,36 @@ export class S3StorageError extends Error {
 		this.cause = cause;
 	}
 }
+
+/**
+ * Bucket Name Validation
+ *
+ * S3 bucket names must:
+ * - Be 3-63 characters long
+ * - Consist only of lowercase letters, numbers, hyphens, and underscores
+ * - Start and end with a letter or number
+ *
+ * Reference: https://docs.aws.amazon.com/AmazonS3/latest/userguide/bucketnamingrules.html
+ */
+export const bucketNameSchema = z
+	.string()
+	.min(3, "Bucket name must be at least 3 characters")
+	.max(63, "Bucket name must be at most 63 characters")
+	.regex(
+		/^[a-z0-9][a-z0-9-]*[a-z0-9]$/,
+		"Bucket name must be lowercase alphanumeric with hyphens"
+	);
+
+/**
+ * Create Bucket Response
+ */
+export interface CreateBucketResponse {
+	success: boolean;
+	bucketName: string;
+	created: boolean;
+}
+
+/**
+ * Ensure Bucket Exists Response
+ */
+export interface EnsureBucketExistsResponse extends CreateBucketResponse {}
