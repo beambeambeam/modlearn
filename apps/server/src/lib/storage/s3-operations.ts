@@ -28,12 +28,6 @@ import {
  * Creates a time-limited URL for uploading files directly to S3.
  * The client uploads directly to S3 without going through our server.
  *
- * Security features:
- * - Content-Type enforcement prevents MIME confusion attacks
- * - Content-Length requirement prevents oversized uploads
- * - Checksum validation ensures file integrity
- * - Short expiration (default 15 min) limits abuse window
- *
  * @param params Upload parameters (key, contentType, contentLength, etc.)
  * @returns Presigned upload URL with expiration
  */
@@ -180,11 +174,6 @@ export async function deleteObject(params: {
  * Check if Object Exists
  *
  * Verifies if an object exists in S3 and retrieves its metadata.
- *
- * Use cases:
- * - Verify upload succeeded
- * - Check file exists before generating download URL
- * - Deduplication checks (compare metadata)
  *
  * @param params Object key to check
  * @returns Existence status and metadata (if exists)

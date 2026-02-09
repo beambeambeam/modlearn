@@ -3,13 +3,6 @@ import { env } from "@modlearn/env/server";
 
 /**
  * S3 Client Configuration
- *
- * Configured for S3-compatible storage (RustFS/MinIO).
- * Features:
- * - Path-style URLs (required for RustFS)
- * - Adaptive retry strategy (max 3 attempts)
- * - Connection and request timeouts
- * - Development logging
  */
 export const s3Client = new S3Client({
 	region: env.S3_REGION,

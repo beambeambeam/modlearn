@@ -4,10 +4,6 @@
  * Provides presigned URL-based file upload/download for S3-compatible storage.
  * Uses RustFS (S3-compatible storage) running on port 9000.
  *
- * Architecture:
- * - Clients upload/download directly to/from S3 using presigned URLs
- * - Server never handles file data (better scalability, lower latency)
- * - All S3 credentials stay server-side (security boundary)
  *
  * @example
  * ```typescript
