@@ -8,6 +8,7 @@ export default defineConfig({
 		environment: "node",
 		include: ["**/*.test.ts", "**/*.spec.ts"],
 		exclude: ["**/node_modules/**", "**/dist/**", "**/.turbo/**"],
+		setupFiles: ["./src/__tests__/setup.ts"],
 		isolate: true,
 		coverage: {
 			provider: "v8",
