@@ -110,7 +110,7 @@ PostgreSQL
 
 ## Authentication
 
-Better Auth is pre-configured in the `packages/auth` workspace. The server exposes auth endpoints at `/api/auth/*`.
+Better Auth is pre-configured in the `apps/server/src/lib/auth` module. The server exposes auth endpoints at `/api/auth/*`.
 
 ### Available Auth Methods
 
@@ -122,7 +122,7 @@ Better Auth is pre-configured in the `packages/auth` workspace. The server expos
 ### Protecting Routes
 
 ```typescript
-import { auth } from '@modlearn/auth';
+import { auth } from '@/lib/auth';
 
 // In your tRPC router or Elysia route
 export const protectedRoute = new Elysia()
@@ -138,8 +138,8 @@ export const protectedRoute = new Elysia()
 ### Using Drizzle ORM
 
 ```typescript
-import { db } from '@modlearn/db';
-import { courses } from '@modlearn/db/schema';
+import { db } from '@/lib/db';
+import { courses } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 
 // Query
@@ -182,10 +182,10 @@ bun run db:seed       # Run database seeds
 
 ## Adding tRPC Procedures
 
-Create new API endpoints by adding routers in `packages/api/src/routers/`:
+Create new API endpoints by adding routers in `apps/server/src/trpc/routers/`:
 
 ```typescript
-// packages/api/src/routers/course.ts
+// apps/server/src/trpc/routers/course.ts
 import { z } from 'zod';
 import { router, procedure } from '../trpc';
 
@@ -213,10 +213,10 @@ export const courseRouter = router({
 });
 ```
 
-Then register the router in the main app:
+Then register the router in the main app router:
 
 ```typescript
-// packages/api/src/index.ts
+// apps/server/src/trpc/routers/index.ts
 import { courseRouter } from './routers/course';
 
 export const appRouter = router({

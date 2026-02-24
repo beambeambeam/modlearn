@@ -34,22 +34,25 @@
         "@elysiajs/cors": "^1.4.1",
         "@elysiajs/trpc": "^1.1.0",
         "@hono/trpc-server": "^0.4.0",
-        "@modlearn/auth": "workspace:*",
-        "@modlearn/db": "workspace:*",
         "@modlearn/env": "workspace:*",
         "@trpc/client": "catalog:",
         "@trpc/server": "catalog:",
         "better-auth": "catalog:",
         "dotenv": "catalog:",
+        "drizzle-orm": "^0.45.1",
         "elysia": "catalog:",
+        "pg": "^8.17.1",
         "zod": "catalog:",
       },
       "devDependencies": {
+        "@better-auth/cli": "catalog:",
         "@modlearn/config": "workspace:*",
         "@types/bun": "catalog:",
+        "@types/pg": "^8.16.0",
         "@vitest/coverage-v8": "^2.0.5",
         "@vitest/ui": "^2.0.5",
         "aws-sdk-client-mock": "^4.1.0",
+        "drizzle-kit": "^0.31.8",
         "tsdown": "^0.16.5",
         "typescript": "catalog:",
         "vite": "^6.0.0",
@@ -63,7 +66,6 @@
       "dependencies": {
         "@base-ui/react": "^1.0.0",
         "@hookform/resolvers": "^5.1.1",
-        "@modlearn/auth": "workspace:*",
         "@modlearn/env": "workspace:*",
         "@tailwindcss/vite": "^4.0.15",
         "@tanstack/react-form": "^1.12.3",
@@ -104,41 +106,9 @@
         "vitest": "^2.1.5",
       },
     },
-    "packages/auth": {
-      "name": "@modlearn/auth",
-      "dependencies": {
-        "@modlearn/db": "workspace:*",
-        "@modlearn/env": "workspace:*",
-        "better-auth": "catalog:",
-        "dotenv": "catalog:",
-        "zod": "catalog:",
-      },
-      "devDependencies": {
-        "@modlearn/config": "workspace:*",
-        "typescript": "catalog:",
-      },
-    },
     "packages/config": {
       "name": "@modlearn/config",
       "version": "0.0.0",
-    },
-    "packages/db": {
-      "name": "@modlearn/db",
-      "dependencies": {
-        "@modlearn/env": "workspace:*",
-        "better-auth": "catalog:",
-        "dotenv": "catalog:",
-        "drizzle-orm": "^0.45.1",
-        "pg": "^8.17.1",
-        "zod": "catalog:",
-      },
-      "devDependencies": {
-        "@better-auth/cli": "catalog:",
-        "@modlearn/config": "workspace:*",
-        "@types/pg": "^8.16.0",
-        "drizzle-kit": "^0.31.8",
-        "typescript": "catalog:",
-      },
     },
     "packages/env": {
       "name": "@modlearn/env",
@@ -531,11 +501,7 @@
 
     "@modelcontextprotocol/sdk": ["@modelcontextprotocol/sdk@1.26.0", "", { "dependencies": { "@hono/node-server": "^1.19.9", "ajv": "^8.17.1", "ajv-formats": "^3.0.1", "content-type": "^1.0.5", "cors": "^2.8.5", "cross-spawn": "^7.0.5", "eventsource": "^3.0.2", "eventsource-parser": "^3.0.0", "express": "^5.2.1", "express-rate-limit": "^8.2.1", "hono": "^4.11.4", "jose": "^6.1.3", "json-schema-typed": "^8.0.2", "pkce-challenge": "^5.0.0", "raw-body": "^3.0.0", "zod": "^3.25 || ^4.0", "zod-to-json-schema": "^3.25.1" }, "peerDependencies": { "@cfworker/json-schema": "^4.1.1" }, "optionalPeers": ["@cfworker/json-schema"] }, "sha512-Y5RmPncpiDtTXDbLKswIJzTqu2hyBKxTNsgKqKclDbhIgg1wgtf1fRuvxgTnRfcnxtvvgbIEcqUOzZrJ6iSReg=="],
 
-    "@modlearn/auth": ["@modlearn/auth@workspace:packages/auth"],
-
     "@modlearn/config": ["@modlearn/config@workspace:packages/config"],
-
-    "@modlearn/db": ["@modlearn/db@workspace:packages/db"],
 
     "@modlearn/env": ["@modlearn/env@workspace:packages/env"],
 

@@ -5,13 +5,13 @@ import dotenv from "dotenv";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-const envPath = resolve(__dirname, "../../apps/server/.env");
+const envPath = resolve(__dirname, ".env");
 
 dotenv.config({
 	path: envPath,
 	override: true,
 });
 
-const authModule = (await import("../auth/src/index")) as { auth: unknown };
+const authModule = (await import("./src/lib/auth/index")) as { auth: unknown };
 
 export const auth = authModule.auth;

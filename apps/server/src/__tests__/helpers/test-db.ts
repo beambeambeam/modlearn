@@ -1,12 +1,9 @@
 import { existsSync } from "node:fs";
-import { resolve } from "node:path";
-import { fileURLToPath } from "node:url";
+import path from "node:path";
 import { PGlite } from "@electric-sql/pglite";
-import { drizzle, migrate } from "@modlearn/db/pglite";
+import { drizzle, migrate } from "@/lib/db/pglite";
 // biome-ignore lint/performance/noNamespaceImport: Drizzle schema registration needs the full module.
-import * as schema from "@modlearn/db/schema/index";
-
-const __dirname = fileURLToPath(new URL(".", import.meta.url));
+import * as schema from "@/lib/db/schema/index";
 
 export interface TestDatabase {
 	db: ReturnType<typeof drizzle<typeof schema>>;
@@ -14,36 +11,17 @@ export interface TestDatabase {
 	cleanup: () => Promise<void>;
 }
 
-/**
- * Creates a test database with PGlite (in-memory PostgreSQL)
- * Usage:
- * ```ts
- * let testDb: TestDatabase;
- *
- * beforeAll(async () => {
- *   testDb = await createTestDatabase();
- * });
- *
- * afterAll(async () => {
- *   await testDb.cleanup();
- * });
- * ```
- */
-function findMigrationsFolder(): string {
-	const candidates = [
-		resolve(process.cwd(), "packages/db/src/migrations"),
-		resolve(__dirname, "../../../../..", "packages/db/src/migrations"),
-		resolve(__dirname, "../../../../../..", "packages/db/src/migrations"),
-	];
-
-	for (const candidate of candidates) {
-		if (existsSync(resolve(candidate, "meta/_journal.json"))) {
-			return candidate;
-		}
-	}
-
-	return candidates[0] ?? resolve(process.cwd(), "packages/db/src/migrations");
-}
+const ROOT_MIGRATIONS_FOLDER = path.resolve(
+	process.cwd(),
+	"apps/server/src/lib/db/migrations"
+);
+const SERVER_CWD_MIGRATIONS_FOLDER = path.resolve(
+	process.cwd(),
+	"src/lib/db/migrations"
+);
+const MIGRATIONS_FOLDER = existsSync(ROOT_MIGRATIONS_FOLDER)
+	? ROOT_MIGRATIONS_FOLDER
+	: SERVER_CWD_MIGRATIONS_FOLDER;
 
 export async function createTestDatabase(): Promise<TestDatabase> {
 	// Create in-memory PostgreSQL instance
@@ -52,9 +30,8 @@ export async function createTestDatabase(): Promise<TestDatabase> {
 	// Create drizzle instance with schema
 	const db = drizzle(client, { schema });
 
-	// Run migrations from packages/db/src/migrations
-	const migrationsFolder = findMigrationsFolder();
-	await migrate(db, { migrationsFolder });
+	// Bootstrap schema in the in-memory test database.
+	await migrate(db, { migrationsFolder: MIGRATIONS_FOLDER });
 
 	return {
 		db,

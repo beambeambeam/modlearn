@@ -1,5 +1,3 @@
-import { eq } from "@modlearn/db/orm";
-import { file, storage } from "@modlearn/db/schema/index";
 import {
 	afterAll,
 	beforeAll,
@@ -15,6 +13,8 @@ import {
 	resetTestDatabase,
 	type TestDatabase,
 } from "@/__tests__/helpers/test-db";
+import { eq } from "@/lib/db/orm";
+import { file, storage } from "@/lib/db/schema/index";
 import {
 	deleteObject,
 	generateDownloadUrl,

@@ -1,10 +1,10 @@
-import { db } from "@modlearn/db";
-// biome-ignore lint/performance/noNamespaceImport: Import all for the adapater
-import * as schema from "@modlearn/db/schema/auth";
 import { env } from "@modlearn/env/server";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { admin as adminPlugin, username } from "better-auth/plugins";
+import { db } from "../db";
+// biome-ignore lint/performance/noNamespaceImport: Import all for the adapater
+import * as schema from "../db/schema/auth";
 import { ac, roles } from "./roles";
 
 export const auth = betterAuth({

@@ -1,5 +1,5 @@
 import type { PGlite } from "@electric-sql/pglite";
-import type { session, user } from "@modlearn/db/schema/auth";
+import type { session, user } from "@/lib/db/schema/auth";
 
 export interface CreateUserInput {
 	id?: string;
