@@ -43,9 +43,7 @@ vi.mock("@/lib/storage/s3-operations", () => ({
 	})),
 }));
 
-// TODO: Re-enable after new db migrations/bootstrap are in place.
-// biome-ignore lint/suspicious/noSkippedTests: Migration bootstrap is intentionally disabled for now.
-describe.skip("file service", () => {
+describe("file service", () => {
 	let testDb: TestDatabase;
 
 	beforeAll(async () => {

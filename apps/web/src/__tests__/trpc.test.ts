@@ -1,5 +1,4 @@
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
-import { trpcClient } from "@/utils/trpc";
 
 const serverUrl = "http://localhost:3000/trpc";
 
@@ -17,6 +16,9 @@ afterEach(() => {
 });
 
 it("calls /trpc and returns healthCheck result", async () => {
+	process.env.VITE_SERVER_URL = "http://localhost:3000";
+	const { trpcClient } = await import("@/utils/trpc");
+
 	const fetchMock = vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
 		const url = typeof input === "string" ? input : input.toString();
 		const parsedUrl = new URL(url);

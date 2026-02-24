@@ -182,10 +182,10 @@ bun run db:seed       # Run database seeds
 
 ## Adding tRPC Procedures
 
-Create new API endpoints by adding routers in `packages/api/src/routers/`:
+Create new API endpoints by adding routers in `apps/server/src/trpc/routers/`:
 
 ```typescript
-// packages/api/src/routers/course.ts
+// apps/server/src/trpc/routers/course.ts
 import { z } from 'zod';
 import { router, procedure } from '../trpc';
 
@@ -213,10 +213,10 @@ export const courseRouter = router({
 });
 ```
 
-Then register the router in the main app:
+Then register the router in the main app router:
 
 ```typescript
-// packages/api/src/index.ts
+// apps/server/src/trpc/routers/index.ts
 import { courseRouter } from './routers/course';
 
 export const appRouter = router({
