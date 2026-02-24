@@ -1,8 +1,8 @@
 import { cors } from "@elysiajs/cors";
-import { auth } from "@modlearn/auth";
 import { env } from "@modlearn/env/server";
 import { fetchRequestHandler } from "@trpc/server/adapters/fetch";
 import { Elysia } from "elysia";
+import { auth } from "@/lib/auth";
 import { ensureBucketExists } from "@/lib/storage/s3-bucket";
 import { createContext } from "@/trpc/context";
 import { appRouter } from "@/trpc/routers";

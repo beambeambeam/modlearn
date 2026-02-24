@@ -1,7 +1,7 @@
-import type { DbClient } from "@modlearn/db/orm";
-import { sql } from "@modlearn/db/orm";
-import { file, storage } from "@modlearn/db/schema/index";
 import { env } from "@modlearn/env/server";
+import type { DbClient } from "@/lib/db/orm";
+import { sql } from "@/lib/db/orm";
+import { file, storage } from "@/lib/db/schema/index";
 import {
 	deleteObject,
 	generateDownloadUrl,

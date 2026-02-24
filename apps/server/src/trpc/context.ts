@@ -1,5 +1,5 @@
-import { auth } from "@modlearn/auth";
 import type { Context as ElysiaContext } from "elysia";
+import { auth } from "../lib/auth";
 
 interface NewType {
 	context: ElysiaContext;
