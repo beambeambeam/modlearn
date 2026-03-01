@@ -1,11 +1,5 @@
-import type { DbClient } from "@/lib/db/orm";
 import { adminAuditLog } from "@/lib/db/schema";
-import type { AuditLogInput } from "./admin-audit.types";
-
-interface CreateAdminAuditLogParams {
-	db: DbClient;
-	input: AuditLogInput;
-}
+import type { CreateAdminAuditLogParams } from "./admin-audit.types";
 
 export async function createAdminAuditLog(
 	params: CreateAdminAuditLogParams

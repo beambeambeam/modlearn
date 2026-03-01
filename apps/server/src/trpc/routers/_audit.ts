@@ -1,18 +1,6 @@
 import { TRPCError } from "@trpc/server";
 import { createAdminAuditLog } from "@/modules/admin-audit/admin-audit.service";
-import type {
-	AuditAction,
-	AuditEntityType,
-} from "@/modules/admin-audit/admin-audit.types";
-import type { Context } from "../context";
-
-interface LogAdminMutationParams {
-	ctx: Context & { session: NonNullable<Context["session"]> };
-	entityType: AuditEntityType;
-	action: AuditAction;
-	entityId: string;
-	metadata?: Record<string, unknown> | null;
-}
+import type { LogAdminMutationParams } from "./_audit.types";
 
 export async function logAdminMutation(
 	params: LogAdminMutationParams

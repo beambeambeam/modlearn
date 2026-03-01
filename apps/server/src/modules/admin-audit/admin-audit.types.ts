@@ -1,3 +1,5 @@
+import type { DbClient } from "@/lib/db/orm";
+
 export type AuditEntityType =
 	| "CONTENT"
 	| "PLAYLIST"
@@ -23,4 +25,9 @@ export interface AuditLogInput {
 	action: AuditAction;
 	metadata?: Record<string, unknown> | null;
 	ipAddress?: string | null;
+}
+
+export interface CreateAdminAuditLogParams {
+	db: DbClient;
+	input: AuditLogInput;
 }
