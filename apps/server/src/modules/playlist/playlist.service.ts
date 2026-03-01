@@ -1,63 +1,21 @@
-import { and, asc, eq, inArray, isNull, type SQL, sql } from "drizzle-orm";
+import { and, eq, inArray, type SQL, sql } from "drizzle-orm";
 import type { DbClient } from "@/lib/db/orm";
 import { content, playlist, playlistEpisode } from "@/lib/db/schema";
 import type {
-	PlaylistAdminAddEpisodeInput,
-	PlaylistAdminCreateInput,
-	PlaylistAdminReorderEpisodesInput,
+	AddEpisodeToPlaylistParams,
+	CreatePlaylistParams,
+	GetPlaylistByIdWithEpisodesParams,
+	ListPlaylistEpisodesParams,
 	PlaylistEpisodeWithContent,
-	PlaylistGetByIdInput,
-	PlaylistListEpisodesInput,
 	PlaylistWithEpisodes,
+	ReorderPlaylistEpisodesParams,
 } from "./playlist.types";
 import {
 	ContentNotFoundError,
 	PlaylistNotFoundError,
 	PlaylistReorderValidationError,
 } from "./playlist.types";
-
-interface GetPlaylistByIdWithEpisodesParams {
-	db: DbClient;
-	input: PlaylistGetByIdInput;
-}
-
-interface ListPlaylistEpisodesParams {
-	db: DbClient;
-	input: PlaylistListEpisodesInput;
-}
-
-interface CreatePlaylistParams {
-	db: DbClient;
-	input: PlaylistAdminCreateInput;
-	creatorId: string;
-}
-
-interface AddEpisodeToPlaylistParams {
-	db: DbClient;
-	input: PlaylistAdminAddEpisodeInput;
-}
-
-interface ReorderPlaylistEpisodesParams {
-	db: DbClient;
-	input: PlaylistAdminReorderEpisodesInput;
-}
-
-function seasonBucketCondition(seasonNumber: number | null): SQL<unknown> {
-	if (seasonNumber === null) {
-		return isNull(playlistEpisode.seasonNumber);
-	}
-
-	return eq(playlistEpisode.seasonNumber, seasonNumber);
-}
-
-function episodesOrderBy() {
-	return [
-		sql`${playlistEpisode.seasonNumber} ASC NULLS LAST`,
-		asc(playlistEpisode.episodeOrder),
-		asc(playlistEpisode.addedAt),
-		asc(playlistEpisode.id),
-	] as const;
-}
+import { episodesOrderBy, seasonBucketCondition } from "./playlist.utils";
 
 async function assertPlaylistExists(
 	db: DbClient,

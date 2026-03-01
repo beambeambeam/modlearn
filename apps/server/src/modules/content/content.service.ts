@@ -19,16 +19,20 @@ import {
 	genre,
 } from "@/lib/db/schema";
 import type {
-	AdminCreateContentInput,
-	AdminDeleteContentInput,
-	AdminSetAvailabilityInput,
-	AdminSetClassificationInput,
-	AdminSetPublishStateInput,
-	AdminUpdateContentInput,
-	ContentByIdInput,
-	ContentClassificationItem,
-	ContentListInput,
-	ContentListPopularInput,
+	BuildFiltersInput,
+	ContentClassificationResult,
+	ContentDetailResult,
+	CreateContentParams,
+	DeleteContentParams,
+	DeleteContentResult,
+	GetContentByIdParams,
+	ListContentParams,
+	ListContentResult,
+	ListPopularContentParams,
+	SetContentAvailabilityParams,
+	SetContentClassificationParams,
+	SetContentPublishStateParams,
+	UpdateContentParams,
 } from "./content.types";
 import {
 	CategoryNotFoundError,
@@ -36,117 +40,7 @@ import {
 	GenreNotFoundError,
 	InvalidClassificationInputError,
 } from "./content.types";
-
-interface ListContentParams {
-	db: DbClient;
-	input: ContentListInput;
-}
-
-interface GetContentByIdParams {
-	db: DbClient;
-	input: ContentByIdInput;
-}
-
-interface ListPopularContentParams {
-	db: DbClient;
-	input: ContentListPopularInput;
-}
-
-interface CreateContentParams {
-	db: DbClient;
-	input: AdminCreateContentInput;
-	updatedBy: string;
-}
-
-interface UpdateContentParams {
-	db: DbClient;
-	input: AdminUpdateContentInput;
-	updatedBy: string;
-}
-
-interface SetContentPublishStateParams {
-	db: DbClient;
-	input: AdminSetPublishStateInput;
-	updatedBy: string;
-}
-
-interface SetContentClassificationParams {
-	db: DbClient;
-	input: AdminSetClassificationInput;
-}
-
-interface DeleteContentParams {
-	db: DbClient;
-	input: AdminDeleteContentInput;
-	updatedBy: string;
-}
-
-interface SetContentAvailabilityParams {
-	db: DbClient;
-	input: AdminSetAvailabilityInput;
-	updatedBy: string;
-}
-
-interface BuildFiltersInput {
-	id?: string;
-	search?: string;
-	contentType?: ContentListInput["contentType"];
-	onlyPublished?: boolean;
-	categoryIds?: string[];
-	genreIds?: string[];
-}
-
-export interface ContentPagination {
-	page: number;
-	limit: number;
-	total: number;
-	totalPages: number;
-}
-
-export interface ListContentResult {
-	items: (typeof content.$inferSelect)[];
-	pagination: ContentPagination;
-}
-
-export interface ContentClassificationResult {
-	contentId: string;
-	categories: ContentClassificationItem[];
-	genres: ContentClassificationItem[];
-}
-
-export interface DeleteContentResult {
-	id: string;
-	deleted: true;
-	deletedAt: Date;
-}
-
-type ContentRow = typeof content.$inferSelect;
-
-export type ContentDetailResult = ContentRow & {
-	categories: ContentClassificationItem[];
-	genres: ContentClassificationItem[];
-};
-
-function toReleaseDate(
-	value: string | null | undefined
-): Date | null | undefined {
-	if (value === undefined) {
-		return undefined;
-	}
-	if (value === null) {
-		return null;
-	}
-	return new Date(`${value}T00:00:00.000Z`);
-}
-
-function normalizeString(value: string | undefined): string | undefined {
-	const trimmed = value?.trim();
-	return trimmed ? trimmed : undefined;
-}
-
-function hasDuplicates(values: string[]): boolean {
-	return new Set(values).size !== values.length;
-}
+import { hasDuplicates, normalizeString, toReleaseDate } from "./content.utils";
 
 async function ensureContentExists(
 	db: DbClient,

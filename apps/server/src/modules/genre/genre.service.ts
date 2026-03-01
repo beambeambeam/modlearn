@@ -2,60 +2,15 @@ import { and, asc, count, eq, ilike, ne } from "drizzle-orm";
 import type { DbClient } from "@/lib/db/orm";
 import { genre } from "@/lib/db/schema";
 import type {
-	GenreAdminCreateInput,
-	GenreAdminDeleteInput,
-	GenreAdminUpdateInput,
-	GenreByIdInput,
-	GenreListInput,
+	CreateGenreParams,
+	DeleteGenreParams,
 	GenreListResult,
+	GetGenreByIdParams,
+	ListGenresParams,
+	UpdateGenreParams,
 } from "./genre.types";
 import { GenreNotFoundError, GenreSlugConflictError } from "./genre.types";
-
-interface ListGenresParams {
-	db: DbClient;
-	input: GenreListInput;
-}
-
-interface GetGenreByIdParams {
-	db: DbClient;
-	input: GenreByIdInput;
-}
-
-interface CreateGenreParams {
-	db: DbClient;
-	input: GenreAdminCreateInput;
-}
-
-interface UpdateGenreParams {
-	db: DbClient;
-	input: GenreAdminUpdateInput;
-}
-
-interface DeleteGenreParams {
-	db: DbClient;
-	input: GenreAdminDeleteInput;
-}
-
-function normalizeSlug(value: string): string {
-	return value
-		.trim()
-		.toLowerCase()
-		.replace(/[\s_]+/g, "-")
-		.replace(/-+/g, "-")
-		.replace(/^-+|-+$/g, "");
-}
-
-function isUniqueViolation(error: unknown): boolean {
-	if (typeof error !== "object" || error === null) {
-		return false;
-	}
-
-	const value = error as { code?: string; message?: string };
-	return (
-		value.code === "23505" ||
-		value.message?.toLowerCase().includes("unique") === true
-	);
-}
+import { isUniqueViolation, normalizeSlug } from "./genre.utils";
 
 async function assertSlugUnique(
 	db: DbClient,

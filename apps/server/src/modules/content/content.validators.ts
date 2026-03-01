@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { hasDuplicates } from "./content.utils";
 
 const contentTypeSchema = z.enum(["MOVIE", "SERIES", "EPISODE", "MUSIC"]);
 
@@ -79,10 +80,6 @@ export const contentAdminSetAvailabilityInputSchema = z.object({
 	id: z.uuid(),
 	isAvailable: z.boolean(),
 });
-
-function hasDuplicates(values: string[]): boolean {
-	return new Set(values).size !== values.length;
-}
 
 export const contentAdminSetClassificationInputSchema = z
 	.object({

@@ -1,3 +1,4 @@
+import type { DbClient } from "@/lib/db/orm";
 import type { category } from "@/lib/db/schema";
 
 export interface CategoryListInput {
@@ -35,6 +36,31 @@ export interface CategoryPagination {
 export interface CategoryListResult {
 	items: (typeof category.$inferSelect)[];
 	pagination: CategoryPagination;
+}
+
+export interface ListCategoriesParams {
+	db: DbClient;
+	input: CategoryListInput;
+}
+
+export interface GetCategoryByIdParams {
+	db: DbClient;
+	input: CategoryByIdInput;
+}
+
+export interface CreateCategoryParams {
+	db: DbClient;
+	input: CategoryAdminCreateInput;
+}
+
+export interface UpdateCategoryParams {
+	db: DbClient;
+	input: CategoryAdminUpdateInput;
+}
+
+export interface DeleteCategoryParams {
+	db: DbClient;
+	input: CategoryAdminDeleteInput;
 }
 
 export class CategoryNotFoundError extends Error {

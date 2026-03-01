@@ -1,3 +1,4 @@
+import type { DbClient } from "@/lib/db/orm";
 import type { content, playlistEpisode } from "@/lib/db/schema";
 
 export interface PlaylistGetByIdInput {
@@ -28,6 +29,32 @@ export interface PlaylistAdminAddEpisodeInput {
 export interface PlaylistAdminReorderEpisodesInput {
 	playlistId: string;
 	episodeIds: string[];
+}
+
+export interface GetPlaylistByIdWithEpisodesParams {
+	db: DbClient;
+	input: PlaylistGetByIdInput;
+}
+
+export interface ListPlaylistEpisodesParams {
+	db: DbClient;
+	input: PlaylistListEpisodesInput;
+}
+
+export interface CreatePlaylistParams {
+	db: DbClient;
+	input: PlaylistAdminCreateInput;
+	creatorId: string;
+}
+
+export interface AddEpisodeToPlaylistParams {
+	db: DbClient;
+	input: PlaylistAdminAddEpisodeInput;
+}
+
+export interface ReorderPlaylistEpisodesParams {
+	db: DbClient;
+	input: PlaylistAdminReorderEpisodesInput;
 }
 
 type PlaylistEpisodeRow = typeof playlistEpisode.$inferSelect;

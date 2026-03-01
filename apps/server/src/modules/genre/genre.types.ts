@@ -1,3 +1,4 @@
+import type { DbClient } from "@/lib/db/orm";
 import type { genre } from "@/lib/db/schema";
 
 export interface GenreListInput {
@@ -35,6 +36,31 @@ export interface GenrePagination {
 export interface GenreListResult {
 	items: (typeof genre.$inferSelect)[];
 	pagination: GenrePagination;
+}
+
+export interface ListGenresParams {
+	db: DbClient;
+	input: GenreListInput;
+}
+
+export interface GetGenreByIdParams {
+	db: DbClient;
+	input: GenreByIdInput;
+}
+
+export interface CreateGenreParams {
+	db: DbClient;
+	input: GenreAdminCreateInput;
+}
+
+export interface UpdateGenreParams {
+	db: DbClient;
+	input: GenreAdminUpdateInput;
+}
+
+export interface DeleteGenreParams {
+	db: DbClient;
+	input: GenreAdminDeleteInput;
 }
 
 export class GenreNotFoundError extends Error {

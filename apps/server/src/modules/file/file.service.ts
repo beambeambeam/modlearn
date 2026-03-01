@@ -1,5 +1,4 @@
 import { env } from "@modlearn/env/server";
-import type { DbClient } from "@/lib/db/orm";
 import { sql } from "@/lib/db/orm";
 import { file, storage } from "@/lib/db/schema/index";
 import {
@@ -8,58 +7,19 @@ import {
 	generateUploadUrl,
 } from "@/lib/storage/s3-operations";
 import {
+	type CreateFileDownloadUrlParams,
+	type CreateFileDownloadUrlResult,
+	type CreateFileUploadRequestParams,
+	type CreateFileUploadRequestResult,
+	type DeleteFileParams,
+	type DeleteFileResult,
 	FileAlreadyDeletedError,
 	FileCreationError,
 	FileNotFoundError,
 	StorageRecordNotFoundError,
 } from "./file.types";
 
-export interface CreateFileUploadRequestInput {
-	uploaderId: string;
-	name: string;
-	size: number;
-	mimeType: string;
-	extension: string;
-	checksum: string;
-}
-
-export interface CreateFileUploadRequestParams {
-	db: FileDbClient;
-	input: CreateFileUploadRequestInput;
-}
-
-export interface CreateFileUploadRequestResult {
-	fileId: string;
-	storageKey: string;
-	uploadUrl: string;
-	expiresAt: Date;
-}
-
-export interface CreateFileDownloadUrlParams {
-	db: FileDbClient;
-	fileId: string;
-}
-
-export interface CreateFileDownloadUrlResult {
-	storageKey: string;
-	downloadUrl: string;
-	expiresAt: Date;
-}
-
-export interface DeleteFileParams {
-	db: FileDbClient;
-	fileId: string;
-}
-
-export interface DeleteFileResult {
-	fileId: string;
-	storageKey: string;
-	deletedAt: Date;
-}
-
 const STORAGE_PROVIDER = "s3";
-
-export type FileDbClient = DbClient;
 
 export function createFileUploadRequest(
 	params: CreateFileUploadRequestParams

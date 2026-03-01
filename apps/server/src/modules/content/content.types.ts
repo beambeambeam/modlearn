@@ -1,4 +1,5 @@
-import type { contentTypeEnum } from "@/lib/db/schema";
+import type { DbClient } from "@/lib/db/orm";
+import type { content, contentTypeEnum } from "@/lib/db/schema";
 
 export type ContentType = (typeof contentTypeEnum.enumValues)[number];
 
@@ -65,6 +66,96 @@ export interface AdminSetClassificationInput {
 	categoryIds?: string[];
 	genreIds?: string[];
 }
+
+export interface ListContentParams {
+	db: DbClient;
+	input: ContentListInput;
+}
+
+export interface GetContentByIdParams {
+	db: DbClient;
+	input: ContentByIdInput;
+}
+
+export interface ListPopularContentParams {
+	db: DbClient;
+	input: ContentListPopularInput;
+}
+
+export interface CreateContentParams {
+	db: DbClient;
+	input: AdminCreateContentInput;
+	updatedBy: string;
+}
+
+export interface UpdateContentParams {
+	db: DbClient;
+	input: AdminUpdateContentInput;
+	updatedBy: string;
+}
+
+export interface SetContentPublishStateParams {
+	db: DbClient;
+	input: AdminSetPublishStateInput;
+	updatedBy: string;
+}
+
+export interface SetContentClassificationParams {
+	db: DbClient;
+	input: AdminSetClassificationInput;
+}
+
+export interface DeleteContentParams {
+	db: DbClient;
+	input: AdminDeleteContentInput;
+	updatedBy: string;
+}
+
+export interface SetContentAvailabilityParams {
+	db: DbClient;
+	input: AdminSetAvailabilityInput;
+	updatedBy: string;
+}
+
+export interface BuildFiltersInput {
+	id?: string;
+	search?: string;
+	contentType?: ContentListInput["contentType"];
+	onlyPublished?: boolean;
+	categoryIds?: string[];
+	genreIds?: string[];
+}
+
+export interface ContentPagination {
+	page: number;
+	limit: number;
+	total: number;
+	totalPages: number;
+}
+
+export interface ListContentResult {
+	items: (typeof content.$inferSelect)[];
+	pagination: ContentPagination;
+}
+
+export interface ContentClassificationResult {
+	contentId: string;
+	categories: ContentClassificationItem[];
+	genres: ContentClassificationItem[];
+}
+
+export interface DeleteContentResult {
+	id: string;
+	deleted: true;
+	deletedAt: Date;
+}
+
+type ContentRow = typeof content.$inferSelect;
+
+export type ContentDetailResult = ContentRow & {
+	categories: ContentClassificationItem[];
+	genres: ContentClassificationItem[];
+};
 
 export class ContentNotFoundError extends Error {
 	constructor() {

@@ -1,3 +1,50 @@
+import type { DbClient } from "@/lib/db/orm";
+
+export interface CreateFileUploadRequestInput {
+	uploaderId: string;
+	name: string;
+	size: number;
+	mimeType: string;
+	extension: string;
+	checksum: string;
+}
+
+export type FileDbClient = DbClient;
+
+export interface CreateFileUploadRequestParams {
+	db: FileDbClient;
+	input: CreateFileUploadRequestInput;
+}
+
+export interface CreateFileUploadRequestResult {
+	fileId: string;
+	storageKey: string;
+	uploadUrl: string;
+	expiresAt: Date;
+}
+
+export interface CreateFileDownloadUrlParams {
+	db: FileDbClient;
+	fileId: string;
+}
+
+export interface CreateFileDownloadUrlResult {
+	storageKey: string;
+	downloadUrl: string;
+	expiresAt: Date;
+}
+
+export interface DeleteFileParams {
+	db: FileDbClient;
+	fileId: string;
+}
+
+export interface DeleteFileResult {
+	fileId: string;
+	storageKey: string;
+	deletedAt: Date;
+}
+
 export class FileNotFoundError extends Error {
 	constructor(message = "File not found") {
 		super(message);

@@ -2,63 +2,18 @@ import { and, asc, count, eq, ilike, ne } from "drizzle-orm";
 import type { DbClient } from "@/lib/db/orm";
 import { category } from "@/lib/db/schema";
 import type {
-	CategoryAdminCreateInput,
-	CategoryAdminDeleteInput,
-	CategoryAdminUpdateInput,
-	CategoryByIdInput,
-	CategoryListInput,
 	CategoryListResult,
+	CreateCategoryParams,
+	DeleteCategoryParams,
+	GetCategoryByIdParams,
+	ListCategoriesParams,
+	UpdateCategoryParams,
 } from "./category.types";
 import {
 	CategoryNotFoundError,
 	CategorySlugConflictError,
 } from "./category.types";
-
-interface ListCategoriesParams {
-	db: DbClient;
-	input: CategoryListInput;
-}
-
-interface GetCategoryByIdParams {
-	db: DbClient;
-	input: CategoryByIdInput;
-}
-
-interface CreateCategoryParams {
-	db: DbClient;
-	input: CategoryAdminCreateInput;
-}
-
-interface UpdateCategoryParams {
-	db: DbClient;
-	input: CategoryAdminUpdateInput;
-}
-
-interface DeleteCategoryParams {
-	db: DbClient;
-	input: CategoryAdminDeleteInput;
-}
-
-function normalizeSlug(value: string): string {
-	return value
-		.trim()
-		.toLowerCase()
-		.replace(/[\s_]+/g, "-")
-		.replace(/-+/g, "-")
-		.replace(/^-+|-+$/g, "");
-}
-
-function isUniqueViolation(error: unknown): boolean {
-	if (typeof error !== "object" || error === null) {
-		return false;
-	}
-
-	const value = error as { code?: string; message?: string };
-	return (
-		value.code === "23505" ||
-		value.message?.toLowerCase().includes("unique") === true
-	);
-}
+import { isUniqueViolation, normalizeSlug } from "./category.utils";
 
 async function assertSlugUnique(
 	db: DbClient,
