@@ -4,7 +4,9 @@ import {
 	publicProcedure,
 	router,
 } from "../index";
+import { categoryRouter } from "./category.router";
 import { contentRouter } from "./content.router";
+import { genreRouter } from "./genre.router";
 import { playlistRouter } from "./playlist.router";
 
 export const appRouter = router({
@@ -23,7 +25,9 @@ export const appRouter = router({
 			user: ctx.session.user,
 		};
 	}),
+	category: categoryRouter,
 	content: contentRouter,
+	genre: genreRouter,
 	playlist: playlistRouter,
 });
 export type AppRouter = typeof appRouter;
