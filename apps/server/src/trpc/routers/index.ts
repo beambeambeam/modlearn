@@ -4,6 +4,7 @@ import {
 	publicProcedure,
 	router,
 } from "../index";
+import { contentRouter } from "./content.router";
 
 export const appRouter = router({
 	healthCheck: publicProcedure.query(() => {
@@ -21,5 +22,6 @@ export const appRouter = router({
 			user: ctx.session.user,
 		};
 	}),
+	content: contentRouter,
 });
 export type AppRouter = typeof appRouter;

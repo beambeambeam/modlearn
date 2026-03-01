@@ -1,4 +1,6 @@
 import type { Context as ElysiaContext } from "elysia";
+import { db } from "@/lib/db";
+import type { DbClient } from "@/lib/db/orm";
 import { auth } from "../lib/auth";
 
 interface NewType {
@@ -12,6 +14,7 @@ export async function createContext({ context }: CreateContextOptions) {
 		headers: context.request.headers,
 	});
 	return {
+		db: db as DbClient,
 		session,
 	};
 }
