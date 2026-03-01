@@ -5,7 +5,7 @@ import {
 	resetTestDatabase,
 	type TestDatabase,
 } from "@/__tests__/helpers/test-db";
-import { content } from "@/lib/db/schema";
+import { category, content, genre } from "@/lib/db/schema";
 import {
 	makeAuthenticatedContext,
 	makeTestContext,
@@ -57,6 +57,8 @@ describe("content router", () => {
 
 		const detailResult = await caller.content.getById({ id: created.id });
 		expect(detailResult.id).toBe(created.id);
+		expect(detailResult.categories).toEqual([]);
+		expect(detailResult.genres).toEqual([]);
 
 		const popularResult = await caller.content.listPopular({});
 		expect(popularResult).toHaveLength(1);
@@ -178,5 +180,58 @@ describe("content router", () => {
 		});
 		expect(published.isPublished).toBe(true);
 		expect(published.publishedAt).toBeInstanceOf(Date);
+
+		const [createdCategory] = await testDb.db
+			.insert(category)
+			.values({
+				title: "Router Category",
+				slug: "router-category",
+			})
+			.returning();
+		const [createdGenre] = await testDb.db
+			.insert(genre)
+			.values({
+				title: "Router Genre",
+				slug: "router-genre",
+			})
+			.returning();
+
+		if (!(createdCategory && createdGenre)) {
+			throw new Error("Failed to create classification fixtures");
+		}
+
+		const classification = await adminCaller.content.adminSetClassification({
+			id: created.id,
+			categoryIds: [createdCategory.id],
+			genreIds: [createdGenre.id],
+		});
+		expect(classification.categories.map((row) => row.id)).toEqual([
+			createdCategory.id,
+		]);
+		expect(classification.genres.map((row) => row.id)).toEqual([
+			createdGenre.id,
+		]);
+
+		await expect(
+			adminCaller.content.adminSetClassification({
+				id: created.id,
+				categoryIds: [createdCategory.id, createdCategory.id],
+			})
+		).rejects.toThrow(
+			expect.objectContaining({
+				code: "BAD_REQUEST",
+			})
+		);
+
+		await expect(
+			adminCaller.content.adminSetClassification({
+				id: created.id,
+				categoryIds: ["00000000-0000-0000-0000-000000000000"],
+			})
+		).rejects.toThrow(
+			expect.objectContaining({
+				code: "NOT_FOUND",
+			})
+		);
 	});
 });

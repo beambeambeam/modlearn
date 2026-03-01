@@ -4,12 +4,19 @@ import {
 	getContentById,
 	listContent,
 	listPopularContent,
+	setContentClassification,
 	setContentPublishState,
 	updateContent,
 } from "@/modules/content/content.service";
-import { ContentNotFoundError } from "@/modules/content/content.types";
+import {
+	CategoryNotFoundError,
+	ContentNotFoundError,
+	GenreNotFoundError,
+	InvalidClassificationInputError,
+} from "@/modules/content/content.types";
 import {
 	contentAdminCreateInputSchema,
+	contentAdminSetClassificationInputSchema,
 	contentAdminSetPublishStateInputSchema,
 	contentAdminUpdateInputSchema,
 	contentByIdInputSchema,
@@ -19,9 +26,19 @@ import {
 import { adminProcedure, publicProcedure, router } from "../index";
 
 function mapServiceError(error: unknown): never {
-	if (error instanceof ContentNotFoundError) {
+	if (
+		error instanceof ContentNotFoundError ||
+		error instanceof CategoryNotFoundError ||
+		error instanceof GenreNotFoundError
+	) {
 		throw new TRPCError({
 			code: "NOT_FOUND",
+			message: error.message,
+		});
+	}
+	if (error instanceof InvalidClassificationInputError) {
+		throw new TRPCError({
+			code: "BAD_REQUEST",
 			message: error.message,
 		});
 	}
@@ -88,6 +105,18 @@ export const contentRouter = router({
 					db: ctx.db,
 					input,
 					updatedBy: ctx.session.user.id,
+				});
+			} catch (error) {
+				mapServiceError(error);
+			}
+		}),
+	adminSetClassification: adminProcedure
+		.input(contentAdminSetClassificationInputSchema)
+		.mutation(async ({ ctx, input }) => {
+			try {
+				return await setContentClassification({
+					db: ctx.db,
+					input,
 				});
 			} catch (error) {
 				mapServiceError(error);

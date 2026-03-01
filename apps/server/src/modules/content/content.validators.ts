@@ -50,3 +50,38 @@ export const contentAdminSetPublishStateInputSchema = z.object({
 	id: z.uuid(),
 	isPublished: z.boolean(),
 });
+
+function hasDuplicates(values: string[]): boolean {
+	return new Set(values).size !== values.length;
+}
+
+export const contentAdminSetClassificationInputSchema = z
+	.object({
+		id: z.uuid(),
+		categoryIds: z.array(z.uuid()).optional(),
+		genreIds: z.array(z.uuid()).optional(),
+	})
+	.superRefine((value, ctx) => {
+		if (value.categoryIds === undefined && value.genreIds === undefined) {
+			ctx.addIssue({
+				code: "custom",
+				message: "At least one of categoryIds or genreIds must be provided",
+			});
+		}
+
+		if (value.categoryIds && hasDuplicates(value.categoryIds)) {
+			ctx.addIssue({
+				code: "custom",
+				path: ["categoryIds"],
+				message: "categoryIds contains duplicates",
+			});
+		}
+
+		if (value.genreIds && hasDuplicates(value.genreIds)) {
+			ctx.addIssue({
+				code: "custom",
+				path: ["genreIds"],
+				message: "genreIds contains duplicates",
+			});
+		}
+	});

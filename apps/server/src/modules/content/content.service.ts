@@ -1,15 +1,38 @@
-import { and, count, desc, eq, ilike, type SQL, sql } from "drizzle-orm";
+import {
+	and,
+	asc,
+	count,
+	desc,
+	eq,
+	ilike,
+	inArray,
+	type SQL,
+	sql,
+} from "drizzle-orm";
 import type { DbClient } from "@/lib/db/orm";
-import { content } from "@/lib/db/schema";
+import {
+	category,
+	content,
+	contentCategory,
+	contentGenre,
+	genre,
+} from "@/lib/db/schema";
 import type {
 	AdminCreateContentInput,
+	AdminSetClassificationInput,
 	AdminSetPublishStateInput,
 	AdminUpdateContentInput,
 	ContentByIdInput,
+	ContentClassificationItem,
 	ContentListInput,
 	ContentListPopularInput,
 } from "./content.types";
-import { ContentNotFoundError } from "./content.types";
+import {
+	CategoryNotFoundError,
+	ContentNotFoundError,
+	GenreNotFoundError,
+	InvalidClassificationInputError,
+} from "./content.types";
 
 interface ListContentParams {
 	db: DbClient;
@@ -44,6 +67,11 @@ interface SetContentPublishStateParams {
 	updatedBy: string;
 }
 
+interface SetContentClassificationParams {
+	db: DbClient;
+	input: AdminSetClassificationInput;
+}
+
 interface BuildFiltersInput {
 	id?: string;
 	search?: string;
@@ -63,6 +91,19 @@ export interface ListContentResult {
 	pagination: ContentPagination;
 }
 
+export interface ContentClassificationResult {
+	contentId: string;
+	categories: ContentClassificationItem[];
+	genres: ContentClassificationItem[];
+}
+
+type ContentRow = typeof content.$inferSelect;
+
+export type ContentDetailResult = ContentRow & {
+	categories: ContentClassificationItem[];
+	genres: ContentClassificationItem[];
+};
+
 function toReleaseDate(
 	value: string | null | undefined
 ): Date | null | undefined {
@@ -78,6 +119,55 @@ function toReleaseDate(
 function normalizeString(value: string | undefined): string | undefined {
 	const trimmed = value?.trim();
 	return trimmed ? trimmed : undefined;
+}
+
+function hasDuplicates(values: string[]): boolean {
+	return new Set(values).size !== values.length;
+}
+
+async function ensureContentExists(
+	db: DbClient,
+	contentId: string
+): Promise<void> {
+	const row = await db.query.content.findFirst({
+		where: eq(content.id, contentId),
+		columns: { id: true },
+	});
+
+	if (!row) {
+		throw new ContentNotFoundError();
+	}
+}
+
+async function ensureCategoriesExist(
+	db: DbClient,
+	ids: string[]
+): Promise<void> {
+	if (ids.length === 0) {
+		return;
+	}
+
+	const rows = await db
+		.select({ id: category.id })
+		.from(category)
+		.where(inArray(category.id, ids));
+	if (rows.length !== ids.length) {
+		throw new CategoryNotFoundError();
+	}
+}
+
+async function ensureGenresExist(db: DbClient, ids: string[]): Promise<void> {
+	if (ids.length === 0) {
+		return;
+	}
+
+	const rows = await db
+		.select({ id: genre.id })
+		.from(genre)
+		.where(inArray(genre.id, ids));
+	if (rows.length !== ids.length) {
+		throw new GenreNotFoundError();
+	}
 }
 
 function buildContentFilters(
@@ -158,7 +248,7 @@ export async function listContent(
 
 export async function getContentById(
 	params: GetContentByIdParams
-): Promise<typeof content.$inferSelect> {
+): Promise<ContentDetailResult> {
 	const { db, input } = params;
 	const filters = buildContentFilters({
 		id: input.id,
@@ -173,7 +263,16 @@ export async function getContentById(
 		throw new ContentNotFoundError();
 	}
 
-	return row;
+	const classification = await getContentClassification({
+		db,
+		contentId: row.id,
+	});
+
+	return {
+		...row,
+		categories: classification.categories,
+		genres: classification.genres,
+	};
 }
 
 export function listPopularContent(
@@ -295,4 +394,112 @@ export async function setContentPublishState(
 	}
 
 	return updated;
+}
+
+export async function getContentClassification(params: {
+	db: DbClient;
+	contentId: string;
+}): Promise<ContentClassificationResult> {
+	const { db, contentId } = params;
+
+	const categoryRows = await db
+		.select({
+			id: category.id,
+			title: category.title,
+			slug: category.slug,
+			description: category.description,
+		})
+		.from(contentCategory)
+		.innerJoin(category, eq(contentCategory.categoryId, category.id))
+		.where(eq(contentCategory.contentId, contentId))
+		.orderBy(asc(category.title), asc(category.id));
+
+	const genreRows = await db
+		.select({
+			id: genre.id,
+			title: genre.title,
+			slug: genre.slug,
+			description: genre.description,
+		})
+		.from(contentGenre)
+		.innerJoin(genre, eq(contentGenre.genreId, genre.id))
+		.where(eq(contentGenre.contentId, contentId))
+		.orderBy(asc(genre.title), asc(genre.id));
+
+	return {
+		contentId,
+		categories: categoryRows,
+		genres: genreRows,
+	};
+}
+
+export function setContentClassification(
+	params: SetContentClassificationParams
+): Promise<ContentClassificationResult> {
+	const { db, input } = params;
+
+	if (input.categoryIds === undefined && input.genreIds === undefined) {
+		throw new InvalidClassificationInputError(
+			"At least one of categoryIds or genreIds must be provided"
+		);
+	}
+	if (input.categoryIds && hasDuplicates(input.categoryIds)) {
+		throw new InvalidClassificationInputError(
+			"categoryIds contains duplicates"
+		);
+	}
+	if (input.genreIds && hasDuplicates(input.genreIds)) {
+		throw new InvalidClassificationInputError("genreIds contains duplicates");
+	}
+
+	return db.transaction(async (tx) => {
+		await ensureContentExists(tx, input.id);
+
+		const normalizedCategoryIds = input.categoryIds
+			? [...new Set(input.categoryIds)]
+			: undefined;
+		const normalizedGenreIds = input.genreIds
+			? [...new Set(input.genreIds)]
+			: undefined;
+
+		if (normalizedCategoryIds !== undefined) {
+			await ensureCategoriesExist(tx, normalizedCategoryIds);
+		}
+		if (normalizedGenreIds !== undefined) {
+			await ensureGenresExist(tx, normalizedGenreIds);
+		}
+
+		if (normalizedCategoryIds !== undefined) {
+			await tx
+				.delete(contentCategory)
+				.where(eq(contentCategory.contentId, input.id));
+
+			if (normalizedCategoryIds.length > 0) {
+				await tx.insert(contentCategory).values(
+					normalizedCategoryIds.map((categoryId) => ({
+						contentId: input.id,
+						categoryId,
+					}))
+				);
+			}
+		}
+
+		if (normalizedGenreIds !== undefined) {
+			await tx.delete(contentGenre).where(eq(contentGenre.contentId, input.id));
+
+			if (normalizedGenreIds.length > 0) {
+				await tx.insert(contentGenre).values(
+					normalizedGenreIds.map((genreId) => ({
+						contentId: input.id,
+						genreId,
+					}))
+				);
+			}
+		}
+
+		return getContentClassification({
+			db: tx,
+			contentId: input.id,
+		});
+	});
 }

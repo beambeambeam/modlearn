@@ -6,16 +6,22 @@ import {
 	type TestDatabase,
 } from "@/__tests__/helpers/test-db";
 import { eq } from "@/lib/db/orm";
-import { content } from "@/lib/db/schema";
+import { category, content, genre } from "@/lib/db/schema";
 import {
 	createContent,
 	getContentById,
 	listContent,
 	listPopularContent,
+	setContentClassification,
 	setContentPublishState,
 	updateContent,
 } from "@/modules/content/content.service";
-import { ContentNotFoundError } from "../content.types";
+import {
+	CategoryNotFoundError,
+	ContentNotFoundError,
+	GenreNotFoundError,
+	InvalidClassificationInputError,
+} from "../content.types";
 
 describe("content service", () => {
 	let testDb: TestDatabase;
@@ -207,6 +213,62 @@ describe("content service", () => {
 		).rejects.toThrow(ContentNotFoundError);
 	});
 
+	it("getContentById returns categories and genres arrays", async () => {
+		const admin = await createTestUser(testDb.client, {
+			email: "admin-get-by-id-with-classification@example.com",
+		});
+		const [created] = await testDb.db
+			.insert(content)
+			.values({
+				title: "Classified Content",
+				contentType: "MOVIE",
+				updatedBy: admin.id,
+				isPublished: true,
+				isAvailable: true,
+				publishedAt: new Date("2025-01-01T00:00:00.000Z"),
+			})
+			.returning();
+		const [createdCategory] = await testDb.db
+			.insert(category)
+			.values({
+				title: "Education",
+				slug: "education",
+			})
+			.returning();
+		const [createdGenre] = await testDb.db
+			.insert(genre)
+			.values({
+				title: "Documentary",
+				slug: "documentary",
+			})
+			.returning();
+
+		if (!(created && createdCategory && createdGenre)) {
+			throw new Error("Failed to create classification fixtures");
+		}
+
+		await setContentClassification({
+			db: testDb.db,
+			input: {
+				id: created.id,
+				categoryIds: [createdCategory.id],
+				genreIds: [createdGenre.id],
+			},
+		});
+
+		const result = await getContentById({
+			db: testDb.db,
+			input: {
+				id: created.id,
+			},
+		});
+
+		expect(result.categories.map((row) => row.id)).toEqual([
+			createdCategory.id,
+		]);
+		expect(result.genres.map((row) => row.id)).toEqual([createdGenre.id]);
+	});
+
 	it("listPopularContent sorts by views and then createdAt", async () => {
 		const admin = await createTestUser(testDb.client, {
 			email: "admin-popular@example.com",
@@ -377,5 +439,149 @@ describe("content service", () => {
 			.from(content)
 			.where(eq(content.id, created.id));
 		expect(dbRow?.publishedAt).toBeNull();
+	});
+
+	it("setContentClassification replaces and preserves dimensions", async () => {
+		const admin = await createTestUser(testDb.client, {
+			email: "admin-classification-replace@example.com",
+		});
+		const [createdContent] = await testDb.db
+			.insert(content)
+			.values({
+				title: "Replace Classification",
+				contentType: "MOVIE",
+				updatedBy: admin.id,
+				isPublished: true,
+				isAvailable: true,
+				publishedAt: new Date("2025-01-01T00:00:00.000Z"),
+			})
+			.returning();
+		const createdCategories = await testDb.db
+			.insert(category)
+			.values([
+				{ title: "Cat A", slug: "cat-a" },
+				{ title: "Cat B", slug: "cat-b" },
+			])
+			.returning();
+		const createdGenres = await testDb.db
+			.insert(genre)
+			.values([
+				{ title: "Genre A", slug: "genre-a" },
+				{ title: "Genre B", slug: "genre-b" },
+			])
+			.returning();
+
+		const contentId = createdContent?.id;
+		const c1 = createdCategories[0]?.id;
+		const c2 = createdCategories[1]?.id;
+		const g1 = createdGenres[0]?.id;
+		const g2 = createdGenres[1]?.id;
+		if (!(contentId && c1 && c2 && g1 && g2)) {
+			throw new Error("Failed to create classification fixtures");
+		}
+
+		const first = await setContentClassification({
+			db: testDb.db,
+			input: {
+				id: contentId,
+				categoryIds: [c1, c2],
+				genreIds: [g1],
+			},
+		});
+		expect(first.categories.map((row) => row.id)).toEqual([c1, c2]);
+		expect(first.genres.map((row) => row.id)).toEqual([g1]);
+
+		const second = await setContentClassification({
+			db: testDb.db,
+			input: {
+				id: contentId,
+				genreIds: [g2],
+			},
+		});
+		expect(second.categories.map((row) => row.id)).toEqual([c1, c2]);
+		expect(second.genres.map((row) => row.id)).toEqual([g2]);
+
+		const third = await setContentClassification({
+			db: testDb.db,
+			input: {
+				id: contentId,
+				categoryIds: [],
+			},
+		});
+		expect(third.categories).toHaveLength(0);
+		expect(third.genres.map((row) => row.id)).toEqual([g2]);
+	});
+
+	it("setContentClassification validates bad input and missing refs", async () => {
+		const admin = await createTestUser(testDb.client, {
+			email: "admin-classification-validation@example.com",
+		});
+		const [createdContent] = await testDb.db
+			.insert(content)
+			.values({
+				title: "Classification Validation",
+				contentType: "MOVIE",
+				updatedBy: admin.id,
+				isPublished: true,
+				isAvailable: true,
+				publishedAt: new Date("2025-01-01T00:00:00.000Z"),
+			})
+			.returning();
+		const [createdCategory] = await testDb.db
+			.insert(category)
+			.values({
+				title: "Validation Category",
+				slug: "validation-category",
+			})
+			.returning();
+
+		const contentId = createdContent?.id;
+		const categoryId = createdCategory?.id;
+		if (!(contentId && categoryId)) {
+			throw new Error("Failed to create classification fixtures");
+		}
+
+		await expect(
+			Promise.resolve().then(() =>
+				setContentClassification({
+					db: testDb.db,
+					input: {
+						id: contentId,
+					},
+				})
+			)
+		).rejects.toThrow(InvalidClassificationInputError);
+
+		await expect(
+			Promise.resolve().then(() =>
+				setContentClassification({
+					db: testDb.db,
+					input: {
+						id: contentId,
+						categoryIds: [categoryId, categoryId],
+					},
+				})
+			)
+		).rejects.toThrow(InvalidClassificationInputError);
+
+		await expect(
+			setContentClassification({
+				db: testDb.db,
+				input: {
+					id: contentId,
+					categoryIds: ["00000000-0000-0000-0000-000000000000"],
+				},
+			})
+		).rejects.toThrow(CategoryNotFoundError);
+
+		await expect(
+			setContentClassification({
+				db: testDb.db,
+				input: {
+					id: contentId,
+					genreIds: ["00000000-0000-0000-0000-000000000000"],
+				},
+			})
+		).rejects.toThrow(GenreNotFoundError);
 	});
 });
