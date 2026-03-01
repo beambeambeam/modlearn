@@ -57,6 +57,7 @@
     "drizzle-orm": "^0.45.1",
     "elysia": "catalog:",
     "pg": "^8.17.1",
+    "trpc-docs-generator": "^0.6.1",
     "zod": "catalog:"
   },
   "devDependencies": {
