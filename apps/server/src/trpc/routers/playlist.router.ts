@@ -19,6 +19,7 @@ import {
 	playlistListEpisodesInputSchema,
 } from "@/modules/playlist/playlist.validators";
 import { adminProcedure, publicProcedure, router } from "../index";
+import { logAdminMutation } from "./_audit";
 
 function mapPlaylistServiceError(error: unknown): never {
 	if (
@@ -68,21 +69,39 @@ export const playlistRouter = router({
 		}),
 	adminCreate: adminProcedure
 		.input(playlistAdminCreateInputSchema)
-		.mutation(({ ctx, input }) => {
-			return createPlaylist({
+		.mutation(async ({ ctx, input }) => {
+			const created = await createPlaylist({
 				db: ctx.db,
 				input,
 				creatorId: ctx.session.user.id,
 			});
+			await logAdminMutation({
+				ctx,
+				entityType: "PLAYLIST",
+				action: "CREATE",
+				entityId: created.id,
+			});
+			return created;
 		}),
 	adminAddEpisode: adminProcedure
 		.input(playlistAdminAddEpisodeInputSchema)
 		.mutation(async ({ ctx, input }) => {
 			try {
-				return await addEpisodeToPlaylist({
+				const added = await addEpisodeToPlaylist({
 					db: ctx.db,
 					input,
 				});
+				await logAdminMutation({
+					ctx,
+					entityType: "PLAYLIST_EPISODE",
+					action: "ADD_EPISODE",
+					entityId: added.id,
+					metadata: {
+						playlistId: added.playlistId,
+						contentId: added.contentId,
+					},
+				});
+				return added;
 			} catch (error) {
 				mapPlaylistServiceError(error);
 			}
@@ -91,10 +110,20 @@ export const playlistRouter = router({
 		.input(playlistAdminReorderEpisodesInputSchema)
 		.mutation(async ({ ctx, input }) => {
 			try {
-				return await reorderPlaylistEpisodes({
+				const reordered = await reorderPlaylistEpisodes({
 					db: ctx.db,
 					input,
 				});
+				await logAdminMutation({
+					ctx,
+					entityType: "PLAYLIST",
+					action: "REORDER_EPISODES",
+					entityId: input.playlistId,
+					metadata: {
+						episodeCount: reordered.length,
+					},
+				});
+				return reordered;
 			} catch (error) {
 				mapPlaylistServiceError(error);
 			}

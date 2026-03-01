@@ -5,6 +5,7 @@ import {
 	resetTestDatabase,
 	type TestDatabase,
 } from "@/__tests__/helpers/test-db";
+import { adminAuditLog } from "@/lib/db/schema";
 import {
 	makeAuthenticatedContext,
 	makeTestContext,
@@ -165,5 +166,15 @@ describe("genre router", () => {
 			id: g1.id,
 		});
 		expect(deleted.deleted).toBe(true);
+
+		const auditRows = await testDb.db.select().from(adminAuditLog);
+		const deleteAudit = auditRows.find(
+			(row) =>
+				row.entityType === "GENRE" &&
+				row.action === "DELETE" &&
+				row.entityId === g1.id &&
+				row.adminId === superadmin.id
+		);
+		expect(deleteAudit).toBeDefined();
 	});
 });

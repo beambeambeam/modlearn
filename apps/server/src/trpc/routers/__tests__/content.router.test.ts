@@ -5,7 +5,7 @@ import {
 	resetTestDatabase,
 	type TestDatabase,
 } from "@/__tests__/helpers/test-db";
-import { category, content, genre } from "@/lib/db/schema";
+import { adminAuditLog, category, content, genre } from "@/lib/db/schema";
 import {
 	makeAuthenticatedContext,
 	makeTestContext,
@@ -252,6 +252,19 @@ describe("content router", () => {
 			isAvailable: false,
 		});
 		expect(setUnavailable.isAvailable).toBe(false);
+
+		const auditRows = await testDb.db.select().from(adminAuditLog);
+		const availabilityAudit = auditRows.find(
+			(row) =>
+				row.entityType === "CONTENT" &&
+				row.action === "SET_AVAILABILITY" &&
+				row.entityId === created.id &&
+				row.adminId === admin.id
+		);
+		expect(availabilityAudit).toBeDefined();
+		expect(availabilityAudit?.metadata).toEqual({
+			isAvailable: false,
+		});
 
 		const deleted = await superadminCaller.content.adminDelete({
 			id: created.id,

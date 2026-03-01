@@ -18,6 +18,7 @@ import {
 	genreListInputSchema,
 } from "@/modules/genre/genre.validators";
 import { adminProcedure, publicProcedure, router } from "../index";
+import { logAdminMutation } from "./_audit";
 
 function mapGenreError(error: unknown): never {
 	if (error instanceof GenreNotFoundError) {
@@ -62,10 +63,17 @@ export const genreRouter = router({
 		.input(genreAdminCreateInputSchema)
 		.mutation(async ({ ctx, input }) => {
 			try {
-				return await createGenre({
+				const created = await createGenre({
 					db: ctx.db,
 					input,
 				});
+				await logAdminMutation({
+					ctx,
+					entityType: "GENRE",
+					action: "CREATE",
+					entityId: created.id,
+				});
+				return created;
 			} catch (error) {
 				mapGenreError(error);
 			}
@@ -74,10 +82,20 @@ export const genreRouter = router({
 		.input(genreAdminUpdateInputSchema)
 		.mutation(async ({ ctx, input }) => {
 			try {
-				return await updateGenre({
+				const updated = await updateGenre({
 					db: ctx.db,
 					input,
 				});
+				await logAdminMutation({
+					ctx,
+					entityType: "GENRE",
+					action: "UPDATE",
+					entityId: updated.id,
+					metadata: {
+						patchKeys: Object.keys(input.patch),
+					},
+				});
+				return updated;
 			} catch (error) {
 				mapGenreError(error);
 			}
@@ -86,10 +104,17 @@ export const genreRouter = router({
 		.input(genreAdminDeleteInputSchema)
 		.mutation(async ({ ctx, input }) => {
 			try {
-				return await deleteGenre({
+				const deleted = await deleteGenre({
 					db: ctx.db,
 					input,
 				});
+				await logAdminMutation({
+					ctx,
+					entityType: "GENRE",
+					action: "DELETE",
+					entityId: deleted.id,
+				});
+				return deleted;
 			} catch (error) {
 				mapGenreError(error);
 			}

@@ -5,7 +5,12 @@ import {
 	resetTestDatabase,
 	type TestDatabase,
 } from "@/__tests__/helpers/test-db";
-import { content, playlist, playlistEpisode } from "@/lib/db/schema";
+import {
+	adminAuditLog,
+	content,
+	playlist,
+	playlistEpisode,
+} from "@/lib/db/schema";
 import {
 	makeAuthenticatedContext,
 	makeTestContext,
@@ -181,6 +186,20 @@ describe("playlist router", () => {
 		});
 		expect(added.playlistId).toBe(created.id);
 		expect(added.episodeOrder).toBe(1);
+
+		const auditRows = await testDb.db.select().from(adminAuditLog);
+		const addEpisodeAudit = auditRows.find(
+			(row) =>
+				row.entityType === "PLAYLIST_EPISODE" &&
+				row.action === "ADD_EPISODE" &&
+				row.entityId === added.id &&
+				row.adminId === admin.id
+		);
+		expect(addEpisodeAudit).toBeDefined();
+		expect(addEpisodeAudit?.metadata).toEqual({
+			playlistId: created.id,
+			contentId: episodeContent.id,
+		});
 
 		const reordered = await superadminCaller.playlist.adminReorderEpisodes({
 			playlistId: created.id,

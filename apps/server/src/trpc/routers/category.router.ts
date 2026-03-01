@@ -18,6 +18,7 @@ import {
 	categoryListInputSchema,
 } from "@/modules/category/category.validators";
 import { adminProcedure, publicProcedure, router } from "../index";
+import { logAdminMutation } from "./_audit";
 
 function mapCategoryError(error: unknown): never {
 	if (error instanceof CategoryNotFoundError) {
@@ -62,10 +63,17 @@ export const categoryRouter = router({
 		.input(categoryAdminCreateInputSchema)
 		.mutation(async ({ ctx, input }) => {
 			try {
-				return await createCategory({
+				const created = await createCategory({
 					db: ctx.db,
 					input,
 				});
+				await logAdminMutation({
+					ctx,
+					entityType: "CATEGORY",
+					action: "CREATE",
+					entityId: created.id,
+				});
+				return created;
 			} catch (error) {
 				mapCategoryError(error);
 			}
@@ -74,10 +82,20 @@ export const categoryRouter = router({
 		.input(categoryAdminUpdateInputSchema)
 		.mutation(async ({ ctx, input }) => {
 			try {
-				return await updateCategory({
+				const updated = await updateCategory({
 					db: ctx.db,
 					input,
 				});
+				await logAdminMutation({
+					ctx,
+					entityType: "CATEGORY",
+					action: "UPDATE",
+					entityId: updated.id,
+					metadata: {
+						patchKeys: Object.keys(input.patch),
+					},
+				});
+				return updated;
 			} catch (error) {
 				mapCategoryError(error);
 			}
@@ -86,10 +104,17 @@ export const categoryRouter = router({
 		.input(categoryAdminDeleteInputSchema)
 		.mutation(async ({ ctx, input }) => {
 			try {
-				return await deleteCategory({
+				const deleted = await deleteCategory({
 					db: ctx.db,
 					input,
 				});
+				await logAdminMutation({
+					ctx,
+					entityType: "CATEGORY",
+					action: "DELETE",
+					entityId: deleted.id,
+				});
+				return deleted;
 			} catch (error) {
 				mapCategoryError(error);
 			}

@@ -5,6 +5,7 @@ import {
 	resetTestDatabase,
 	type TestDatabase,
 } from "@/__tests__/helpers/test-db";
+import { adminAuditLog } from "@/lib/db/schema";
 import {
 	makeAuthenticatedContext,
 	makeTestContext,
@@ -38,6 +39,16 @@ describe("category router", () => {
 			title: "Math",
 			slug: "math",
 		});
+
+		const auditRows = await testDb.db.select().from(adminAuditLog);
+		const createAudit = auditRows.find(
+			(row) =>
+				row.entityType === "CATEGORY" &&
+				row.action === "CREATE" &&
+				row.entityId === created.id &&
+				row.adminId === admin.id
+		);
+		expect(createAudit).toBeDefined();
 
 		const publicCaller = appRouter.createCaller(
 			makeTestContext({ db: testDb.db })
@@ -165,5 +176,33 @@ describe("category router", () => {
 			id: c1.id,
 		});
 		expect(deleted.deleted).toBe(true);
+	});
+
+	it("fails mutation when audit logging fails after business mutation", async () => {
+		const caller = appRouter.createCaller(
+			makeAuthenticatedContext("missing-admin-user-id", "admin", {
+				db: testDb.db,
+			})
+		);
+
+		await expect(
+			caller.category.adminCreate({
+				title: "Audit Fail Category",
+				slug: "audit-fail-category",
+			})
+		).rejects.toThrow(
+			expect.objectContaining({
+				code: "INTERNAL_SERVER_ERROR",
+				message: "Failed to write admin audit log",
+			})
+		);
+
+		const publicCaller = appRouter.createCaller(
+			makeTestContext({ db: testDb.db })
+		);
+		const listed = await publicCaller.category.list({});
+		expect(listed.items.map((row) => row.slug)).toContain(
+			"audit-fail-category"
+		);
 	});
 });

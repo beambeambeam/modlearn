@@ -15,6 +15,7 @@ import {
 	fileAdminCreateUploadRequestInputSchema,
 } from "@/modules/file/file.validators";
 import { adminProcedure, router } from "../index";
+import { logAdminMutation } from "./_audit";
 
 function mapFileError(error: unknown): never {
 	if (
@@ -43,13 +44,20 @@ export const fileRouter = router({
 		.input(fileAdminCreateUploadRequestInputSchema)
 		.mutation(async ({ ctx, input }) => {
 			try {
-				return await createFileUploadRequest({
+				const created = await createFileUploadRequest({
 					db: ctx.db,
 					input: {
 						...input,
 						uploaderId: ctx.session.user.id,
 					},
 				});
+				await logAdminMutation({
+					ctx,
+					entityType: "FILE",
+					action: "CREATE",
+					entityId: created.fileId,
+				});
+				return created;
 			} catch (error) {
 				mapFileError(error);
 			}
@@ -70,10 +78,17 @@ export const fileRouter = router({
 		.input(fileAdminByIdInputSchema)
 		.mutation(async ({ ctx, input }) => {
 			try {
-				return await deleteFile({
+				const deleted = await deleteFile({
 					db: ctx.db,
 					fileId: input.fileId,
 				});
+				await logAdminMutation({
+					ctx,
+					entityType: "FILE",
+					action: "DELETE",
+					entityId: deleted.fileId,
+				});
+				return deleted;
 			} catch (error) {
 				mapFileError(error);
 			}

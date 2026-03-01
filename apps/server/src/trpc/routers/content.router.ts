@@ -28,6 +28,7 @@ import {
 	contentListPopularInputSchema,
 } from "@/modules/content/content.validators";
 import { adminProcedure, publicProcedure, router } from "../index";
+import { logAdminMutation } from "./_audit";
 
 function mapServiceError(error: unknown): never {
 	if (
@@ -81,22 +82,39 @@ export const contentRouter = router({
 		}),
 	adminCreate: adminProcedure
 		.input(contentAdminCreateInputSchema)
-		.mutation(({ ctx, input }) => {
-			return createContent({
+		.mutation(async ({ ctx, input }) => {
+			const created = await createContent({
 				db: ctx.db,
 				input,
 				updatedBy: ctx.session.user.id,
 			});
+			await logAdminMutation({
+				ctx,
+				entityType: "CONTENT",
+				action: "CREATE",
+				entityId: created.id,
+			});
+			return created;
 		}),
 	adminUpdate: adminProcedure
 		.input(contentAdminUpdateInputSchema)
 		.mutation(async ({ ctx, input }) => {
 			try {
-				return await updateContent({
+				const updated = await updateContent({
 					db: ctx.db,
 					input,
 					updatedBy: ctx.session.user.id,
 				});
+				await logAdminMutation({
+					ctx,
+					entityType: "CONTENT",
+					action: "UPDATE",
+					entityId: updated.id,
+					metadata: {
+						patchKeys: Object.keys(input.patch),
+					},
+				});
+				return updated;
 			} catch (error) {
 				mapServiceError(error);
 			}
@@ -105,11 +123,21 @@ export const contentRouter = router({
 		.input(contentAdminSetPublishStateInputSchema)
 		.mutation(async ({ ctx, input }) => {
 			try {
-				return await setContentPublishState({
+				const updated = await setContentPublishState({
 					db: ctx.db,
 					input,
 					updatedBy: ctx.session.user.id,
 				});
+				await logAdminMutation({
+					ctx,
+					entityType: "CONTENT",
+					action: "SET_PUBLISH_STATE",
+					entityId: updated.id,
+					metadata: {
+						isPublished: input.isPublished,
+					},
+				});
+				return updated;
 			} catch (error) {
 				mapServiceError(error);
 			}
@@ -118,10 +146,21 @@ export const contentRouter = router({
 		.input(contentAdminSetClassificationInputSchema)
 		.mutation(async ({ ctx, input }) => {
 			try {
-				return await setContentClassification({
+				const updated = await setContentClassification({
 					db: ctx.db,
 					input,
 				});
+				await logAdminMutation({
+					ctx,
+					entityType: "CONTENT",
+					action: "SET_CLASSIFICATION",
+					entityId: updated.contentId,
+					metadata: {
+						categoryIds: input.categoryIds,
+						genreIds: input.genreIds,
+					},
+				});
+				return updated;
 			} catch (error) {
 				mapServiceError(error);
 			}
@@ -130,11 +169,18 @@ export const contentRouter = router({
 		.input(contentAdminDeleteInputSchema)
 		.mutation(async ({ ctx, input }) => {
 			try {
-				return await deleteContent({
+				const deleted = await deleteContent({
 					db: ctx.db,
 					input,
 					updatedBy: ctx.session.user.id,
 				});
+				await logAdminMutation({
+					ctx,
+					entityType: "CONTENT",
+					action: "DELETE",
+					entityId: deleted.id,
+				});
+				return deleted;
 			} catch (error) {
 				mapServiceError(error);
 			}
@@ -143,11 +189,21 @@ export const contentRouter = router({
 		.input(contentAdminSetAvailabilityInputSchema)
 		.mutation(async ({ ctx, input }) => {
 			try {
-				return await setContentAvailability({
+				const updated = await setContentAvailability({
 					db: ctx.db,
 					input,
 					updatedBy: ctx.session.user.id,
 				});
+				await logAdminMutation({
+					ctx,
+					entityType: "CONTENT",
+					action: "SET_AVAILABILITY",
+					entityId: updated.id,
+					metadata: {
+						isAvailable: input.isAvailable,
+					},
+				});
+				return updated;
 			} catch (error) {
 				mapServiceError(error);
 			}
