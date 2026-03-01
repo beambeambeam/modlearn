@@ -1,10 +1,17 @@
-# Project rules
+# Project Rules
 
-Always use path aliases for imports.
+## Imports
 
----
+- Always use `@`-prefixed aliases for internal imports.
+- Avoid relative imports for cross-folder server modules.
 
-Rule 1: Import paths
+## Server Structure
 
-Use `@`-prefixed aliases for internal imports.
-Do not use relative paths like `../` or `./` for project modules.
+- Keep module shape consistent: `*.service.ts`, `*.types.ts`, `*.validators.ts`, optional `*.utils.ts`.
+- Do not introduce `*.handlers.ts` as an extra layer unless explicitly required.
+
+## Router Conventions
+
+- Keep tRPC router files thin.
+- Centralize TRPC error mapping helpers in `src/trpc/routers/router.utils.ts`.
+- Keep tRPC context input types in `src/trpc/context.types.ts`.
