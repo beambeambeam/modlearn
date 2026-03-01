@@ -1,4 +1,3 @@
-import { TRPCError } from "@trpc/server";
 import {
 	createContent,
 	deleteContent,
@@ -10,12 +9,6 @@ import {
 	setContentPublishState,
 	updateContent,
 } from "@/modules/content/content.service";
-import {
-	CategoryNotFoundError,
-	ContentNotFoundError,
-	GenreNotFoundError,
-	InvalidClassificationInputError,
-} from "@/modules/content/content.types";
 import {
 	contentAdminCreateInputSchema,
 	contentAdminDeleteInputSchema,
@@ -29,27 +22,7 @@ import {
 } from "@/modules/content/content.validators";
 import { adminProcedure, publicProcedure, router } from "../index";
 import { logAdminMutation } from "./_audit";
-
-function mapServiceError(error: unknown): never {
-	if (
-		error instanceof ContentNotFoundError ||
-		error instanceof CategoryNotFoundError ||
-		error instanceof GenreNotFoundError
-	) {
-		throw new TRPCError({
-			code: "NOT_FOUND",
-			message: error.message,
-		});
-	}
-	if (error instanceof InvalidClassificationInputError) {
-		throw new TRPCError({
-			code: "BAD_REQUEST",
-			message: error.message,
-		});
-	}
-
-	throw error;
-}
+import { mapServiceError } from "./router.utils";
 
 export const contentRouter = router({
 	list: publicProcedure

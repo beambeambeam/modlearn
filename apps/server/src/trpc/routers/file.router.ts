@@ -1,43 +1,15 @@
-import { TRPCError } from "@trpc/server";
 import {
 	createFileDownloadUrl,
 	createFileUploadRequest,
 	deleteFile,
 } from "@/modules/file/file.service";
 import {
-	FileAlreadyDeletedError,
-	FileCreationError,
-	FileNotFoundError,
-	StorageRecordNotFoundError,
-} from "@/modules/file/file.types";
-import {
 	fileAdminByIdInputSchema,
 	fileAdminCreateUploadRequestInputSchema,
 } from "@/modules/file/file.validators";
 import { adminProcedure, router } from "../index";
 import { logAdminMutation } from "./_audit";
-
-function mapFileError(error: unknown): never {
-	if (
-		error instanceof FileNotFoundError ||
-		error instanceof FileAlreadyDeletedError ||
-		error instanceof StorageRecordNotFoundError
-	) {
-		throw new TRPCError({
-			code: "NOT_FOUND",
-			message: error.message,
-		});
-	}
-
-	if (error instanceof FileCreationError) {
-		throw new TRPCError({
-			code: "BAD_REQUEST",
-			message: error.message,
-		});
-	}
-
-	throw error;
-}
+import { mapFileError } from "./router.utils";
 
 export const fileRouter = router({
 	adminCreateUploadRequest: adminProcedure

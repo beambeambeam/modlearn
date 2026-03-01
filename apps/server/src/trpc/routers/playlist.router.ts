@@ -1,4 +1,3 @@
-import { TRPCError } from "@trpc/server";
 import {
 	addEpisodeToPlaylist,
 	createPlaylist,
@@ -6,11 +5,6 @@ import {
 	listPlaylistEpisodes,
 	reorderPlaylistEpisodes,
 } from "@/modules/playlist/playlist.service";
-import {
-	ContentNotFoundError,
-	PlaylistNotFoundError,
-	PlaylistReorderValidationError,
-} from "@/modules/playlist/playlist.types";
 import {
 	playlistAdminAddEpisodeInputSchema,
 	playlistAdminCreateInputSchema,
@@ -20,27 +14,7 @@ import {
 } from "@/modules/playlist/playlist.validators";
 import { adminProcedure, publicProcedure, router } from "../index";
 import { logAdminMutation } from "./_audit";
-
-function mapPlaylistServiceError(error: unknown): never {
-	if (
-		error instanceof PlaylistNotFoundError ||
-		error instanceof ContentNotFoundError
-	) {
-		throw new TRPCError({
-			code: "NOT_FOUND",
-			message: error.message,
-		});
-	}
-
-	if (error instanceof PlaylistReorderValidationError) {
-		throw new TRPCError({
-			code: "BAD_REQUEST",
-			message: error.message,
-		});
-	}
-
-	throw error;
-}
+import { mapPlaylistServiceError } from "./router.utils";
 
 export const playlistRouter = router({
 	getByIdWithEpisodes: publicProcedure

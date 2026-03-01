@@ -1,4 +1,3 @@
-import { TRPCError } from "@trpc/server";
 import {
 	createCategory,
 	deleteCategory,
@@ -6,10 +5,6 @@ import {
 	listCategories,
 	updateCategory,
 } from "@/modules/category/category.service";
-import {
-	CategoryNotFoundError,
-	CategorySlugConflictError,
-} from "@/modules/category/category.types";
 import {
 	categoryAdminCreateInputSchema,
 	categoryAdminDeleteInputSchema,
@@ -19,24 +14,7 @@ import {
 } from "@/modules/category/category.validators";
 import { adminProcedure, publicProcedure, router } from "../index";
 import { logAdminMutation } from "./_audit";
-
-function mapCategoryError(error: unknown): never {
-	if (error instanceof CategoryNotFoundError) {
-		throw new TRPCError({
-			code: "NOT_FOUND",
-			message: error.message,
-		});
-	}
-
-	if (error instanceof CategorySlugConflictError) {
-		throw new TRPCError({
-			code: "CONFLICT",
-			message: error.message,
-		});
-	}
-
-	throw error;
-}
+import { mapCategoryError } from "./router.utils";
 
 export const categoryRouter = router({
 	list: publicProcedure

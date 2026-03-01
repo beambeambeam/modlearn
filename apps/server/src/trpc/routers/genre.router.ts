@@ -1,4 +1,3 @@
-import { TRPCError } from "@trpc/server";
 import {
 	createGenre,
 	deleteGenre,
@@ -6,10 +5,6 @@ import {
 	listGenres,
 	updateGenre,
 } from "@/modules/genre/genre.service";
-import {
-	GenreNotFoundError,
-	GenreSlugConflictError,
-} from "@/modules/genre/genre.types";
 import {
 	genreAdminCreateInputSchema,
 	genreAdminDeleteInputSchema,
@@ -19,24 +14,7 @@ import {
 } from "@/modules/genre/genre.validators";
 import { adminProcedure, publicProcedure, router } from "../index";
 import { logAdminMutation } from "./_audit";
-
-function mapGenreError(error: unknown): never {
-	if (error instanceof GenreNotFoundError) {
-		throw new TRPCError({
-			code: "NOT_FOUND",
-			message: error.message,
-		});
-	}
-
-	if (error instanceof GenreSlugConflictError) {
-		throw new TRPCError({
-			code: "CONFLICT",
-			message: error.message,
-		});
-	}
-
-	throw error;
-}
+import { mapGenreError } from "./router.utils";
 
 export const genreRouter = router({
 	list: publicProcedure
