@@ -5,6 +5,7 @@ import {
 	router,
 } from "../index";
 import { contentRouter } from "./content.router";
+import { playlistRouter } from "./playlist.router";
 
 export const appRouter = router({
 	healthCheck: publicProcedure.query(() => {
@@ -23,5 +24,6 @@ export const appRouter = router({
 		};
 	}),
 	content: contentRouter,
+	playlist: playlistRouter,
 });
 export type AppRouter = typeof appRouter;
