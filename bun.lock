@@ -42,6 +42,7 @@
         "drizzle-orm": "^0.45.1",
         "elysia": "catalog:",
         "pg": "^8.17.1",
+        "trpc-docs-generator": "^0.6.1",
         "zod": "catalog:",
       },
       "devDependencies": {
@@ -1864,6 +1865,8 @@
     "tough-cookie": ["tough-cookie@6.0.0", "", { "dependencies": { "tldts": "^7.0.5" } }, "sha512-kXuRi1mtaKMrsLUxz3sQYvVl37B0Ns6MzfrtV5DvJceE9bPyspOqk9xxv7XbZWcfLWbFmm997vl83qUWVJA64w=="],
 
     "tree-kill": ["tree-kill@1.2.2", "", { "bin": { "tree-kill": "cli.js" } }, "sha512-L0Orpi8qGpRG//Nd+H90vFB+3iHnue1zSSGmNOOCh1GLJ7rUKVwV2HvijphGQS2UmhUZewS9VgvxYIdgr+fG1A=="],
+
+    "trpc-docs-generator": ["trpc-docs-generator@0.6.1", "", {}, "sha512-6f9RBS+4bQWAaT74ie3LDVp4ILGS22or4dPXE9tDfwhgvitOHhF+Adbl2ojMrYn6ENoKhYSxtA4T1o9ViNlt7A=="],
 
     "ts-morph": ["ts-morph@26.0.0", "", { "dependencies": { "@ts-morph/common": "~0.27.0", "code-block-writer": "^13.0.3" } }, "sha512-ztMO++owQnz8c/gIENcM9XfCEzgoGphTv+nKpYNM1bgsdOVC/jRZuEBf6N+mLLDNg68Kl+GgUZfOySaRiG1/Ug=="],
 
