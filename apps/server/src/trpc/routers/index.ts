@@ -4,6 +4,11 @@ import {
 	publicProcedure,
 	router,
 } from "../index";
+import { categoryRouter } from "./category.router";
+import { contentRouter } from "./content.router";
+import { fileRouter } from "./file.router";
+import { genreRouter } from "./genre.router";
+import { playlistRouter } from "./playlist.router";
 
 export const appRouter = router({
 	healthCheck: publicProcedure.query(() => {
@@ -21,5 +26,10 @@ export const appRouter = router({
 			user: ctx.session.user,
 		};
 	}),
+	category: categoryRouter,
+	content: contentRouter,
+	file: fileRouter,
+	genre: genreRouter,
+	playlist: playlistRouter,
 });
 export type AppRouter = typeof appRouter;

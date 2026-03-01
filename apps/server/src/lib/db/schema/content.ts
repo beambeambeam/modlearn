@@ -82,6 +82,8 @@ export const content = pgTable(
 		isAvailable: boolean("is_available").default(true).notNull(),
 		isPublished: boolean("is_published").default(false).notNull(),
 		publishedAt: timestamp("published_at", { withTimezone: true }),
+		isDeleted: boolean("is_deleted").default(false).notNull(),
+		deletedAt: timestamp("deleted_at", { withTimezone: true }),
 		...timestamps,
 		updatedBy: text("updated_by")
 			.notNull()
@@ -99,6 +101,7 @@ export const content = pgTable(
 		index("content_updatedBy_idx").on(table.updatedBy),
 		index("content_releaseDate_idx").on(table.releaseDate),
 		index("content_viewCount_idx").on(table.viewCount),
+		index("content_deleted_idx").on(table.isDeleted),
 	]
 );
 

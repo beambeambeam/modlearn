@@ -7,6 +7,12 @@ import {
 	generateDownloadUrl,
 	generateUploadUrl,
 } from "@/lib/storage/s3-operations";
+import {
+	FileAlreadyDeletedError,
+	FileCreationError,
+	FileNotFoundError,
+	StorageRecordNotFoundError,
+} from "./file.types";
 
 export interface CreateFileUploadRequestInput {
 	uploaderId: string;
@@ -84,7 +90,7 @@ export function createFileUploadRequest(
 		const insertedFile = insertResult.rows[0] as { id: string } | undefined;
 
 		if (!insertedFile?.id) {
-			throw new Error("Failed to create file record");
+			throw new FileCreationError();
 		}
 
 		const storageKey = `files/${insertedFile.id}.${input.extension}`;
@@ -140,11 +146,11 @@ export async function createFileDownloadUrl(
 		| undefined;
 
 	if (!fileRow) {
-		throw new Error("File not found");
+		throw new FileNotFoundError();
 	}
 
 	if (fileRow.isDeleted) {
-		throw new Error("File is deleted");
+		throw new FileAlreadyDeletedError();
 	}
 
 	const storageResult = await db.execute(
@@ -160,7 +166,7 @@ export async function createFileDownloadUrl(
 		| undefined;
 
 	if (!storageRow) {
-		throw new Error("Storage record not found");
+		throw new StorageRecordNotFoundError();
 	}
 
 	const presigned = await generateDownloadUrl({
@@ -194,11 +200,11 @@ export function deleteFile(
 			| undefined;
 
 		if (!fileRow) {
-			throw new Error("File not found");
+			throw new FileNotFoundError();
 		}
 
 		if (fileRow.isDeleted) {
-			throw new Error("File is already deleted");
+			throw new FileAlreadyDeletedError("File is already deleted");
 		}
 
 		const storageResult = await tx.execute(
@@ -214,7 +220,7 @@ export function deleteFile(
 			| undefined;
 
 		if (!storageRow) {
-			throw new Error("Storage record not found");
+			throw new StorageRecordNotFoundError();
 		}
 
 		await deleteObject({ key: storageRow.storageKey });

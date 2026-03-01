@@ -1,7 +1,9 @@
+import { db } from "@/lib/db";
 import type { Context } from "@/trpc/context";
 
 export function makeTestContext(overrides?: Partial<Context>): Context {
 	return {
+		db,
 		session: null,
 		...overrides,
 	};
@@ -9,9 +11,11 @@ export function makeTestContext(overrides?: Partial<Context>): Context {
 
 export function makeAuthenticatedContext(
 	userId: string,
-	role = "user"
+	role = "user",
+	overrides?: Partial<Context>
 ): Context {
 	return {
+		db,
 		session: {
 			user: {
 				id: userId,
@@ -35,5 +39,6 @@ export function makeAuthenticatedContext(
 				updatedAt: new Date(),
 			},
 		},
+		...overrides,
 	};
 }

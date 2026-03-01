@@ -25,6 +25,11 @@ import {
 	createFileUploadRequest,
 	deleteFile,
 } from "@/modules/file/file.service";
+import {
+	FileAlreadyDeletedError,
+	FileNotFoundError,
+	StorageRecordNotFoundError,
+} from "@/modules/file/file.types";
 
 vi.mock("@/lib/storage/s3-operations", () => ({
 	generateUploadUrl: vi.fn(async (input: { key: string }) => ({
@@ -175,7 +180,7 @@ describe("file service", () => {
 					db: testDb.db,
 					fileId: "00000000-0000-0000-0000-000000000000",
 				})
-			).rejects.toThrow();
+			).rejects.toThrow(FileNotFoundError);
 		});
 
 		it("throws when file is deleted", async () => {
@@ -213,7 +218,36 @@ describe("file service", () => {
 					db: testDb.db,
 					fileId: insertedFile.id,
 				})
-			).rejects.toThrow();
+			).rejects.toThrow(FileAlreadyDeletedError);
+		});
+
+		it("throws when storage record does not exist", async () => {
+			const uploader = await createTestUser(testDb.client, {
+				name: "No Storage",
+				email: "nostorage@example.com",
+			});
+			const [insertedFile] = await testDb.db
+				.insert(file)
+				.values({
+					uploaderId: uploader.id,
+					name: "nostorage.mp4",
+					size: 2048,
+					mimeType: "video/mp4",
+					extension: "mp4",
+					checksum: "e".repeat(64),
+				})
+				.returning();
+
+			if (!insertedFile) {
+				throw new Error("Failed to create no-storage file row");
+			}
+
+			await expect(
+				createFileDownloadUrl({
+					db: testDb.db,
+					fileId: insertedFile.id,
+				})
+			).rejects.toThrow(StorageRecordNotFoundError);
 		});
 	});
 
@@ -278,7 +312,72 @@ describe("file service", () => {
 					db: testDb.db,
 					fileId: "00000000-0000-0000-0000-000000000000",
 				})
-			).rejects.toThrow();
+			).rejects.toThrow(FileNotFoundError);
+		});
+
+		it("throws when file is already deleted", async () => {
+			const uploader = await createTestUser(testDb.client, {
+				name: "Already Deleted",
+				email: "alreadydeleted@example.com",
+			});
+
+			const [insertedFile] = await testDb.db
+				.insert(file)
+				.values({
+					uploaderId: uploader.id,
+					name: "alreadydeleted.mp4",
+					size: 8192,
+					mimeType: "video/mp4",
+					extension: "mp4",
+					checksum: "f".repeat(64),
+					isDeleted: true,
+					deletedAt: new Date(),
+				})
+				.returning();
+			if (!insertedFile) {
+				throw new Error("Failed to create deleted file row");
+			}
+
+			await testDb.db.insert(storage).values({
+				fileId: insertedFile.id,
+				storageProvider: "s3",
+				storageKey: `files/${insertedFile.id}.mp4`,
+			});
+
+			await expect(
+				deleteFile({
+					db: testDb.db,
+					fileId: insertedFile.id,
+				})
+			).rejects.toThrow(FileAlreadyDeletedError);
+		});
+
+		it("throws when storage record does not exist", async () => {
+			const uploader = await createTestUser(testDb.client, {
+				name: "Delete No Storage",
+				email: "deletenostorage@example.com",
+			});
+			const [insertedFile] = await testDb.db
+				.insert(file)
+				.values({
+					uploaderId: uploader.id,
+					name: "deletenostorage.mp4",
+					size: 4096,
+					mimeType: "video/mp4",
+					extension: "mp4",
+					checksum: "1".repeat(64),
+				})
+				.returning();
+			if (!insertedFile) {
+				throw new Error("Failed to create delete-no-storage row");
+			}
+
+			await expect(
+				deleteFile({
+					db: testDb.db,
+					fileId: insertedFile.id,
+				})
+			).rejects.toThrow(StorageRecordNotFoundError);
 		});
 	});
 });
