@@ -4,6 +4,7 @@ import {
 	count,
 	desc,
 	eq,
+	exists,
 	ilike,
 	inArray,
 	type SQL,
@@ -19,6 +20,8 @@ import {
 } from "@/lib/db/schema";
 import type {
 	AdminCreateContentInput,
+	AdminDeleteContentInput,
+	AdminSetAvailabilityInput,
 	AdminSetClassificationInput,
 	AdminSetPublishStateInput,
 	AdminUpdateContentInput,
@@ -72,11 +75,25 @@ interface SetContentClassificationParams {
 	input: AdminSetClassificationInput;
 }
 
+interface DeleteContentParams {
+	db: DbClient;
+	input: AdminDeleteContentInput;
+	updatedBy: string;
+}
+
+interface SetContentAvailabilityParams {
+	db: DbClient;
+	input: AdminSetAvailabilityInput;
+	updatedBy: string;
+}
+
 interface BuildFiltersInput {
 	id?: string;
 	search?: string;
 	contentType?: ContentListInput["contentType"];
 	onlyPublished?: boolean;
+	categoryIds?: string[];
+	genreIds?: string[];
 }
 
 export interface ContentPagination {
@@ -95,6 +112,12 @@ export interface ContentClassificationResult {
 	contentId: string;
 	categories: ContentClassificationItem[];
 	genres: ContentClassificationItem[];
+}
+
+export interface DeleteContentResult {
+	id: string;
+	deleted: true;
+	deletedAt: Date;
 }
 
 type ContentRow = typeof content.$inferSelect;
@@ -130,7 +153,7 @@ async function ensureContentExists(
 	contentId: string
 ): Promise<void> {
 	const row = await db.query.content.findFirst({
-		where: eq(content.id, contentId),
+		where: and(eq(content.id, contentId), eq(content.isDeleted, false)),
 		columns: { id: true },
 	});
 
@@ -171,9 +194,10 @@ async function ensureGenresExist(db: DbClient, ids: string[]): Promise<void> {
 }
 
 function buildContentFilters(
+	db: DbClient,
 	input: BuildFiltersInput
 ): SQL<unknown> | undefined {
-	const conditions: SQL<unknown>[] = [];
+	const conditions: SQL<unknown>[] = [eq(content.isDeleted, false)];
 
 	if (input.id) {
 		conditions.push(eq(content.id, input.id));
@@ -193,8 +217,36 @@ function buildContentFilters(
 		conditions.push(eq(content.contentType, input.contentType));
 	}
 
-	if (conditions.length === 0) {
-		return undefined;
+	if (input.categoryIds && input.categoryIds.length > 0) {
+		conditions.push(
+			exists(
+				db
+					.select({ id: contentCategory.id })
+					.from(contentCategory)
+					.where(
+						and(
+							eq(contentCategory.contentId, content.id),
+							inArray(contentCategory.categoryId, input.categoryIds)
+						)
+					)
+			)
+		);
+	}
+
+	if (input.genreIds && input.genreIds.length > 0) {
+		conditions.push(
+			exists(
+				db
+					.select({ id: contentGenre.id })
+					.from(contentGenre)
+					.where(
+						and(
+							eq(contentGenre.contentId, content.id),
+							inArray(contentGenre.genreId, input.genreIds)
+						)
+					)
+			)
+		);
 	}
 
 	return and(...conditions);
@@ -207,10 +259,12 @@ export async function listContent(
 	const page = input.page ?? 1;
 	const limit = input.limit ?? 20;
 	const offset = (page - 1) * limit;
-	const filters = buildContentFilters({
+	const filters = buildContentFilters(db, {
 		search: input.search,
 		contentType: input.contentType,
 		onlyPublished: input.onlyPublished ?? true,
+		categoryIds: input.categoryIds,
+		genreIds: input.genreIds,
 	});
 
 	const countRows = await db
@@ -250,7 +304,7 @@ export async function getContentById(
 	params: GetContentByIdParams
 ): Promise<ContentDetailResult> {
 	const { db, input } = params;
-	const filters = buildContentFilters({
+	const filters = buildContentFilters(db, {
 		id: input.id,
 		onlyPublished: input.onlyPublished ?? true,
 	});
@@ -280,7 +334,7 @@ export function listPopularContent(
 ): Promise<(typeof content.$inferSelect)[]> {
 	const { db, input } = params;
 	const limit = input.limit ?? 10;
-	const filters = buildContentFilters({
+	const filters = buildContentFilters(db, {
 		onlyPublished: true,
 	});
 
@@ -353,7 +407,7 @@ export async function updateContent(
 	const [updated] = await db
 		.update(content)
 		.set(values)
-		.where(eq(content.id, input.id))
+		.where(and(eq(content.id, input.id), eq(content.isDeleted, false)))
 		.returning();
 
 	if (!updated) {
@@ -368,7 +422,7 @@ export async function setContentPublishState(
 ): Promise<typeof content.$inferSelect> {
 	const { db, input, updatedBy } = params;
 	const existing = await db.query.content.findFirst({
-		where: eq(content.id, input.id),
+		where: and(eq(content.id, input.id), eq(content.isDeleted, false)),
 	});
 
 	if (!existing) {
@@ -386,7 +440,7 @@ export async function setContentPublishState(
 			publishedAt,
 			updatedBy,
 		})
-		.where(eq(content.id, input.id))
+		.where(and(eq(content.id, input.id), eq(content.isDeleted, false)))
 		.returning();
 
 	if (!updated) {
@@ -502,4 +556,52 @@ export function setContentClassification(
 			contentId: input.id,
 		});
 	});
+}
+
+export async function deleteContent(
+	params: DeleteContentParams
+): Promise<DeleteContentResult> {
+	const { db, input, updatedBy } = params;
+	const deletedAt = new Date();
+
+	const [updated] = await db
+		.update(content)
+		.set({
+			isDeleted: true,
+			deletedAt,
+			updatedBy,
+		})
+		.where(and(eq(content.id, input.id), eq(content.isDeleted, false)))
+		.returning();
+
+	if (!updated?.deletedAt) {
+		throw new ContentNotFoundError();
+	}
+
+	return {
+		id: updated.id,
+		deleted: true,
+		deletedAt: updated.deletedAt,
+	};
+}
+
+export async function setContentAvailability(
+	params: SetContentAvailabilityParams
+): Promise<typeof content.$inferSelect> {
+	const { db, input, updatedBy } = params;
+
+	const [updated] = await db
+		.update(content)
+		.set({
+			isAvailable: input.isAvailable,
+			updatedBy,
+		})
+		.where(and(eq(content.id, input.id), eq(content.isDeleted, false)))
+		.returning();
+
+	if (!updated) {
+		throw new ContentNotFoundError();
+	}
+
+	return updated;
 }

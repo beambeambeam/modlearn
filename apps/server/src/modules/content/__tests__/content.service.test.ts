@@ -9,9 +9,11 @@ import { eq } from "@/lib/db/orm";
 import { category, content, genre } from "@/lib/db/schema";
 import {
 	createContent,
+	deleteContent,
 	getContentById,
 	listContent,
 	listPopularContent,
+	setContentAvailability,
 	setContentClassification,
 	setContentPublishState,
 	updateContent,
@@ -583,5 +585,278 @@ describe("content service", () => {
 				},
 			})
 		).rejects.toThrow(GenreNotFoundError);
+	});
+
+	it("deleteContent marks row as deleted and hides it from reads", async () => {
+		const admin = await createTestUser(testDb.client, {
+			email: "admin-delete-content@example.com",
+		});
+
+		const [created] = await testDb.db
+			.insert(content)
+			.values({
+				title: "Delete Me",
+				contentType: "MOVIE",
+				updatedBy: admin.id,
+				isPublished: true,
+				isAvailable: true,
+				publishedAt: new Date("2025-01-01T00:00:00.000Z"),
+			})
+			.returning();
+
+		if (!created) {
+			throw new Error("Failed to create content for delete test");
+		}
+
+		const deleted = await deleteContent({
+			db: testDb.db,
+			input: { id: created.id },
+			updatedBy: admin.id,
+		});
+
+		expect(deleted.id).toBe(created.id);
+		expect(deleted.deleted).toBe(true);
+		expect(deleted.deletedAt).toBeInstanceOf(Date);
+
+		await expect(
+			getContentById({
+				db: testDb.db,
+				input: { id: created.id },
+			})
+		).rejects.toThrow(ContentNotFoundError);
+
+		const listed = await listContent({
+			db: testDb.db,
+			input: {},
+		});
+		expect(listed.items.map((row) => row.id)).not.toContain(created.id);
+
+		const popular = await listPopularContent({
+			db: testDb.db,
+			input: {},
+		});
+		expect(popular.map((row) => row.id)).not.toContain(created.id);
+	});
+
+	it("setContentAvailability updates availability and rejects deleted content", async () => {
+		const admin = await createTestUser(testDb.client, {
+			email: "admin-set-availability@example.com",
+		});
+
+		const [created] = await testDb.db
+			.insert(content)
+			.values({
+				title: "Toggle Availability",
+				contentType: "MOVIE",
+				updatedBy: admin.id,
+				isPublished: true,
+				isAvailable: true,
+				publishedAt: new Date("2025-01-01T00:00:00.000Z"),
+			})
+			.returning();
+
+		if (!created) {
+			throw new Error("Failed to create content for availability test");
+		}
+
+		const unavailable = await setContentAvailability({
+			db: testDb.db,
+			input: { id: created.id, isAvailable: false },
+			updatedBy: admin.id,
+		});
+		expect(unavailable.isAvailable).toBe(false);
+
+		await deleteContent({
+			db: testDb.db,
+			input: { id: created.id },
+			updatedBy: admin.id,
+		});
+
+		await expect(
+			setContentAvailability({
+				db: testDb.db,
+				input: { id: created.id, isAvailable: true },
+				updatedBy: admin.id,
+			})
+		).rejects.toThrow(ContentNotFoundError);
+	});
+
+	it("operations reject deleted content as not found", async () => {
+		const admin = await createTestUser(testDb.client, {
+			email: "admin-deleted-guard@example.com",
+		});
+
+		const [created] = await testDb.db
+			.insert(content)
+			.values({
+				title: "Deleted Guard",
+				contentType: "MOVIE",
+				updatedBy: admin.id,
+				isPublished: false,
+				isAvailable: true,
+			})
+			.returning();
+		const [createdCategory] = await testDb.db
+			.insert(category)
+			.values({
+				title: "Deleted Guard Category",
+				slug: "deleted-guard-category",
+			})
+			.returning();
+
+		if (!(created && createdCategory)) {
+			throw new Error("Failed to create deleted guard fixtures");
+		}
+
+		await deleteContent({
+			db: testDb.db,
+			input: { id: created.id },
+			updatedBy: admin.id,
+		});
+
+		await expect(
+			updateContent({
+				db: testDb.db,
+				input: { id: created.id, patch: { title: "Nope" } },
+				updatedBy: admin.id,
+			})
+		).rejects.toThrow(ContentNotFoundError);
+
+		await expect(
+			setContentPublishState({
+				db: testDb.db,
+				input: { id: created.id, isPublished: true },
+				updatedBy: admin.id,
+			})
+		).rejects.toThrow(ContentNotFoundError);
+
+		await expect(
+			setContentClassification({
+				db: testDb.db,
+				input: { id: created.id, categoryIds: [createdCategory.id] },
+			})
+		).rejects.toThrow(ContentNotFoundError);
+	});
+
+	it("listContent supports category/genre filters with OR-in and AND-across", async () => {
+		const admin = await createTestUser(testDb.client, {
+			email: "admin-list-classification-filters@example.com",
+		});
+
+		const [catA, catB] = await testDb.db
+			.insert(category)
+			.values([
+				{ title: "Cat A", slug: "filter-cat-a" },
+				{ title: "Cat B", slug: "filter-cat-b" },
+			])
+			.returning();
+		const [genreA, genreB] = await testDb.db
+			.insert(genre)
+			.values([
+				{ title: "Genre A", slug: "filter-genre-a" },
+				{ title: "Genre B", slug: "filter-genre-b" },
+			])
+			.returning();
+
+		if (!(catA && catB && genreA && genreB)) {
+			throw new Error("Failed to create classification filter fixtures");
+		}
+
+		const [contentOne, contentTwo, contentThree] = await testDb.db
+			.insert(content)
+			.values([
+				{
+					title: "Content One",
+					contentType: "MOVIE",
+					updatedBy: admin.id,
+					isPublished: true,
+					isAvailable: true,
+					publishedAt: new Date("2025-01-01T00:00:00.000Z"),
+				},
+				{
+					title: "Content Two",
+					contentType: "MOVIE",
+					updatedBy: admin.id,
+					isPublished: true,
+					isAvailable: true,
+					publishedAt: new Date("2025-01-02T00:00:00.000Z"),
+				},
+				{
+					title: "Content Three",
+					contentType: "MOVIE",
+					updatedBy: admin.id,
+					isPublished: true,
+					isAvailable: true,
+					publishedAt: new Date("2025-01-03T00:00:00.000Z"),
+				},
+			])
+			.returning();
+
+		if (!(contentOne && contentTwo && contentThree)) {
+			throw new Error("Failed to create content filter records");
+		}
+
+		await setContentClassification({
+			db: testDb.db,
+			input: {
+				id: contentOne.id,
+				categoryIds: [catA.id],
+				genreIds: [genreA.id],
+			},
+		});
+		await setContentClassification({
+			db: testDb.db,
+			input: {
+				id: contentTwo.id,
+				categoryIds: [catB.id],
+				genreIds: [genreB.id],
+			},
+		});
+		await setContentClassification({
+			db: testDb.db,
+			input: {
+				id: contentThree.id,
+				categoryIds: [catA.id],
+				genreIds: [genreB.id],
+			},
+		});
+
+		const categoryOnly = await listContent({
+			db: testDb.db,
+			input: {
+				categoryIds: [catA.id],
+			},
+		});
+		expect(categoryOnly.items.map((row) => row.id).sort()).toEqual(
+			[contentOne.id, contentThree.id].sort()
+		);
+
+		const genreOnly = await listContent({
+			db: testDb.db,
+			input: {
+				genreIds: [genreB.id],
+			},
+		});
+		expect(genreOnly.items.map((row) => row.id).sort()).toEqual(
+			[contentTwo.id, contentThree.id].sort()
+		);
+
+		const bothDimensions = await listContent({
+			db: testDb.db,
+			input: {
+				categoryIds: [catA.id, catB.id],
+				genreIds: [genreA.id],
+			},
+		});
+		expect(bothDimensions.items.map((row) => row.id)).toEqual([contentOne.id]);
+
+		const emptyFiltersIgnored = await listContent({
+			db: testDb.db,
+			input: {
+				categoryIds: [],
+				genreIds: [],
+			},
+		});
+		expect(emptyFiltersIgnored.items).toHaveLength(3);
 	});
 });

@@ -1,9 +1,11 @@
 import { TRPCError } from "@trpc/server";
 import {
 	createContent,
+	deleteContent,
 	getContentById,
 	listContent,
 	listPopularContent,
+	setContentAvailability,
 	setContentClassification,
 	setContentPublishState,
 	updateContent,
@@ -16,6 +18,8 @@ import {
 } from "@/modules/content/content.types";
 import {
 	contentAdminCreateInputSchema,
+	contentAdminDeleteInputSchema,
+	contentAdminSetAvailabilityInputSchema,
 	contentAdminSetClassificationInputSchema,
 	contentAdminSetPublishStateInputSchema,
 	contentAdminUpdateInputSchema,
@@ -48,7 +52,7 @@ function mapServiceError(error: unknown): never {
 
 export const contentRouter = router({
 	list: publicProcedure
-		.input(contentListInputSchema.partial().optional())
+		.input(contentListInputSchema.optional())
 		.query(({ ctx, input }) => {
 			return listContent({
 				db: ctx.db,
@@ -68,7 +72,7 @@ export const contentRouter = router({
 			}
 		}),
 	listPopular: publicProcedure
-		.input(contentListPopularInputSchema.partial().optional())
+		.input(contentListPopularInputSchema.optional())
 		.query(({ ctx, input }) => {
 			return listPopularContent({
 				db: ctx.db,
@@ -117,6 +121,32 @@ export const contentRouter = router({
 				return await setContentClassification({
 					db: ctx.db,
 					input,
+				});
+			} catch (error) {
+				mapServiceError(error);
+			}
+		}),
+	adminDelete: adminProcedure
+		.input(contentAdminDeleteInputSchema)
+		.mutation(async ({ ctx, input }) => {
+			try {
+				return await deleteContent({
+					db: ctx.db,
+					input,
+					updatedBy: ctx.session.user.id,
+				});
+			} catch (error) {
+				mapServiceError(error);
+			}
+		}),
+	adminSetAvailability: adminProcedure
+		.input(contentAdminSetAvailabilityInputSchema)
+		.mutation(async ({ ctx, input }) => {
+			try {
+				return await setContentAvailability({
+					db: ctx.db,
+					input,
+					updatedBy: ctx.session.user.id,
 				});
 			} catch (error) {
 				mapServiceError(error);

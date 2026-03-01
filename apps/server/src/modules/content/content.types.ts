@@ -11,6 +11,8 @@ export interface ContentListInput {
 	contentType?: ContentType;
 	sortBy?: ContentSortBy;
 	onlyPublished?: boolean;
+	categoryIds?: string[];
+	genreIds?: string[];
 }
 
 export interface ContentByIdInput {
@@ -47,6 +49,15 @@ export interface AdminUpdateContentInput {
 export interface AdminSetPublishStateInput {
 	id: string;
 	isPublished: boolean;
+}
+
+export interface AdminDeleteContentInput {
+	id: string;
+}
+
+export interface AdminSetAvailabilityInput {
+	id: string;
+	isAvailable: boolean;
 }
 
 export interface AdminSetClassificationInput {

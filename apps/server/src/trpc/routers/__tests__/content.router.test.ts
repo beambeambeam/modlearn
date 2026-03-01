@@ -97,6 +97,19 @@ describe("content router", () => {
 				code: "BAD_REQUEST",
 			})
 		);
+
+		await expect(
+			caller.content.list({
+				categoryIds: [
+					"00000000-0000-0000-0000-000000000001",
+					"00000000-0000-0000-0000-000000000001",
+				],
+			})
+		).rejects.toThrow(
+			expect.objectContaining({
+				code: "BAD_REQUEST",
+			})
+		);
 	});
 
 	it("rejects admin mutations for unauthenticated users", async () => {
@@ -233,5 +246,69 @@ describe("content router", () => {
 				code: "NOT_FOUND",
 			})
 		);
+
+		const setUnavailable = await adminCaller.content.adminSetAvailability({
+			id: created.id,
+			isAvailable: false,
+		});
+		expect(setUnavailable.isAvailable).toBe(false);
+
+		const deleted = await superadminCaller.content.adminDelete({
+			id: created.id,
+		});
+		expect(deleted.id).toBe(created.id);
+		expect(deleted.deleted).toBe(true);
+		expect(deleted.deletedAt).toBeInstanceOf(Date);
+
+		await expect(
+			adminCaller.content.adminSetAvailability({
+				id: created.id,
+				isAvailable: true,
+			})
+		).rejects.toThrow(
+			expect.objectContaining({
+				code: "NOT_FOUND",
+			})
+		);
+	});
+
+	it("rejects adminDelete and adminSetAvailability for unauthorized users", async () => {
+		const unauthenticatedCaller = appRouter.createCaller(
+			makeTestContext({ db: testDb.db })
+		);
+
+		await expect(
+			unauthenticatedCaller.content.adminDelete({
+				id: "00000000-0000-0000-0000-000000000000",
+			})
+		).rejects.toThrow(expect.objectContaining({ code: "UNAUTHORIZED" }));
+
+		await expect(
+			unauthenticatedCaller.content.adminSetAvailability({
+				id: "00000000-0000-0000-0000-000000000000",
+				isAvailable: false,
+			})
+		).rejects.toThrow(expect.objectContaining({ code: "UNAUTHORIZED" }));
+
+		const user = await createTestUser(testDb.client, {
+			email: "router-content-non-admin-delete@example.com",
+			role: "user",
+		});
+		const userCaller = appRouter.createCaller(
+			makeAuthenticatedContext(user.id, "user", { db: testDb.db })
+		);
+
+		await expect(
+			userCaller.content.adminDelete({
+				id: "00000000-0000-0000-0000-000000000000",
+			})
+		).rejects.toThrow(expect.objectContaining({ code: "FORBIDDEN" }));
+
+		await expect(
+			userCaller.content.adminSetAvailability({
+				id: "00000000-0000-0000-0000-000000000000",
+				isAvailable: true,
+			})
+		).rejects.toThrow(expect.objectContaining({ code: "FORBIDDEN" }));
 	});
 });

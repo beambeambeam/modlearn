@@ -6,16 +6,36 @@ const releaseDateSchema = z
 	.string()
 	.regex(/^\d{4}-\d{2}-\d{2}$/, "Invalid date format. Use YYYY-MM-DD");
 
-export const contentListInputSchema = z.object({
-	page: z.number().int().min(1).default(1),
-	limit: z.number().int().min(1).max(50).default(20),
-	search: z.string().trim().min(1).optional(),
-	contentType: contentTypeSchema.optional(),
-	sortBy: z
-		.enum(["RECENTLY_ADDED", "RECENTLY_PUBLISHED"])
-		.default("RECENTLY_ADDED"),
-	onlyPublished: z.boolean().default(true),
-});
+export const contentListInputSchema = z
+	.object({
+		page: z.number().int().min(1).default(1),
+		limit: z.number().int().min(1).max(50).default(20),
+		search: z.string().trim().min(1).optional(),
+		contentType: contentTypeSchema.optional(),
+		categoryIds: z.array(z.uuid()).optional(),
+		genreIds: z.array(z.uuid()).optional(),
+		sortBy: z
+			.enum(["RECENTLY_ADDED", "RECENTLY_PUBLISHED"])
+			.default("RECENTLY_ADDED"),
+		onlyPublished: z.boolean().default(true),
+	})
+	.superRefine((value, ctx) => {
+		if (value.categoryIds && hasDuplicates(value.categoryIds)) {
+			ctx.addIssue({
+				code: "custom",
+				path: ["categoryIds"],
+				message: "categoryIds contains duplicates",
+			});
+		}
+
+		if (value.genreIds && hasDuplicates(value.genreIds)) {
+			ctx.addIssue({
+				code: "custom",
+				path: ["genreIds"],
+				message: "genreIds contains duplicates",
+			});
+		}
+	});
 
 export const contentByIdInputSchema = z.object({
 	id: z.uuid(),
@@ -49,6 +69,15 @@ export const contentAdminUpdateInputSchema = z.object({
 export const contentAdminSetPublishStateInputSchema = z.object({
 	id: z.uuid(),
 	isPublished: z.boolean(),
+});
+
+export const contentAdminDeleteInputSchema = z.object({
+	id: z.uuid(),
+});
+
+export const contentAdminSetAvailabilityInputSchema = z.object({
+	id: z.uuid(),
+	isAvailable: z.boolean(),
 });
 
 function hasDuplicates(values: string[]): boolean {
