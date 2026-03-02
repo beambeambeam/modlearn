@@ -29,10 +29,16 @@ export const createServerApp = () =>
 		.all(
 			"/rpc/*",
 			async (context) => {
-				return rpcHandler.handle(context.request, {
+				const result = await rpcHandler.handle(context.request, {
 					prefix: "/rpc",
 					context: await createContext({ context }),
 				});
+
+				if (!(result.matched && result.response)) {
+					return context.status(404);
+				}
+
+				return result.response;
 			},
 			{
 				parse: "none",

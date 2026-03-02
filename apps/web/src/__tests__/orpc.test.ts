@@ -33,7 +33,7 @@ it("calls /rpc and returns healthCheck result", async () => {
 			`${serverUrl}/healthCheck`
 		);
 		expect(init?.credentials).toBe("include");
-		return new Response(JSON.stringify("OK"), {
+		return new Response(JSON.stringify({ json: "OK" }), {
 			status: 200,
 			headers: { "content-type": "application/json" },
 		});
@@ -41,6 +41,7 @@ it("calls /rpc and returns healthCheck result", async () => {
 
 	globalThis.fetch = fetchMock as unknown as typeof fetch;
 
-	await orpcClient.healthCheck();
+	const result = await orpcClient.healthCheck();
+	expect(result).toBe("OK");
 	expect(fetchMock).toHaveBeenCalledTimes(1);
 });

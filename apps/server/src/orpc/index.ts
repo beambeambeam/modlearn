@@ -3,9 +3,7 @@ import type { Context } from "./context";
 
 const base = os.$context<Context>();
 
-export const router = <TRouter extends Record<string, unknown>>(
-	routerShape: TRouter
-): TRouter => routerShape;
+export const router: typeof os.router = os.router.bind(os);
 
 export const publicProcedure = base;
 
