@@ -64,7 +64,6 @@ export async function resetTestDatabase(client: PGlite): Promise<void> {
 		"playlist",
 		"session",
 		"storage",
-		"streaming_token",
 		"user_library",
 		"verification",
 		"watch_progress",
