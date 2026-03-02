@@ -9,6 +9,7 @@ import { contentRouter } from "./content.router";
 import { fileRouter } from "./file.router";
 import { genreRouter } from "./genre.router";
 import { playlistRouter } from "./playlist.router";
+import { watchProgressRouter } from "./watch-progress.router";
 
 export const appRouter = router({
 	healthCheck: publicProcedure.query(() => {
@@ -31,5 +32,6 @@ export const appRouter = router({
 	file: fileRouter,
 	genre: genreRouter,
 	playlist: playlistRouter,
+	watchProgress: watchProgressRouter,
 });
 export type AppRouter = typeof appRouter;

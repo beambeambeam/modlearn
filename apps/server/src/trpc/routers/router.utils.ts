@@ -24,6 +24,11 @@ import {
 	PlaylistNotFoundError,
 	PlaylistReorderValidationError,
 } from "@/modules/playlist/playlist.types";
+import {
+	WatchProgressContentNotFoundError,
+	WatchProgressPlaylistNotFoundError,
+	WatchProgressValidationError,
+} from "@/modules/watch-progress/watch-progress.types";
 
 export function mapCategoryError(error: unknown): never {
 	if (error instanceof CategoryNotFoundError) {
@@ -116,6 +121,27 @@ export function mapFileError(error: unknown): never {
 	}
 
 	if (error instanceof FileCreationError) {
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message: error.message,
+		});
+	}
+
+	throw error;
+}
+
+export function mapWatchProgressError(error: unknown): never {
+	if (
+		error instanceof WatchProgressContentNotFoundError ||
+		error instanceof WatchProgressPlaylistNotFoundError
+	) {
+		throw new TRPCError({
+			code: "NOT_FOUND",
+			message: error.message,
+		});
+	}
+
+	if (error instanceof WatchProgressValidationError) {
 		throw new TRPCError({
 			code: "BAD_REQUEST",
 			message: error.message,
