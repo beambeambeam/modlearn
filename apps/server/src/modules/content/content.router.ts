@@ -1,3 +1,4 @@
+import { logAdminMutation } from "@/modules/admin-audit/admin-audit.service";
 import {
 	createContent,
 	deleteContent,
@@ -21,7 +22,6 @@ import {
 	contentListPopularInputSchema,
 } from "@/modules/content/content.validators";
 import { adminProcedure, publicProcedure, router } from "@/orpc";
-import { logAdminMutation } from "@/orpc/routers/_audit";
 import { mapServiceError } from "@/orpc/routers/router.utils";
 
 export const contentRouter = router({

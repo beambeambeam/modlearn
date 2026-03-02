@@ -1,3 +1,4 @@
+import { logAdminMutation } from "@/modules/admin-audit/admin-audit.service";
 import {
 	createGenre,
 	deleteGenre,
@@ -13,7 +14,6 @@ import {
 	genreListInputSchema,
 } from "@/modules/genre/genre.validators";
 import { adminProcedure, publicProcedure, router } from "@/orpc";
-import { logAdminMutation } from "@/orpc/routers/_audit";
 import { mapGenreError } from "@/orpc/routers/router.utils";
 
 export const genreRouter = router({

@@ -1,3 +1,4 @@
+import { logAdminMutation } from "@/modules/admin-audit/admin-audit.service";
 import {
 	addEpisodeToPlaylist,
 	createPlaylist,
@@ -13,7 +14,6 @@ import {
 	playlistListEpisodesInputSchema,
 } from "@/modules/playlist/playlist.validators";
 import { adminProcedure, publicProcedure, router } from "@/orpc";
-import { logAdminMutation } from "@/orpc/routers/_audit";
 import { mapPlaylistServiceError } from "@/orpc/routers/router.utils";
 
 export const playlistRouter = router({

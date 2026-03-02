@@ -1,3 +1,4 @@
+import { logAdminMutation } from "@/modules/admin-audit/admin-audit.service";
 import {
 	createCategory,
 	deleteCategory,
@@ -13,7 +14,6 @@ import {
 	categoryListInputSchema,
 } from "@/modules/category/category.validators";
 import { adminProcedure, publicProcedure, router } from "@/orpc";
-import { logAdminMutation } from "@/orpc/routers/_audit";
 import { mapCategoryError } from "@/orpc/routers/router.utils";
 
 export const categoryRouter = router({

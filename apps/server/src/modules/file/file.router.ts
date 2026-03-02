@@ -1,3 +1,4 @@
+import { logAdminMutation } from "@/modules/admin-audit/admin-audit.service";
 import {
 	createFileDownloadUrl,
 	createFileUploadRequest,
@@ -8,7 +9,6 @@ import {
 	fileAdminCreateUploadRequestInputSchema,
 } from "@/modules/file/file.validators";
 import { adminProcedure, router } from "@/orpc";
-import { logAdminMutation } from "@/orpc/routers/_audit";
 import { mapFileError } from "@/orpc/routers/router.utils";
 
 export const fileRouter = router({

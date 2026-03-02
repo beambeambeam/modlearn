@@ -1,4 +1,5 @@
 import type { DbClient } from "@/lib/db/orm";
+import type { Context } from "@/orpc/context";
 
 export type AuditEntityType =
 	| "CONTENT"
@@ -30,4 +31,12 @@ export interface AuditLogInput {
 export interface CreateAdminAuditLogParams {
 	db: DbClient;
 	input: AuditLogInput;
+}
+
+export interface LogAdminMutationParams {
+	context: Context & { session: NonNullable<Context["session"]> };
+	entityType: AuditEntityType;
+	action: AuditAction;
+	entityId: string;
+	metadata?: Record<string, unknown> | null;
 }
