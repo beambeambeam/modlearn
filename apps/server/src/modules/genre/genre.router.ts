@@ -12,9 +12,9 @@ import {
 	genreByIdInputSchema,
 	genreListInputSchema,
 } from "@/modules/genre/genre.validators";
-import { adminProcedure, publicProcedure, router } from "../index";
-import { logAdminMutation } from "./_audit";
-import { mapGenreError } from "./router.utils";
+import { adminProcedure, publicProcedure, router } from "@/orpc";
+import { logAdminMutation } from "@/orpc/routers/_audit";
+import { mapGenreError } from "@/orpc/routers/router.utils";
 
 export const genreRouter = router({
 	list: publicProcedure

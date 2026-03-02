@@ -1,7 +1,7 @@
 import { createRouterClient } from "@orpc/server";
 import { db } from "@/lib/db";
 import type { Context } from "@/orpc/context";
-import { appRouter } from "@/orpc/routers";
+import { appRouter } from "@/orpc/router";
 
 export function makeTestContext(overrides?: Partial<Context>): Context {
 	return {

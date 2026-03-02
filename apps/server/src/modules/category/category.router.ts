@@ -12,9 +12,9 @@ import {
 	categoryByIdInputSchema,
 	categoryListInputSchema,
 } from "@/modules/category/category.validators";
-import { adminProcedure, publicProcedure, router } from "../index";
-import { logAdminMutation } from "./_audit";
-import { mapCategoryError } from "./router.utils";
+import { adminProcedure, publicProcedure, router } from "@/orpc";
+import { logAdminMutation } from "@/orpc/routers/_audit";
+import { mapCategoryError } from "@/orpc/routers/router.utils";
 
 export const categoryRouter = router({
 	list: publicProcedure

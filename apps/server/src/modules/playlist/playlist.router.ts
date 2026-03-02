@@ -12,9 +12,9 @@ import {
 	playlistByIdInputSchema,
 	playlistListEpisodesInputSchema,
 } from "@/modules/playlist/playlist.validators";
-import { adminProcedure, publicProcedure, router } from "../index";
-import { logAdminMutation } from "./_audit";
-import { mapPlaylistServiceError } from "./router.utils";
+import { adminProcedure, publicProcedure, router } from "@/orpc";
+import { logAdminMutation } from "@/orpc/routers/_audit";
+import { mapPlaylistServiceError } from "@/orpc/routers/router.utils";
 
 export const playlistRouter = router({
 	getByIdWithEpisodes: publicProcedure

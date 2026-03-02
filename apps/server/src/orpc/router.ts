@@ -1,15 +1,15 @@
+import { categoryRouter } from "@/modules/category/category.router";
+import { contentRouter } from "@/modules/content/content.router";
+import { fileRouter } from "@/modules/file/file.router";
+import { genreRouter } from "@/modules/genre/genre.router";
+import { playlistRouter } from "@/modules/playlist/playlist.router";
+import { watchProgressRouter } from "@/modules/watch-progress/watch-progress.router";
 import {
 	adminProcedure,
 	protectedProcedure,
 	publicProcedure,
 	router,
-} from "../index";
-import { categoryRouter } from "./category.router";
-import { contentRouter } from "./content.router";
-import { fileRouter } from "./file.router";
-import { genreRouter } from "./genre.router";
-import { playlistRouter } from "./playlist.router";
-import { watchProgressRouter } from "./watch-progress.router";
+} from "@/orpc";
 
 export const appRouter = router({
 	healthCheck: publicProcedure.handler(() => {

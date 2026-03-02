@@ -10,8 +10,8 @@ import {
 	watchProgressMarkCompletedInputSchema,
 	watchProgressSaveInputSchema,
 } from "@/modules/watch-progress/watch-progress.validators";
-import { protectedProcedure, router } from "../index";
-import { mapWatchProgressError } from "./router.utils";
+import { protectedProcedure, router } from "@/orpc";
+import { mapWatchProgressError } from "@/orpc/routers/router.utils";
 
 export const watchProgressRouter = router({
 	save: protectedProcedure

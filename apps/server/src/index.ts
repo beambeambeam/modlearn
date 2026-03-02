@@ -5,7 +5,7 @@ import { Elysia } from "elysia";
 import { auth } from "@/lib/auth";
 import { ensureBucketExists } from "@/lib/storage/s3-bucket";
 import { createContext } from "@/orpc/context";
-import { appRouter } from "@/orpc/routers";
+import { appRouter } from "@/orpc/router";
 
 const rpcHandler = new RPCHandler(appRouter);
 

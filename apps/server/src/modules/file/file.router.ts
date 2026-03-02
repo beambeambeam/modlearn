@@ -7,9 +7,9 @@ import {
 	fileAdminByIdInputSchema,
 	fileAdminCreateUploadRequestInputSchema,
 } from "@/modules/file/file.validators";
-import { adminProcedure, router } from "../index";
-import { logAdminMutation } from "./_audit";
-import { mapFileError } from "./router.utils";
+import { adminProcedure, router } from "@/orpc";
+import { logAdminMutation } from "@/orpc/routers/_audit";
+import { mapFileError } from "@/orpc/routers/router.utils";
 
 export const fileRouter = router({
 	adminCreateUploadRequest: adminProcedure
