@@ -1,6 +1,8 @@
-import { createRouterClient } from "@orpc/server";
-import { describe, expect, it } from "vitest";
+import { createRouterClient, ORPCError } from "@orpc/server";
+import { describe, expect, it, vi } from "vitest";
+import { CategoryNotFoundError } from "@/modules/category/category.types";
 import { publicProcedure, router } from "@/orpc";
+import { rpcErrorInterceptor } from "@/orpc/error-mapper";
 import {
 	createCaller,
 	makeAuthenticatedContext,
@@ -91,6 +93,68 @@ describe("orpc procedures", () => {
 
 			expect(result.message).toBe("This is admin-only");
 			expect(result.user.id).toBe("test-superadmin-id");
+		});
+	});
+
+	describe("rpcErrorInterceptor", () => {
+		it("maps known domain errors to ORPCError", async () => {
+			const error = new CategoryNotFoundError();
+
+			await expect(
+				rpcErrorInterceptor({
+					request: {
+						method: "GET",
+						pathname: "/rpc/test",
+					},
+					next: () => Promise.reject(error),
+				} as never)
+			).rejects.toThrow(
+				expect.objectContaining({
+					code: "NOT_FOUND",
+					message: error.message,
+				})
+			);
+		});
+
+		it("masks unknown non-ORPC throwables as INTERNAL_SERVER_ERROR", async () => {
+			const errorSpy = vi
+				.spyOn(console, "error")
+				.mockImplementation(() => undefined);
+
+			const nonErrorThrowable = "oops";
+
+			await expect(
+				rpcErrorInterceptor({
+					request: {
+						method: "GET",
+						pathname: "/rpc/test",
+					},
+					next: () => Promise.reject(nonErrorThrowable),
+				} as never)
+			).rejects.toThrow(
+				expect.objectContaining({
+					code: "INTERNAL_SERVER_ERROR",
+					message: "Internal server error",
+				})
+			);
+
+			errorSpy.mockRestore();
+		});
+
+		it("passes through existing ORPCError", async () => {
+			const original = new ORPCError("FORBIDDEN", {
+				message: "No access",
+			});
+
+			await expect(
+				rpcErrorInterceptor({
+					request: {
+						method: "GET",
+						pathname: "/rpc/test",
+					},
+					next: () => Promise.reject(original),
+				} as never)
+			).rejects.toBe(original);
 		});
 	});
 });

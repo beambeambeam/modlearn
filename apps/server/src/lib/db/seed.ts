@@ -1,4 +1,5 @@
 import { eq } from "drizzle-orm";
+import { toError } from "@/orpc/error-mapper";
 import { auth } from "../auth/index.js";
 import { db } from "./index.js";
 import { user } from "./schema/auth.js";
@@ -47,7 +48,7 @@ async function seed() {
 		}
 	} catch (error) {
 		console.error("Error creating super admin user:", error);
-		throw error;
+		throw toError(error);
 	}
 }
 

@@ -11,67 +11,50 @@ import {
 	watchProgressSaveInputSchema,
 } from "@/modules/watch-progress/watch-progress.validators";
 import { protectedProcedure, router } from "@/orpc";
-import { mapWatchProgressError } from "@/orpc/routers/router.utils";
 
 export const watchProgressRouter = router({
 	save: protectedProcedure
 		.input(watchProgressSaveInputSchema)
-		.handler(async ({ context, input }) => {
-			try {
-				return await saveWatchProgress({
-					db: context.db,
-					input: {
-						userId: context.session.user.id,
-						...input,
-					},
-				});
-			} catch (error) {
-				mapWatchProgressError(error);
-			}
+		.handler(({ context, input }) => {
+			return saveWatchProgress({
+				db: context.db,
+				input: {
+					userId: context.session.user.id,
+					...input,
+				},
+			});
 		}),
 	markCompleted: protectedProcedure
 		.input(watchProgressMarkCompletedInputSchema)
-		.handler(async ({ context, input }) => {
-			try {
-				return await markWatchProgressCompleted({
-					db: context.db,
-					input: {
-						userId: context.session.user.id,
-						...input,
-					},
-				});
-			} catch (error) {
-				mapWatchProgressError(error);
-			}
+		.handler(({ context, input }) => {
+			return markWatchProgressCompleted({
+				db: context.db,
+				input: {
+					userId: context.session.user.id,
+					...input,
+				},
+			});
 		}),
 	getResume: protectedProcedure
 		.input(watchProgressGetResumeInputSchema)
-		.handler(async ({ context, input }) => {
-			try {
-				return await getWatchProgressResume({
-					db: context.db,
-					input: {
-						userId: context.session.user.id,
-						...input,
-					},
-				});
-			} catch (error) {
-				mapWatchProgressError(error);
-			}
+		.handler(({ context, input }) => {
+			return getWatchProgressResume({
+				db: context.db,
+				input: {
+					userId: context.session.user.id,
+					...input,
+				},
+			});
 		}),
 	continueWatching: protectedProcedure
 		.input(watchProgressContinueWatchingInputSchema.optional())
-		.handler(async ({ context, input }) => {
-			try {
-				return await listContinueWatching({
-					db: context.db,
-					input: {
-						userId: context.session.user.id,
-						...watchProgressContinueWatchingInputSchema.parse(input ?? {}),
-					},
-				});
-			} catch (error) {
-				mapWatchProgressError(error);
-			}
+		.handler(({ context, input }) => {
+			return listContinueWatching({
+				db: context.db,
+				input: {
+					userId: context.session.user.id,
+					...watchProgressContinueWatchingInputSchema.parse(input ?? {}),
+				},
+			});
 		}),
 });

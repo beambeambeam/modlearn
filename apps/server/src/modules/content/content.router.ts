@@ -22,7 +22,6 @@ import {
 	contentListPopularInputSchema,
 } from "@/modules/content/content.validators";
 import { adminProcedure, publicProcedure, router } from "@/orpc";
-import { mapServiceError } from "@/orpc/routers/router.utils";
 
 export const contentRouter = router({
 	list: publicProcedure
@@ -35,15 +34,11 @@ export const contentRouter = router({
 		}),
 	getById: publicProcedure
 		.input(contentByIdInputSchema)
-		.handler(async ({ context, input }) => {
-			try {
-				return await getContentById({
-					db: context.db,
-					input,
-				});
-			} catch (error) {
-				mapServiceError(error);
-			}
+		.handler(({ context, input }) => {
+			return getContentById({
+				db: context.db,
+				input,
+			});
 		}),
 	listPopular: publicProcedure
 		.input(contentListPopularInputSchema.optional())
@@ -72,113 +67,93 @@ export const contentRouter = router({
 	adminUpdate: adminProcedure
 		.input(contentAdminUpdateInputSchema)
 		.handler(async ({ context, input }) => {
-			try {
-				const updated = await updateContent({
-					db: context.db,
-					input,
-					updatedBy: context.session.user.id,
-				});
-				await logAdminMutation({
-					context,
-					entityType: "CONTENT",
-					action: "UPDATE",
-					entityId: updated.id,
-					metadata: {
-						patchKeys: Object.keys(input.patch),
-					},
-				});
-				return updated;
-			} catch (error) {
-				mapServiceError(error);
-			}
+			const updated = await updateContent({
+				db: context.db,
+				input,
+				updatedBy: context.session.user.id,
+			});
+			await logAdminMutation({
+				context,
+				entityType: "CONTENT",
+				action: "UPDATE",
+				entityId: updated.id,
+				metadata: {
+					patchKeys: Object.keys(input.patch),
+				},
+			});
+			return updated;
 		}),
 	adminSetPublishState: adminProcedure
 		.input(contentAdminSetPublishStateInputSchema)
 		.handler(async ({ context, input }) => {
-			try {
-				const updated = await setContentPublishState({
-					db: context.db,
-					input,
-					updatedBy: context.session.user.id,
-				});
-				await logAdminMutation({
-					context,
-					entityType: "CONTENT",
-					action: "SET_PUBLISH_STATE",
-					entityId: updated.id,
-					metadata: {
-						isPublished: input.isPublished,
-					},
-				});
-				return updated;
-			} catch (error) {
-				mapServiceError(error);
-			}
+			const updated = await setContentPublishState({
+				db: context.db,
+				input,
+				updatedBy: context.session.user.id,
+			});
+			await logAdminMutation({
+				context,
+				entityType: "CONTENT",
+				action: "SET_PUBLISH_STATE",
+				entityId: updated.id,
+				metadata: {
+					isPublished: input.isPublished,
+				},
+			});
+			return updated;
 		}),
 	adminSetClassification: adminProcedure
 		.input(contentAdminSetClassificationInputSchema)
 		.handler(async ({ context, input }) => {
-			try {
-				const updated = await setContentClassification({
-					db: context.db,
-					input,
-				});
-				await logAdminMutation({
-					context,
-					entityType: "CONTENT",
-					action: "SET_CLASSIFICATION",
-					entityId: updated.contentId,
-					metadata: {
-						categoryIds: input.categoryIds,
-						genreIds: input.genreIds,
-					},
-				});
-				return updated;
-			} catch (error) {
-				mapServiceError(error);
-			}
+			const updated = await setContentClassification({
+				db: context.db,
+				input,
+			});
+			await logAdminMutation({
+				context,
+				entityType: "CONTENT",
+				action: "SET_CLASSIFICATION",
+				entityId: updated.contentId,
+				metadata: {
+					categoryIds: input.categoryIds,
+					genreIds: input.genreIds,
+				},
+			});
+			return updated;
 		}),
 	adminDelete: adminProcedure
 		.input(contentAdminDeleteInputSchema)
 		.handler(async ({ context, input }) => {
-			try {
-				const deleted = await deleteContent({
-					db: context.db,
-					input,
-					updatedBy: context.session.user.id,
-				});
-				await logAdminMutation({
-					context,
-					entityType: "CONTENT",
-					action: "DELETE",
-					entityId: deleted.id,
-				});
-				return deleted;
-			} catch (error) {
-				mapServiceError(error);
-			}
+			const deleted = await deleteContent({
+				db: context.db,
+				input,
+				updatedBy: context.session.user.id,
+			});
+			await logAdminMutation({
+				context,
+				entityType: "CONTENT",
+				action: "DELETE",
+				entityId: deleted.id,
+			});
+			return deleted;
 		}),
 	adminSetAvailability: adminProcedure
 		.input(contentAdminSetAvailabilityInputSchema)
 		.handler(async ({ context, input }) => {
-			try {
-				const updated = await setContentAvailability({
-					db: context.db,
-					input,
-					updatedBy: context.session.user.id,
-				});
-				await logAdminMutation({
-					context,
-					entityType: "CONTENT",
-					action: "SET_AVAILABILITY",
-					entityId: updated.id,
-					metadata: {
-						isAvailable: input.isAvailable,
-					},
-				});
-				return updated;
-			} catch (error) {
-				mapServiceError(error);
-			}
+			const updated = await setContentAvailability({
+				db: context.db,
+				input,
+				updatedBy: context.session.user.id,
+			});
+			await logAdminMutation({
+				context,
+				entityType: "CONTENT",
+				action: "SET_AVAILABILITY",
+				entityId: updated.id,
+				metadata: {
+					isAvailable: input.isAvailable,
+				},
+			});
+			return updated;
 		}),
 });

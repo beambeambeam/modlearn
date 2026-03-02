@@ -1,6 +1,7 @@
 import { and, asc, count, eq, ilike, ne } from "drizzle-orm";
 import type { DbClient } from "@/lib/db/orm";
 import { category } from "@/lib/db/schema";
+import { toError } from "@/orpc/error-mapper";
 import type {
 	CategoryListResult,
 	CreateCategoryParams,
@@ -110,7 +111,7 @@ export async function createCategory(
 		if (isUniqueViolation(error)) {
 			throw new CategorySlugConflictError();
 		}
-		throw error;
+		throw toError(error);
 	}
 }
 
@@ -155,7 +156,7 @@ export async function updateCategory(
 		if (isUniqueViolation(error)) {
 			throw new CategorySlugConflictError();
 		}
-		throw error;
+		throw toError(error);
 	}
 }
 

@@ -21,6 +21,7 @@ import {
 	type UploadUrlInput,
 	uploadUrlInputSchema,
 } from "@/lib/storage/s3-types";
+import { toError } from "@/orpc/error-mapper";
 
 export async function generateUploadUrl(
 	params: UploadUrlInput
@@ -54,7 +55,7 @@ export async function generateUploadUrl(
 				error
 			);
 		}
-		throw error;
+		throw toError(error);
 	}
 }
 
@@ -88,7 +89,7 @@ export async function generateDownloadUrl(
 				error
 			);
 		}
-		throw error;
+		throw toError(error);
 	}
 }
 
@@ -136,7 +137,7 @@ export async function deleteObject(params: {
 			}
 		}
 
-		throw error;
+		throw toError(error);
 	}
 }
 
@@ -186,6 +187,6 @@ export async function objectExists(params: {
 		}
 
 		// Other errors should be thrown
-		throw error;
+		throw toError(error);
 	}
 }

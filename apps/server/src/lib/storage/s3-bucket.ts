@@ -8,6 +8,7 @@ import {
 	S3_ERROR_CODES,
 	S3StorageError,
 } from "@/lib/storage/s3-types";
+import { toError } from "@/orpc/error-mapper";
 
 export async function bucketExists(bucketName: string): Promise<boolean> {
 	try {
@@ -64,7 +65,7 @@ export async function bucketExists(bucketName: string): Promise<boolean> {
 			);
 		}
 
-		throw error;
+		throw toError(error);
 	}
 }
 

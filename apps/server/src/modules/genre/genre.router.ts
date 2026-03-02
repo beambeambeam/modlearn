@@ -14,7 +14,6 @@ import {
 	genreListInputSchema,
 } from "@/modules/genre/genre.validators";
 import { adminProcedure, publicProcedure, router } from "@/orpc";
-import { mapGenreError } from "@/orpc/routers/router.utils";
 
 export const genreRouter = router({
 	list: publicProcedure
@@ -27,74 +26,58 @@ export const genreRouter = router({
 		}),
 	getById: publicProcedure
 		.input(genreByIdInputSchema)
-		.handler(async ({ context, input }) => {
-			try {
-				return await getGenreById({
-					db: context.db,
-					input,
-				});
-			} catch (error) {
-				mapGenreError(error);
-			}
+		.handler(({ context, input }) => {
+			return getGenreById({
+				db: context.db,
+				input,
+			});
 		}),
 	adminCreate: adminProcedure
 		.input(genreAdminCreateInputSchema)
 		.handler(async ({ context, input }) => {
-			try {
-				const created = await createGenre({
-					db: context.db,
-					input,
-				});
-				await logAdminMutation({
-					context,
-					entityType: "GENRE",
-					action: "CREATE",
-					entityId: created.id,
-				});
-				return created;
-			} catch (error) {
-				mapGenreError(error);
-			}
+			const created = await createGenre({
+				db: context.db,
+				input,
+			});
+			await logAdminMutation({
+				context,
+				entityType: "GENRE",
+				action: "CREATE",
+				entityId: created.id,
+			});
+			return created;
 		}),
 	adminUpdate: adminProcedure
 		.input(genreAdminUpdateInputSchema)
 		.handler(async ({ context, input }) => {
-			try {
-				const updated = await updateGenre({
-					db: context.db,
-					input,
-				});
-				await logAdminMutation({
-					context,
-					entityType: "GENRE",
-					action: "UPDATE",
-					entityId: updated.id,
-					metadata: {
-						patchKeys: Object.keys(input.patch),
-					},
-				});
-				return updated;
-			} catch (error) {
-				mapGenreError(error);
-			}
+			const updated = await updateGenre({
+				db: context.db,
+				input,
+			});
+			await logAdminMutation({
+				context,
+				entityType: "GENRE",
+				action: "UPDATE",
+				entityId: updated.id,
+				metadata: {
+					patchKeys: Object.keys(input.patch),
+				},
+			});
+			return updated;
 		}),
 	adminDelete: adminProcedure
 		.input(genreAdminDeleteInputSchema)
 		.handler(async ({ context, input }) => {
-			try {
-				const deleted = await deleteGenre({
-					db: context.db,
-					input,
-				});
-				await logAdminMutation({
-					context,
-					entityType: "GENRE",
-					action: "DELETE",
-					entityId: deleted.id,
-				});
-				return deleted;
-			} catch (error) {
-				mapGenreError(error);
-			}
+			const deleted = await deleteGenre({
+				db: context.db,
+				input,
+			});
+			await logAdminMutation({
+				context,
+				entityType: "GENRE",
+				action: "DELETE",
+				entityId: deleted.id,
+			});
+			return deleted;
 		}),
 });

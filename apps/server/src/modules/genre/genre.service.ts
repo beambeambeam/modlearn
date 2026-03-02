@@ -1,6 +1,7 @@
 import { and, asc, count, eq, ilike, ne } from "drizzle-orm";
 import type { DbClient } from "@/lib/db/orm";
 import { genre } from "@/lib/db/schema";
+import { toError } from "@/orpc/error-mapper";
 import type {
 	CreateGenreParams,
 	DeleteGenreParams,
@@ -107,7 +108,7 @@ export async function createGenre(
 		if (isUniqueViolation(error)) {
 			throw new GenreSlugConflictError();
 		}
-		throw error;
+		throw toError(error);
 	}
 }
 
@@ -152,7 +153,7 @@ export async function updateGenre(
 		if (isUniqueViolation(error)) {
 			throw new GenreSlugConflictError();
 		}
-		throw error;
+		throw toError(error);
 	}
 }
 
