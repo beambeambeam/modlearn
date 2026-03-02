@@ -13,31 +13,6 @@ import { session, user } from "./auth";
 import { content } from "./content";
 import { playlist } from "./playlist";
 
-export const streamingToken = pgTable(
-	"streaming_token",
-	{
-		id: uuid("id").primaryKey().defaultRandom(),
-		contentId: uuid("content_id")
-			.notNull()
-			.references(() => content.id, { onDelete: "cascade" }),
-		userId: text("user_id")
-			.notNull()
-			.references(() => user.id, { onDelete: "cascade" }),
-		token: text("token").notNull().unique(),
-		expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
-		createdAt: timestamp("created_at", { withTimezone: true })
-			.defaultNow()
-			.notNull(),
-		ipAddress: text("ip_address"),
-	},
-	(table) => [
-		index("streamingToken_token_idx").on(table.token),
-		index("streamingToken_userId_idx").on(table.userId),
-		index("streamingToken_contentId_idx").on(table.contentId),
-		index("streamingToken_expiresAt_idx").on(table.expiresAt),
-	]
-);
-
 export const watchProgress = pgTable(
 	"watch_progress",
 	{
@@ -97,17 +72,6 @@ export const contentView = pgTable(
 		index("contentView_sessionId_idx").on(table.sessionId),
 	]
 );
-
-export const streamingTokenRelations = relations(streamingToken, ({ one }) => ({
-	content: one(content, {
-		fields: [streamingToken.contentId],
-		references: [content.id],
-	}),
-	user: one(user, {
-		fields: [streamingToken.userId],
-		references: [user.id],
-	}),
-}));
 
 export const watchProgressRelations = relations(watchProgress, ({ one }) => ({
 	content: one(content, {
