@@ -9,7 +9,7 @@ This is the web client for ModLearn, built with modern React patterns and optimi
 **Tech Stack:**
 - React 19
 - TanStack Router (file-based routing)
-- tRPC Client (type-safe API calls)
+- oRPC Client (type-safe API calls)
 - Vite (fast development and building)
 - Tailwind CSS (utility-first styling)
 - shadcn/ui (accessible UI components)
@@ -57,7 +57,7 @@ web/
 │   │   ├── auth-client.ts   # Better Auth client
 │   │   └── utils.ts         # Utility functions
 │   ├── utils/
-│   │   └── trpc.ts     # tRPC client setup
+│   │   └── orpc.ts     # oRPC client setup
 │   ├── styles/         # Global styles
 │   └── main.tsx        # App entry point
 ├── public/             # Static assets
@@ -69,7 +69,7 @@ web/
 ## Key Features
 
 - **File-based Routing**: Routes are automatically generated from files in `src/routes/`
-- **Type-safe API**: tRPC provides end-to-end type safety with the backend
+- **Type-safe API**: oRPC provides end-to-end type safety with the backend
 - **Authentication**: Integrated with Better Auth for secure session management
 - **Responsive Design**: Mobile-first approach with Tailwind CSS
 - **Fast Refresh**: Instant feedback during development with Vite HMR
@@ -103,13 +103,13 @@ See [TanStack Router docs](https://tanstack.com/router/latest) for more.
 
 ## Connecting to Backend
 
-The frontend uses tRPC to communicate with the backend:
+The frontend uses oRPC to communicate with the backend:
 
 ```typescript
-import { trpc } from '@/utils/trpc';
+import { orpc } from '@/utils/orpc';
 
 function MyComponent() {
-  const { data, isLoading } = trpc.course.getAll.useQuery();
+  const { data, isLoading } = useQuery(orpc.course.getAll.queryOptions());
   
   if (isLoading) return <div>Loading...</div>;
   

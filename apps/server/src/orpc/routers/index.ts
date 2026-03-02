@@ -12,19 +12,19 @@ import { playlistRouter } from "./playlist.router";
 import { watchProgressRouter } from "./watch-progress.router";
 
 export const appRouter = router({
-	healthCheck: publicProcedure.query(() => {
+	healthCheck: publicProcedure.handler(() => {
 		return "OK";
 	}),
-	privateData: protectedProcedure.query(({ ctx }) => {
+	privateData: protectedProcedure.handler(({ context }) => {
 		return {
 			message: "This is private",
-			user: ctx.session.user,
+			user: context.session.user,
 		};
 	}),
-	adminData: adminProcedure.query(({ ctx }) => {
+	adminData: adminProcedure.handler(({ context }) => {
 		return {
 			message: "This is admin-only",
-			user: ctx.session.user,
+			user: context.session.user,
 		};
 	}),
 	category: categoryRouter,

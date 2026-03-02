@@ -19,18 +19,18 @@ import { mapGenreError } from "./router.utils";
 export const genreRouter = router({
 	list: publicProcedure
 		.input(genreListInputSchema.partial().optional())
-		.query(({ ctx, input }) => {
+		.handler(({ context, input }) => {
 			return listGenres({
-				db: ctx.db,
+				db: context.db,
 				input: genreListInputSchema.parse(input ?? {}),
 			});
 		}),
 	getById: publicProcedure
 		.input(genreByIdInputSchema)
-		.query(async ({ ctx, input }) => {
+		.handler(async ({ context, input }) => {
 			try {
 				return await getGenreById({
-					db: ctx.db,
+					db: context.db,
 					input,
 				});
 			} catch (error) {
@@ -39,14 +39,14 @@ export const genreRouter = router({
 		}),
 	adminCreate: adminProcedure
 		.input(genreAdminCreateInputSchema)
-		.mutation(async ({ ctx, input }) => {
+		.handler(async ({ context, input }) => {
 			try {
 				const created = await createGenre({
-					db: ctx.db,
+					db: context.db,
 					input,
 				});
 				await logAdminMutation({
-					ctx,
+					context,
 					entityType: "GENRE",
 					action: "CREATE",
 					entityId: created.id,
@@ -58,14 +58,14 @@ export const genreRouter = router({
 		}),
 	adminUpdate: adminProcedure
 		.input(genreAdminUpdateInputSchema)
-		.mutation(async ({ ctx, input }) => {
+		.handler(async ({ context, input }) => {
 			try {
 				const updated = await updateGenre({
-					db: ctx.db,
+					db: context.db,
 					input,
 				});
 				await logAdminMutation({
-					ctx,
+					context,
 					entityType: "GENRE",
 					action: "UPDATE",
 					entityId: updated.id,
@@ -80,14 +80,14 @@ export const genreRouter = router({
 		}),
 	adminDelete: adminProcedure
 		.input(genreAdminDeleteInputSchema)
-		.mutation(async ({ ctx, input }) => {
+		.handler(async ({ context, input }) => {
 			try {
 				const deleted = await deleteGenre({
-					db: ctx.db,
+					db: context.db,
 					input,
 				});
 				await logAdminMutation({
-					ctx,
+					context,
 					entityType: "GENRE",
 					action: "DELETE",
 					entityId: deleted.id,

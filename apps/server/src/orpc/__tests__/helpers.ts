@@ -1,5 +1,7 @@
+import { createRouterClient } from "@orpc/server";
 import { db } from "@/lib/db";
-import type { Context } from "@/trpc/context";
+import type { Context } from "@/orpc/context";
+import { appRouter } from "@/orpc/routers";
 
 export function makeTestContext(overrides?: Partial<Context>): Context {
 	return {
@@ -31,7 +33,7 @@ export function makeAuthenticatedContext(
 			session: {
 				id: "test-session-id",
 				userId,
-				expiresAt: new Date(Date.now() + 86_400_000), // 24 hours
+				expiresAt: new Date(Date.now() + 86_400_000),
 				token: "test-token",
 				ipAddress: null,
 				userAgent: null,
@@ -41,4 +43,10 @@ export function makeAuthenticatedContext(
 		},
 		...overrides,
 	};
+}
+
+export function createCaller(context: Context) {
+	return createRouterClient(appRouter, {
+		context,
+	});
 }

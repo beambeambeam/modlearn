@@ -1,17 +1,17 @@
-import { TRPCError } from "@trpc/server";
+import { ORPCError } from "@orpc/server";
 import { createAdminAuditLog } from "@/modules/admin-audit/admin-audit.service";
 import type { LogAdminMutationParams } from "./_audit.types";
 
 export async function logAdminMutation(
 	params: LogAdminMutationParams
 ): Promise<void> {
-	const { ctx, entityType, action, entityId, metadata } = params;
+	const { context, entityType, action, entityId, metadata } = params;
 
 	try {
 		await createAdminAuditLog({
-			db: ctx.db,
+			db: context.db,
 			input: {
-				adminId: ctx.session.user.id,
+				adminId: context.session.user.id,
 				entityId,
 				entityType,
 				action,
@@ -20,8 +20,7 @@ export async function logAdminMutation(
 			},
 		});
 	} catch {
-		throw new TRPCError({
-			code: "INTERNAL_SERVER_ERROR",
+		throw new ORPCError("INTERNAL_SERVER_ERROR", {
 			message: "Failed to write admin audit log",
 		});
 	}

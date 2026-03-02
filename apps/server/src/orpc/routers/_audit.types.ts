@@ -5,7 +5,7 @@ import type {
 import type { Context } from "../context";
 
 export interface LogAdminMutationParams {
-	ctx: Context & { session: NonNullable<Context["session"]> };
+	context: Context & { session: NonNullable<Context["session"]> };
 	entityType: AuditEntityType;
 	action: AuditAction;
 	entityId: string;

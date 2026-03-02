@@ -7,10 +7,10 @@ import {
 } from "@/__tests__/helpers/test-db";
 import { content } from "@/lib/db/schema";
 import {
+	createCaller,
 	makeAuthenticatedContext,
 	makeTestContext,
-} from "@/trpc/__tests__/helpers";
-import { appRouter } from "@/trpc/routers";
+} from "@/orpc/__tests__/helpers";
 
 describe("watch-progress router", () => {
 	let testDb: TestDatabase;
@@ -28,7 +28,7 @@ describe("watch-progress router", () => {
 	});
 
 	it("rejects unauthenticated access", async () => {
-		const caller = appRouter.createCaller(makeTestContext({ db: testDb.db }));
+		const caller = createCaller(makeTestContext({ db: testDb.db }));
 
 		await expect(
 			caller.watchProgress.save({
@@ -59,7 +59,7 @@ describe("watch-progress router", () => {
 		const user = await createTestUser(testDb.client, {
 			email: "watch-progress-router-invalid@example.com",
 		});
-		const caller = appRouter.createCaller(
+		const caller = createCaller(
 			makeAuthenticatedContext(user.id, "user", { db: testDb.db })
 		);
 
@@ -90,7 +90,7 @@ describe("watch-progress router", () => {
 		const user = await createTestUser(testDb.client, {
 			email: "watch-progress-router-notfound@example.com",
 		});
-		const caller = appRouter.createCaller(
+		const caller = createCaller(
 			makeAuthenticatedContext(user.id, "user", { db: testDb.db })
 		);
 
@@ -122,7 +122,7 @@ describe("watch-progress router", () => {
 			throw new Error("Failed to create content fixture");
 		}
 
-		const caller = appRouter.createCaller(
+		const caller = createCaller(
 			makeAuthenticatedContext(user.id, "user", { db: testDb.db })
 		);
 

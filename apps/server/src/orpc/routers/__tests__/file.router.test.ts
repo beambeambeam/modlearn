@@ -15,10 +15,10 @@ import {
 } from "@/__tests__/helpers/test-db";
 import { adminAuditLog, file, storage } from "@/lib/db/schema";
 import {
+	createCaller,
 	makeAuthenticatedContext,
 	makeTestContext,
-} from "@/trpc/__tests__/helpers";
-import { appRouter } from "@/trpc/routers";
+} from "@/orpc/__tests__/helpers";
 
 vi.mock("@/lib/storage/s3-operations", () => ({
 	generateUploadUrl: vi.fn(async (input: { key: string }) => ({
@@ -54,9 +54,7 @@ describe("file router", () => {
 	});
 
 	it("rejects file admin procedures for unauthenticated and non-admin users", async () => {
-		const noSessionCaller = appRouter.createCaller(
-			makeTestContext({ db: testDb.db })
-		);
+		const noSessionCaller = createCaller(makeTestContext({ db: testDb.db }));
 
 		await expect(
 			noSessionCaller.file.adminCreateUploadRequest({
@@ -72,7 +70,7 @@ describe("file router", () => {
 			email: "file-router-user@example.com",
 			role: "user",
 		});
-		const userCaller = appRouter.createCaller(
+		const userCaller = createCaller(
 			makeAuthenticatedContext(user.id, "user", { db: testDb.db })
 		);
 
@@ -88,7 +86,7 @@ describe("file router", () => {
 			email: "file-router-admin-validate@example.com",
 			role: "admin",
 		});
-		const adminCaller = appRouter.createCaller(
+		const adminCaller = createCaller(
 			makeAuthenticatedContext(admin.id, "admin", { db: testDb.db })
 		);
 
@@ -128,10 +126,10 @@ describe("file router", () => {
 			email: "file-router-superadmin@example.com",
 			role: "superadmin",
 		});
-		const adminCaller = appRouter.createCaller(
+		const adminCaller = createCaller(
 			makeAuthenticatedContext(admin.id, "admin", { db: testDb.db })
 		);
-		const superadminCaller = appRouter.createCaller(
+		const superadminCaller = createCaller(
 			makeAuthenticatedContext(superadmin.id, "superadmin", { db: testDb.db })
 		);
 
@@ -181,7 +179,7 @@ describe("file router", () => {
 			email: "file-router-admin-not-found@example.com",
 			role: "admin",
 		});
-		const caller = appRouter.createCaller(
+		const caller = createCaller(
 			makeAuthenticatedContext(admin.id, "admin", { db: testDb.db })
 		);
 

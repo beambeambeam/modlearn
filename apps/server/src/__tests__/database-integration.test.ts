@@ -8,8 +8,7 @@ import {
 	resetTestDatabase,
 	type TestDatabase,
 } from "@/__tests__/helpers/test-db";
-import { makeTestContext } from "@/trpc/__tests__/helpers";
-import { appRouter } from "@/trpc/routers/index";
+import { createCaller, makeTestContext } from "@/orpc/__tests__/helpers";
 
 describe("Database Integration Example", () => {
 	let testDb: TestDatabase;
@@ -50,8 +49,8 @@ describe("Database Integration Example", () => {
 		});
 	});
 
-	describe("tRPC with database", () => {
-		it("should use database in tRPC procedures", async () => {
+	describe("oRPC with database", () => {
+		it("should use database in oRPC procedures", async () => {
 			// Create a user in the test database
 			const { user, session } = await createAuthenticatedUser(testDb.client, {
 				name: "Test User",
@@ -84,7 +83,7 @@ describe("Database Integration Example", () => {
 				},
 			});
 
-			const caller = appRouter.createCaller(ctx);
+			const caller = createCaller(ctx);
 
 			// Call a protected procedure
 			const result = await caller.privateData();

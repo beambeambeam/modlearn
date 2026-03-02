@@ -4,11 +4,11 @@ High-performance backend API for the ModLearn educational video streaming platfo
 
 ## Overview
 
-This is the server application that powers ModLearn, providing RESTful APIs and real-time capabilities through tRPC.
+This is the server application that powers ModLearn, providing RESTful APIs and real-time capabilities through oRPC.
 
 **Tech Stack:**
 - Elysia (TypeScript web framework)
-- tRPC (type-safe API layer)
+- oRPC (type-safe API layer)
 - Better Auth (authentication)
 - PostgreSQL + Drizzle ORM (database)
 - Bun runtime
@@ -73,7 +73,7 @@ Client Request
      ↓
 Elysia HTTP Server
      ↓
-tRPC Router (type-safe endpoints)
+oRPC Router (type-safe endpoints)
      ↓
 Business Logic
      ↓
@@ -84,7 +84,7 @@ PostgreSQL
 
 ## Key Features
 
-- **Type-safe APIs**: tRPC ensures type safety between frontend and backend
+- **Type-safe APIs**: oRPC ensures type safety between frontend and backend
 - **Authentication**: Better Auth provides secure session management
 - **Database Access**: Drizzle ORM for type-safe SQL queries
 - **Validation**: Built-in request/response validation with Zod
@@ -124,7 +124,7 @@ Better Auth is pre-configured in the `apps/server/src/lib/auth` module. The serv
 ```typescript
 import { auth } from '@/lib/auth';
 
-// In your tRPC router or Elysia route
+// In your oRPC router or Elysia route
 export const protectedRoute = new Elysia()
   .use(auth)
   .get('/protected', ({ user }) => {
@@ -180,14 +180,14 @@ bun run db:studio     # Open Drizzle Studio GUI
 bun run db:seed       # Run database seeds
 ```
 
-## Adding tRPC Procedures
+## Adding oRPC Procedures
 
-Create new API endpoints by adding routers in `apps/server/src/trpc/routers/`:
+Create new API endpoints by adding routers in `apps/server/src/orpc/routers/`:
 
 ```typescript
-// apps/server/src/trpc/routers/course.ts
+// apps/server/src/orpc/routers/course.ts
 import { z } from 'zod';
-import { router, procedure } from '../trpc';
+import { router, procedure } from '../orpc';
 
 export const courseRouter = router({
   getAll: procedure.query(async () => {
@@ -216,7 +216,7 @@ export const courseRouter = router({
 Then register the router in the main app router:
 
 ```typescript
-// apps/server/src/trpc/routers/index.ts
+// apps/server/src/orpc/routers/index.ts
 import { courseRouter } from './routers/course';
 
 export const appRouter = router({
@@ -267,7 +267,7 @@ bun run start
 ## Learn More
 
 - [Elysia Documentation](https://elysiajs.com/)
-- [tRPC Documentation](https://trpc.io/docs)
+- [oRPC Documentation](https://orpc.dev/docs)
 - [Drizzle ORM](https://orm.drizzle.team/)
 - [Better Auth](https://www.better-auth.com/)
 - [Bun Runtime](https://bun.sh/docs)

@@ -7,12 +7,12 @@ import {
 } from "@/__tests__/helpers/test-db";
 import { adminAuditLog } from "@/lib/db/schema";
 import {
+	createCaller,
 	makeAuthenticatedContext,
 	makeTestContext,
-} from "@/trpc/__tests__/helpers";
-import { appRouter } from "@/trpc/routers";
+} from "@/orpc/__tests__/helpers";
 
-describe("category router", () => {
+describe("genre router", () => {
 	let testDb: TestDatabase;
 
 	beforeAll(async () => {
@@ -29,43 +29,29 @@ describe("category router", () => {
 
 	it("allows public list/get", async () => {
 		const admin = await createTestUser(testDb.client, {
-			email: "category-router-admin@example.com",
+			email: "genre-router-admin@example.com",
 			role: "admin",
 		});
-		const caller = appRouter.createCaller(
+		const caller = createCaller(
 			makeAuthenticatedContext(admin.id, "admin", { db: testDb.db })
 		);
-		const created = await caller.category.adminCreate({
-			title: "Math",
-			slug: "math",
+		const created = await caller.genre.adminCreate({
+			title: "Action",
+			slug: "action",
 		});
 
-		const auditRows = await testDb.db.select().from(adminAuditLog);
-		const createAudit = auditRows.find(
-			(row) =>
-				row.entityType === "CATEGORY" &&
-				row.action === "CREATE" &&
-				row.entityId === created.id &&
-				row.adminId === admin.id
-		);
-		expect(createAudit).toBeDefined();
-
-		const publicCaller = appRouter.createCaller(
-			makeTestContext({ db: testDb.db })
-		);
-		const listed = await publicCaller.category.list({});
+		const publicCaller = createCaller(makeTestContext({ db: testDb.db }));
+		const listed = await publicCaller.genre.list({});
 		expect(listed.items).toHaveLength(1);
-		const found = await publicCaller.category.getById({ id: created.id });
+		const found = await publicCaller.genre.getById({ id: created.id });
 		expect(found.id).toBe(created.id);
 	});
 
 	it("rejects invalid input", async () => {
-		const publicCaller = appRouter.createCaller(
-			makeTestContext({ db: testDb.db })
-		);
+		const publicCaller = createCaller(makeTestContext({ db: testDb.db }));
 
 		await expect(
-			publicCaller.category.getById({
+			publicCaller.genre.getById({
 				id: "invalid",
 			})
 		).rejects.toThrow(
@@ -75,7 +61,7 @@ describe("category router", () => {
 		);
 
 		await expect(
-			publicCaller.category.list({
+			publicCaller.genre.list({
 				page: 0,
 			})
 		).rejects.toThrow(
@@ -86,11 +72,9 @@ describe("category router", () => {
 	});
 
 	it("enforces admin auth", async () => {
-		const publicCaller = appRouter.createCaller(
-			makeTestContext({ db: testDb.db })
-		);
+		const publicCaller = createCaller(makeTestContext({ db: testDb.db }));
 		await expect(
-			publicCaller.category.adminCreate({
+			publicCaller.genre.adminCreate({
 				title: "No Auth",
 				slug: "no-auth",
 			})
@@ -101,14 +85,14 @@ describe("category router", () => {
 		);
 
 		const user = await createTestUser(testDb.client, {
-			email: "category-router-user@example.com",
+			email: "genre-router-user@example.com",
 			role: "user",
 		});
-		const userCaller = appRouter.createCaller(
+		const userCaller = createCaller(
 			makeAuthenticatedContext(user.id, "user", { db: testDb.db })
 		);
 		await expect(
-			userCaller.category.adminCreate({
+			userCaller.genre.adminCreate({
 				title: "No Admin",
 				slug: "no-admin",
 			})
@@ -121,33 +105,33 @@ describe("category router", () => {
 
 	it("maps conflict/not-found errors and allows admin updates/deletes", async () => {
 		const admin = await createTestUser(testDb.client, {
-			email: "category-router-admin-2@example.com",
+			email: "genre-router-admin-2@example.com",
 			role: "admin",
 		});
 		const superadmin = await createTestUser(testDb.client, {
-			email: "category-router-superadmin@example.com",
+			email: "genre-router-superadmin@example.com",
 			role: "superadmin",
 		});
 
-		const adminCaller = appRouter.createCaller(
+		const adminCaller = createCaller(
 			makeAuthenticatedContext(admin.id, "admin", { db: testDb.db })
 		);
-		const superadminCaller = appRouter.createCaller(
+		const superadminCaller = createCaller(
 			makeAuthenticatedContext(superadmin.id, "superadmin", { db: testDb.db })
 		);
 
-		const c1 = await adminCaller.category.adminCreate({
-			title: "C1",
+		const g1 = await adminCaller.genre.adminCreate({
+			title: "G1",
 			slug: "same",
 		});
-		await adminCaller.category.adminCreate({
-			title: "C2",
+		await adminCaller.genre.adminCreate({
+			title: "G2",
 			slug: "other",
 		});
 
 		await expect(
-			adminCaller.category.adminUpdate({
-				id: c1.id,
+			adminCaller.genre.adminUpdate({
+				id: g1.id,
 				patch: { slug: "other" },
 			})
 		).rejects.toThrow(
@@ -157,7 +141,7 @@ describe("category router", () => {
 		);
 
 		await expect(
-			adminCaller.category.adminDelete({
+			adminCaller.genre.adminDelete({
 				id: "00000000-0000-0000-0000-000000000000",
 			})
 		).rejects.toThrow(
@@ -166,43 +150,25 @@ describe("category router", () => {
 			})
 		);
 
-		const updated = await superadminCaller.category.adminUpdate({
-			id: c1.id,
+		const updated = await superadminCaller.genre.adminUpdate({
+			id: g1.id,
 			patch: { title: "Updated" },
 		});
 		expect(updated.title).toBe("Updated");
 
-		const deleted = await superadminCaller.category.adminDelete({
-			id: c1.id,
+		const deleted = await superadminCaller.genre.adminDelete({
+			id: g1.id,
 		});
 		expect(deleted.deleted).toBe(true);
-	});
 
-	it("fails mutation when audit logging fails after business mutation", async () => {
-		const caller = appRouter.createCaller(
-			makeAuthenticatedContext("missing-admin-user-id", "admin", {
-				db: testDb.db,
-			})
+		const auditRows = await testDb.db.select().from(adminAuditLog);
+		const deleteAudit = auditRows.find(
+			(row) =>
+				row.entityType === "GENRE" &&
+				row.action === "DELETE" &&
+				row.entityId === g1.id &&
+				row.adminId === superadmin.id
 		);
-
-		await expect(
-			caller.category.adminCreate({
-				title: "Audit Fail Category",
-				slug: "audit-fail-category",
-			})
-		).rejects.toThrow(
-			expect.objectContaining({
-				code: "INTERNAL_SERVER_ERROR",
-				message: "Failed to write admin audit log",
-			})
-		);
-
-		const publicCaller = appRouter.createCaller(
-			makeTestContext({ db: testDb.db })
-		);
-		const listed = await publicCaller.category.list({});
-		expect(listed.items.map((row) => row.slug)).toContain(
-			"audit-fail-category"
-		);
+		expect(deleteAudit).toBeDefined();
 	});
 });

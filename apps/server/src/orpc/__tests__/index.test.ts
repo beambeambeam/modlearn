@@ -1,18 +1,22 @@
+import { createRouterClient } from "@orpc/server";
 import { describe, expect, it } from "vitest";
-import { publicProcedure, router } from "@/trpc";
-import { appRouter } from "@/trpc/routers";
-import { makeAuthenticatedContext, makeTestContext } from "./helpers";
+import { publicProcedure, router } from "@/orpc";
+import {
+	createCaller,
+	makeAuthenticatedContext,
+	makeTestContext,
+} from "./helpers";
 
-describe("trpc procedures", () => {
+describe("orpc procedures", () => {
 	describe("publicProcedure", () => {
 		it("should allow access without authentication", async () => {
 			const testRouter = router({
-				ping: publicProcedure.query(() => {
+				ping: publicProcedure.handler(() => {
 					return "pong";
 				}),
 			});
-			const ctx = makeTestContext();
-			const caller = testRouter.createCaller(ctx);
+			const context = makeTestContext();
+			const caller = createRouterClient(testRouter, { context });
 
 			const result = await caller.ping();
 
@@ -22,8 +26,8 @@ describe("trpc procedures", () => {
 
 	describe("privateData (protected)", () => {
 		it("should throw UNAUTHORIZED when session is null", async () => {
-			const ctx = makeTestContext();
-			const caller = appRouter.createCaller(ctx);
+			const context = makeTestContext();
+			const caller = createCaller(context);
 
 			await expect(caller.privateData()).rejects.toThrow(
 				expect.objectContaining({
@@ -33,8 +37,8 @@ describe("trpc procedures", () => {
 		});
 
 		it("should return data when authenticated", async () => {
-			const ctx = makeAuthenticatedContext("test-user-id");
-			const caller = appRouter.createCaller(ctx);
+			const context = makeAuthenticatedContext("test-user-id");
+			const caller = createCaller(context);
 
 			const result = await caller.privateData();
 
@@ -45,8 +49,8 @@ describe("trpc procedures", () => {
 
 	describe("adminData (admin)", () => {
 		it("should throw UNAUTHORIZED when session is null", async () => {
-			const ctx = makeTestContext();
-			const caller = appRouter.createCaller(ctx);
+			const context = makeTestContext();
+			const caller = createCaller(context);
 
 			await expect(caller.adminData()).rejects.toThrow(
 				expect.objectContaining({
@@ -56,8 +60,8 @@ describe("trpc procedures", () => {
 		});
 
 		it("should throw FORBIDDEN when role is not admin", async () => {
-			const ctx = makeAuthenticatedContext("test-user-id", "user");
-			const caller = appRouter.createCaller(ctx);
+			const context = makeAuthenticatedContext("test-user-id", "user");
+			const caller = createCaller(context);
 
 			await expect(caller.adminData()).rejects.toThrow(
 				expect.objectContaining({
@@ -67,8 +71,8 @@ describe("trpc procedures", () => {
 		});
 
 		it("should return data when role is admin", async () => {
-			const ctx = makeAuthenticatedContext("test-admin-id", "admin");
-			const caller = appRouter.createCaller(ctx);
+			const context = makeAuthenticatedContext("test-admin-id", "admin");
+			const caller = createCaller(context);
 
 			const result = await caller.adminData();
 
@@ -77,8 +81,11 @@ describe("trpc procedures", () => {
 		});
 
 		it("should return data when role is superadmin", async () => {
-			const ctx = makeAuthenticatedContext("test-superadmin-id", "superadmin");
-			const caller = appRouter.createCaller(ctx);
+			const context = makeAuthenticatedContext(
+				"test-superadmin-id",
+				"superadmin"
+			);
+			const caller = createCaller(context);
 
 			const result = await caller.adminData();
 

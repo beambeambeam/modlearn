@@ -15,11 +15,11 @@
     "./db/*": {
       "default": "./src/lib/db/*.ts"
     },
-    "./trpc": {
-      "default": "./src/trpc/index.ts"
+    "./orpc": {
+      "default": "./src/orpc/index.ts"
     },
-    "./trpc/*": {
-      "default": "./src/trpc/*.ts"
+    "./orpc/*": {
+      "default": "./src/orpc/*.ts"
     }
   },
   "scripts": {
@@ -47,17 +47,13 @@
     "@aws-sdk/client-s3": "^3.985.0",
     "@aws-sdk/s3-request-presigner": "^3.985.0",
     "@elysiajs/cors": "^1.4.1",
-    "@elysiajs/trpc": "^1.1.0",
-    "@hono/trpc-server": "^0.4.0",
+    "@orpc/server": "catalog:",
     "@modlearn/env": "workspace:*",
-    "@trpc/client": "catalog:",
-    "@trpc/server": "catalog:",
     "better-auth": "catalog:",
     "dotenv": "catalog:",
     "drizzle-orm": "^0.45.1",
     "elysia": "catalog:",
     "pg": "^8.17.1",
-    "trpc-docs-generator": "^0.6.1",
     "zod": "catalog:"
   },
   "devDependencies": {

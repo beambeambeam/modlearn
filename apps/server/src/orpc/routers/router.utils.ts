@@ -1,4 +1,4 @@
-import { TRPCError } from "@trpc/server";
+import { ORPCError } from "@orpc/server";
 import {
 	CategoryNotFoundError,
 	CategorySlugConflictError,
@@ -30,19 +30,25 @@ import {
 	WatchProgressValidationError,
 } from "@/modules/watch-progress/watch-progress.types";
 
+type OrpcCode =
+	| "NOT_FOUND"
+	| "CONFLICT"
+	| "BAD_REQUEST"
+	| "INTERNAL_SERVER_ERROR";
+
+const rpcError = (code: OrpcCode, message: string): never => {
+	throw new ORPCError(code, {
+		message,
+	});
+};
+
 export function mapCategoryError(error: unknown): never {
 	if (error instanceof CategoryNotFoundError) {
-		throw new TRPCError({
-			code: "NOT_FOUND",
-			message: error.message,
-		});
+		return rpcError("NOT_FOUND", error.message);
 	}
 
 	if (error instanceof CategorySlugConflictError) {
-		throw new TRPCError({
-			code: "CONFLICT",
-			message: error.message,
-		});
+		return rpcError("CONFLICT", error.message);
 	}
 
 	throw error;
@@ -50,17 +56,11 @@ export function mapCategoryError(error: unknown): never {
 
 export function mapGenreError(error: unknown): never {
 	if (error instanceof ModuleGenreNotFoundError) {
-		throw new TRPCError({
-			code: "NOT_FOUND",
-			message: error.message,
-		});
+		return rpcError("NOT_FOUND", error.message);
 	}
 
 	if (error instanceof GenreSlugConflictError) {
-		throw new TRPCError({
-			code: "CONFLICT",
-			message: error.message,
-		});
+		return rpcError("CONFLICT", error.message);
 	}
 
 	throw error;
@@ -72,16 +72,11 @@ export function mapServiceError(error: unknown): never {
 		error instanceof ContentCategoryNotFoundError ||
 		error instanceof ContentGenreNotFoundError
 	) {
-		throw new TRPCError({
-			code: "NOT_FOUND",
-			message: error.message,
-		});
+		return rpcError("NOT_FOUND", error.message);
 	}
+
 	if (error instanceof InvalidClassificationInputError) {
-		throw new TRPCError({
-			code: "BAD_REQUEST",
-			message: error.message,
-		});
+		return rpcError("BAD_REQUEST", error.message);
 	}
 
 	throw error;
@@ -92,17 +87,11 @@ export function mapPlaylistServiceError(error: unknown): never {
 		error instanceof PlaylistNotFoundError ||
 		error instanceof PlaylistContentNotFoundError
 	) {
-		throw new TRPCError({
-			code: "NOT_FOUND",
-			message: error.message,
-		});
+		return rpcError("NOT_FOUND", error.message);
 	}
 
 	if (error instanceof PlaylistReorderValidationError) {
-		throw new TRPCError({
-			code: "BAD_REQUEST",
-			message: error.message,
-		});
+		return rpcError("BAD_REQUEST", error.message);
 	}
 
 	throw error;
@@ -114,17 +103,11 @@ export function mapFileError(error: unknown): never {
 		error instanceof FileAlreadyDeletedError ||
 		error instanceof StorageRecordNotFoundError
 	) {
-		throw new TRPCError({
-			code: "NOT_FOUND",
-			message: error.message,
-		});
+		return rpcError("NOT_FOUND", error.message);
 	}
 
 	if (error instanceof FileCreationError) {
-		throw new TRPCError({
-			code: "BAD_REQUEST",
-			message: error.message,
-		});
+		return rpcError("BAD_REQUEST", error.message);
 	}
 
 	throw error;
@@ -135,17 +118,11 @@ export function mapWatchProgressError(error: unknown): never {
 		error instanceof WatchProgressContentNotFoundError ||
 		error instanceof WatchProgressPlaylistNotFoundError
 	) {
-		throw new TRPCError({
-			code: "NOT_FOUND",
-			message: error.message,
-		});
+		return rpcError("NOT_FOUND", error.message);
 	}
 
 	if (error instanceof WatchProgressValidationError) {
-		throw new TRPCError({
-			code: "BAD_REQUEST",
-			message: error.message,
-		});
+		return rpcError("BAD_REQUEST", error.message);
 	}
 
 	throw error;

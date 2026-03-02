@@ -16,12 +16,12 @@ import { mapWatchProgressError } from "./router.utils";
 export const watchProgressRouter = router({
 	save: protectedProcedure
 		.input(watchProgressSaveInputSchema)
-		.mutation(async ({ ctx, input }) => {
+		.handler(async ({ context, input }) => {
 			try {
 				return await saveWatchProgress({
-					db: ctx.db,
+					db: context.db,
 					input: {
-						userId: ctx.session.user.id,
+						userId: context.session.user.id,
 						...input,
 					},
 				});
@@ -31,12 +31,12 @@ export const watchProgressRouter = router({
 		}),
 	markCompleted: protectedProcedure
 		.input(watchProgressMarkCompletedInputSchema)
-		.mutation(async ({ ctx, input }) => {
+		.handler(async ({ context, input }) => {
 			try {
 				return await markWatchProgressCompleted({
-					db: ctx.db,
+					db: context.db,
 					input: {
-						userId: ctx.session.user.id,
+						userId: context.session.user.id,
 						...input,
 					},
 				});
@@ -46,12 +46,12 @@ export const watchProgressRouter = router({
 		}),
 	getResume: protectedProcedure
 		.input(watchProgressGetResumeInputSchema)
-		.query(async ({ ctx, input }) => {
+		.handler(async ({ context, input }) => {
 			try {
 				return await getWatchProgressResume({
-					db: ctx.db,
+					db: context.db,
 					input: {
-						userId: ctx.session.user.id,
+						userId: context.session.user.id,
 						...input,
 					},
 				});
@@ -61,12 +61,12 @@ export const watchProgressRouter = router({
 		}),
 	continueWatching: protectedProcedure
 		.input(watchProgressContinueWatchingInputSchema.optional())
-		.query(async ({ ctx, input }) => {
+		.handler(async ({ context, input }) => {
 			try {
 				return await listContinueWatching({
-					db: ctx.db,
+					db: context.db,
 					input: {
-						userId: ctx.session.user.id,
+						userId: context.session.user.id,
 						...watchProgressContinueWatchingInputSchema.parse(input ?? {}),
 					},
 				});

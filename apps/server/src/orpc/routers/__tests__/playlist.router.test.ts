@@ -12,10 +12,10 @@ import {
 	playlistEpisode,
 } from "@/lib/db/schema";
 import {
+	createCaller,
 	makeAuthenticatedContext,
 	makeTestContext,
-} from "@/trpc/__tests__/helpers";
-import { appRouter } from "@/trpc/routers";
+} from "@/orpc/__tests__/helpers";
 
 describe("playlist router", () => {
 	let testDb: TestDatabase;
@@ -70,7 +70,7 @@ describe("playlist router", () => {
 			seasonNumber: 1,
 		});
 
-		const caller = appRouter.createCaller(makeTestContext({ db: testDb.db }));
+		const caller = createCaller(makeTestContext({ db: testDb.db }));
 
 		const detail = await caller.playlist.getByIdWithEpisodes({
 			id: createdPlaylist.id,
@@ -85,7 +85,7 @@ describe("playlist router", () => {
 	});
 
 	it("rejects invalid public input", async () => {
-		const caller = appRouter.createCaller(makeTestContext({ db: testDb.db }));
+		const caller = createCaller(makeTestContext({ db: testDb.db }));
 
 		await expect(
 			caller.playlist.getByIdWithEpisodes({
@@ -109,7 +109,7 @@ describe("playlist router", () => {
 	});
 
 	it("rejects admin mutations for unauthenticated users", async () => {
-		const caller = appRouter.createCaller(makeTestContext({ db: testDb.db }));
+		const caller = createCaller(makeTestContext({ db: testDb.db }));
 
 		await expect(
 			caller.playlist.adminCreate({
@@ -128,7 +128,7 @@ describe("playlist router", () => {
 			role: "user",
 		});
 
-		const caller = appRouter.createCaller(
+		const caller = createCaller(
 			makeAuthenticatedContext(user.id, "user", { db: testDb.db })
 		);
 
@@ -168,10 +168,10 @@ describe("playlist router", () => {
 			throw new Error("Failed to create content fixture");
 		}
 
-		const adminCaller = appRouter.createCaller(
+		const adminCaller = createCaller(
 			makeAuthenticatedContext(admin.id, "admin", { db: testDb.db })
 		);
-		const superadminCaller = appRouter.createCaller(
+		const superadminCaller = createCaller(
 			makeAuthenticatedContext(superadmin.id, "superadmin", { db: testDb.db })
 		);
 

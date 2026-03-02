@@ -7,10 +7,10 @@ import {
 } from "@/__tests__/helpers/test-db";
 import { adminAuditLog, category, content, genre } from "@/lib/db/schema";
 import {
+	createCaller,
 	makeAuthenticatedContext,
 	makeTestContext,
-} from "@/trpc/__tests__/helpers";
-import { appRouter } from "@/trpc/routers";
+} from "@/orpc/__tests__/helpers";
 
 describe("content router", () => {
 	let testDb: TestDatabase;
@@ -49,8 +49,8 @@ describe("content router", () => {
 			throw new Error("Failed to create content for public router test");
 		}
 
-		const ctx = makeTestContext({ db: testDb.db });
-		const caller = appRouter.createCaller(ctx);
+		const context = makeTestContext({ db: testDb.db });
+		const caller = createCaller(context);
 
 		const listResult = await caller.content.list({});
 		expect(listResult.items).toHaveLength(1);
@@ -65,8 +65,8 @@ describe("content router", () => {
 	});
 
 	it("rejects invalid list/getById input", async () => {
-		const ctx = makeTestContext({ db: testDb.db });
-		const caller = appRouter.createCaller(ctx);
+		const context = makeTestContext({ db: testDb.db });
+		const caller = createCaller(context);
 
 		await expect(
 			caller.content.list({
@@ -113,8 +113,8 @@ describe("content router", () => {
 	});
 
 	it("rejects admin mutations for unauthenticated users", async () => {
-		const ctx = makeTestContext({ db: testDb.db });
-		const caller = appRouter.createCaller(ctx);
+		const context = makeTestContext({ db: testDb.db });
+		const caller = createCaller(context);
 
 		await expect(
 			caller.content.adminCreate({
@@ -133,8 +133,10 @@ describe("content router", () => {
 			email: "router-user@example.com",
 			role: "user",
 		});
-		const ctx = makeAuthenticatedContext(user.id, "user", { db: testDb.db });
-		const caller = appRouter.createCaller(ctx);
+		const context = makeAuthenticatedContext(user.id, "user", {
+			db: testDb.db,
+		});
+		const caller = createCaller(context);
 
 		await expect(
 			caller.content.adminCreate({
@@ -169,8 +171,8 @@ describe("content router", () => {
 			}
 		);
 
-		const adminCaller = appRouter.createCaller(adminCtx);
-		const superadminCaller = appRouter.createCaller(superadminCtx);
+		const adminCaller = createCaller(adminCtx);
+		const superadminCaller = createCaller(superadminCtx);
 
 		const created = await adminCaller.content.adminCreate({
 			title: "Admin Created",
@@ -218,10 +220,10 @@ describe("content router", () => {
 			categoryIds: [createdCategory.id],
 			genreIds: [createdGenre.id],
 		});
-		expect(classification.categories.map((row) => row.id)).toEqual([
-			createdCategory.id,
-		]);
-		expect(classification.genres.map((row) => row.id)).toEqual([
+		expect(
+			classification.categories.map((row: { id: string }) => row.id)
+		).toEqual([createdCategory.id]);
+		expect(classification.genres.map((row: { id: string }) => row.id)).toEqual([
 			createdGenre.id,
 		]);
 
@@ -286,7 +288,7 @@ describe("content router", () => {
 	});
 
 	it("rejects adminDelete and adminSetAvailability for unauthorized users", async () => {
-		const unauthenticatedCaller = appRouter.createCaller(
+		const unauthenticatedCaller = createCaller(
 			makeTestContext({ db: testDb.db })
 		);
 
@@ -307,7 +309,7 @@ describe("content router", () => {
 			email: "router-content-non-admin-delete@example.com",
 			role: "user",
 		});
-		const userCaller = appRouter.createCaller(
+		const userCaller = createCaller(
 			makeAuthenticatedContext(user.id, "user", { db: testDb.db })
 		);
 

@@ -14,17 +14,17 @@ import { mapFileError } from "./router.utils";
 export const fileRouter = router({
 	adminCreateUploadRequest: adminProcedure
 		.input(fileAdminCreateUploadRequestInputSchema)
-		.mutation(async ({ ctx, input }) => {
+		.handler(async ({ context, input }) => {
 			try {
 				const created = await createFileUploadRequest({
-					db: ctx.db,
+					db: context.db,
 					input: {
 						...input,
-						uploaderId: ctx.session.user.id,
+						uploaderId: context.session.user.id,
 					},
 				});
 				await logAdminMutation({
-					ctx,
+					context,
 					entityType: "FILE",
 					action: "CREATE",
 					entityId: created.fileId,
@@ -36,10 +36,10 @@ export const fileRouter = router({
 		}),
 	adminGetDownloadUrl: adminProcedure
 		.input(fileAdminByIdInputSchema)
-		.query(async ({ ctx, input }) => {
+		.handler(async ({ context, input }) => {
 			try {
 				return await createFileDownloadUrl({
-					db: ctx.db,
+					db: context.db,
 					fileId: input.fileId,
 				});
 			} catch (error) {
@@ -48,14 +48,14 @@ export const fileRouter = router({
 		}),
 	adminDelete: adminProcedure
 		.input(fileAdminByIdInputSchema)
-		.mutation(async ({ ctx, input }) => {
+		.handler(async ({ context, input }) => {
 			try {
 				const deleted = await deleteFile({
-					db: ctx.db,
+					db: context.db,
 					fileId: input.fileId,
 				});
 				await logAdminMutation({
-					ctx,
+					context,
 					entityType: "FILE",
 					action: "DELETE",
 					entityId: deleted.fileId,

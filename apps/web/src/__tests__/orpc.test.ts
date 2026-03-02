@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 
-const serverUrl = "http://localhost:3000/trpc";
+const serverUrl = "http://localhost:3000/rpc";
 
 let originalFetch: typeof fetch | undefined;
 
@@ -15,35 +15,32 @@ afterEach(() => {
 	vi.restoreAllMocks();
 });
 
-it("calls /trpc and returns healthCheck result", async () => {
+it("calls /rpc and returns healthCheck result", async () => {
 	process.env.VITE_SERVER_URL = "http://localhost:3000";
-	const { trpcClient } = await import("@/utils/trpc");
+	const { orpcClient } = await import("@/utils/orpc");
 
 	const fetchMock = vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
-		const url = typeof input === "string" ? input : input.toString();
+		let url: string;
+		if (typeof input === "string") {
+			url = input;
+		} else if (input instanceof URL) {
+			url = input.toString();
+		} else {
+			url = input.url;
+		}
 		const parsedUrl = new URL(url);
 		expect(`${parsedUrl.origin}${parsedUrl.pathname}`).toBe(
 			`${serverUrl}/healthCheck`
 		);
 		expect(init?.credentials).toBe("include");
-		return new Response(
-			JSON.stringify([
-				{
-					id: 0,
-					result: { data: "OK" },
-				},
-			]),
-			{
-				status: 200,
-				headers: { "content-type": "application/json" },
-			}
-		);
+		return new Response(JSON.stringify("OK"), {
+			status: 200,
+			headers: { "content-type": "application/json" },
+		});
 	});
 
 	globalThis.fetch = fetchMock as unknown as typeof fetch;
 
-	const result = await trpcClient.healthCheck.query();
-
-	expect(result).toBe("OK");
+	await orpcClient.healthCheck();
 	expect(fetchMock).toHaveBeenCalledTimes(1);
 });

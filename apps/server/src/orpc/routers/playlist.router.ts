@@ -19,10 +19,10 @@ import { mapPlaylistServiceError } from "./router.utils";
 export const playlistRouter = router({
 	getByIdWithEpisodes: publicProcedure
 		.input(playlistByIdInputSchema)
-		.query(async ({ ctx, input }) => {
+		.handler(async ({ context, input }) => {
 			try {
 				return await getPlaylistByIdWithEpisodes({
-					db: ctx.db,
+					db: context.db,
 					input,
 				});
 			} catch (error) {
@@ -31,10 +31,10 @@ export const playlistRouter = router({
 		}),
 	listEpisodes: publicProcedure
 		.input(playlistListEpisodesInputSchema)
-		.query(async ({ ctx, input }) => {
+		.handler(async ({ context, input }) => {
 			try {
 				return await listPlaylistEpisodes({
-					db: ctx.db,
+					db: context.db,
 					input,
 				});
 			} catch (error) {
@@ -43,14 +43,14 @@ export const playlistRouter = router({
 		}),
 	adminCreate: adminProcedure
 		.input(playlistAdminCreateInputSchema)
-		.mutation(async ({ ctx, input }) => {
+		.handler(async ({ context, input }) => {
 			const created = await createPlaylist({
-				db: ctx.db,
+				db: context.db,
 				input,
-				creatorId: ctx.session.user.id,
+				creatorId: context.session.user.id,
 			});
 			await logAdminMutation({
-				ctx,
+				context,
 				entityType: "PLAYLIST",
 				action: "CREATE",
 				entityId: created.id,
@@ -59,14 +59,14 @@ export const playlistRouter = router({
 		}),
 	adminAddEpisode: adminProcedure
 		.input(playlistAdminAddEpisodeInputSchema)
-		.mutation(async ({ ctx, input }) => {
+		.handler(async ({ context, input }) => {
 			try {
 				const added = await addEpisodeToPlaylist({
-					db: ctx.db,
+					db: context.db,
 					input,
 				});
 				await logAdminMutation({
-					ctx,
+					context,
 					entityType: "PLAYLIST_EPISODE",
 					action: "ADD_EPISODE",
 					entityId: added.id,
@@ -82,14 +82,14 @@ export const playlistRouter = router({
 		}),
 	adminReorderEpisodes: adminProcedure
 		.input(playlistAdminReorderEpisodesInputSchema)
-		.mutation(async ({ ctx, input }) => {
+		.handler(async ({ context, input }) => {
 			try {
 				const reordered = await reorderPlaylistEpisodes({
-					db: ctx.db,
+					db: context.db,
 					input,
 				});
 				await logAdminMutation({
-					ctx,
+					context,
 					entityType: "PLAYLIST",
 					action: "REORDER_EPISODES",
 					entityId: input.playlistId,

@@ -19,18 +19,18 @@ import { mapCategoryError } from "./router.utils";
 export const categoryRouter = router({
 	list: publicProcedure
 		.input(categoryListInputSchema.partial().optional())
-		.query(({ ctx, input }) => {
+		.handler(({ context, input }) => {
 			return listCategories({
-				db: ctx.db,
+				db: context.db,
 				input: categoryListInputSchema.parse(input ?? {}),
 			});
 		}),
 	getById: publicProcedure
 		.input(categoryByIdInputSchema)
-		.query(async ({ ctx, input }) => {
+		.handler(async ({ context, input }) => {
 			try {
 				return await getCategoryById({
-					db: ctx.db,
+					db: context.db,
 					input,
 				});
 			} catch (error) {
@@ -39,14 +39,14 @@ export const categoryRouter = router({
 		}),
 	adminCreate: adminProcedure
 		.input(categoryAdminCreateInputSchema)
-		.mutation(async ({ ctx, input }) => {
+		.handler(async ({ context, input }) => {
 			try {
 				const created = await createCategory({
-					db: ctx.db,
+					db: context.db,
 					input,
 				});
 				await logAdminMutation({
-					ctx,
+					context,
 					entityType: "CATEGORY",
 					action: "CREATE",
 					entityId: created.id,
@@ -58,14 +58,14 @@ export const categoryRouter = router({
 		}),
 	adminUpdate: adminProcedure
 		.input(categoryAdminUpdateInputSchema)
-		.mutation(async ({ ctx, input }) => {
+		.handler(async ({ context, input }) => {
 			try {
 				const updated = await updateCategory({
-					db: ctx.db,
+					db: context.db,
 					input,
 				});
 				await logAdminMutation({
-					ctx,
+					context,
 					entityType: "CATEGORY",
 					action: "UPDATE",
 					entityId: updated.id,
@@ -80,14 +80,14 @@ export const categoryRouter = router({
 		}),
 	adminDelete: adminProcedure
 		.input(categoryAdminDeleteInputSchema)
-		.mutation(async ({ ctx, input }) => {
+		.handler(async ({ context, input }) => {
 			try {
 				const deleted = await deleteCategory({
-					db: ctx.db,
+					db: context.db,
 					input,
 				});
 				await logAdminMutation({
-					ctx,
+					context,
 					entityType: "CATEGORY",
 					action: "DELETE",
 					entityId: deleted.id,

@@ -27,18 +27,18 @@ import { mapServiceError } from "./router.utils";
 export const contentRouter = router({
 	list: publicProcedure
 		.input(contentListInputSchema.optional())
-		.query(({ ctx, input }) => {
+		.handler(({ context, input }) => {
 			return listContent({
-				db: ctx.db,
+				db: context.db,
 				input: contentListInputSchema.parse(input ?? {}),
 			});
 		}),
 	getById: publicProcedure
 		.input(contentByIdInputSchema)
-		.query(async ({ ctx, input }) => {
+		.handler(async ({ context, input }) => {
 			try {
 				return await getContentById({
-					db: ctx.db,
+					db: context.db,
 					input,
 				});
 			} catch (error) {
@@ -47,22 +47,22 @@ export const contentRouter = router({
 		}),
 	listPopular: publicProcedure
 		.input(contentListPopularInputSchema.optional())
-		.query(({ ctx, input }) => {
+		.handler(({ context, input }) => {
 			return listPopularContent({
-				db: ctx.db,
+				db: context.db,
 				input: contentListPopularInputSchema.parse(input ?? {}),
 			});
 		}),
 	adminCreate: adminProcedure
 		.input(contentAdminCreateInputSchema)
-		.mutation(async ({ ctx, input }) => {
+		.handler(async ({ context, input }) => {
 			const created = await createContent({
-				db: ctx.db,
+				db: context.db,
 				input,
-				updatedBy: ctx.session.user.id,
+				updatedBy: context.session.user.id,
 			});
 			await logAdminMutation({
-				ctx,
+				context,
 				entityType: "CONTENT",
 				action: "CREATE",
 				entityId: created.id,
@@ -71,15 +71,15 @@ export const contentRouter = router({
 		}),
 	adminUpdate: adminProcedure
 		.input(contentAdminUpdateInputSchema)
-		.mutation(async ({ ctx, input }) => {
+		.handler(async ({ context, input }) => {
 			try {
 				const updated = await updateContent({
-					db: ctx.db,
+					db: context.db,
 					input,
-					updatedBy: ctx.session.user.id,
+					updatedBy: context.session.user.id,
 				});
 				await logAdminMutation({
-					ctx,
+					context,
 					entityType: "CONTENT",
 					action: "UPDATE",
 					entityId: updated.id,
@@ -94,15 +94,15 @@ export const contentRouter = router({
 		}),
 	adminSetPublishState: adminProcedure
 		.input(contentAdminSetPublishStateInputSchema)
-		.mutation(async ({ ctx, input }) => {
+		.handler(async ({ context, input }) => {
 			try {
 				const updated = await setContentPublishState({
-					db: ctx.db,
+					db: context.db,
 					input,
-					updatedBy: ctx.session.user.id,
+					updatedBy: context.session.user.id,
 				});
 				await logAdminMutation({
-					ctx,
+					context,
 					entityType: "CONTENT",
 					action: "SET_PUBLISH_STATE",
 					entityId: updated.id,
@@ -117,14 +117,14 @@ export const contentRouter = router({
 		}),
 	adminSetClassification: adminProcedure
 		.input(contentAdminSetClassificationInputSchema)
-		.mutation(async ({ ctx, input }) => {
+		.handler(async ({ context, input }) => {
 			try {
 				const updated = await setContentClassification({
-					db: ctx.db,
+					db: context.db,
 					input,
 				});
 				await logAdminMutation({
-					ctx,
+					context,
 					entityType: "CONTENT",
 					action: "SET_CLASSIFICATION",
 					entityId: updated.contentId,
@@ -140,15 +140,15 @@ export const contentRouter = router({
 		}),
 	adminDelete: adminProcedure
 		.input(contentAdminDeleteInputSchema)
-		.mutation(async ({ ctx, input }) => {
+		.handler(async ({ context, input }) => {
 			try {
 				const deleted = await deleteContent({
-					db: ctx.db,
+					db: context.db,
 					input,
-					updatedBy: ctx.session.user.id,
+					updatedBy: context.session.user.id,
 				});
 				await logAdminMutation({
-					ctx,
+					context,
 					entityType: "CONTENT",
 					action: "DELETE",
 					entityId: deleted.id,
@@ -160,15 +160,15 @@ export const contentRouter = router({
 		}),
 	adminSetAvailability: adminProcedure
 		.input(contentAdminSetAvailabilityInputSchema)
-		.mutation(async ({ ctx, input }) => {
+		.handler(async ({ context, input }) => {
 			try {
 				const updated = await setContentAvailability({
-					db: ctx.db,
+					db: context.db,
 					input,
-					updatedBy: ctx.session.user.id,
+					updatedBy: context.session.user.id,
 				});
 				await logAdminMutation({
-					ctx,
+					context,
 					entityType: "CONTENT",
 					action: "SET_AVAILABILITY",
 					entityId: updated.id,
