@@ -11,13 +11,23 @@ import {
 	genreAdminDeleteInputSchema,
 	genreAdminUpdateInputSchema,
 	genreByIdInputSchema,
+	genreDeleteOutputSchema,
 	genreListInputSchema,
+	genreListOutputSchema,
+	genreSchema,
 } from "@/modules/genre/genre.validators";
 import { adminProcedure, publicProcedure, router } from "@/orpc";
 
 export const genreRouter = router({
 	list: publicProcedure
+		.route({
+			method: "POST",
+			path: "/rpc/genre/list",
+			tags: ["Genre"],
+			summary: "List genres",
+		})
 		.input(genreListInputSchema.partial().optional())
+		.output(genreListOutputSchema)
 		.handler(({ context, input }) => {
 			return listGenres({
 				db: context.db,
@@ -25,7 +35,14 @@ export const genreRouter = router({
 			});
 		}),
 	getById: publicProcedure
+		.route({
+			method: "POST",
+			path: "/rpc/genre/getById",
+			tags: ["Genre"],
+			summary: "Get genre by ID",
+		})
 		.input(genreByIdInputSchema)
+		.output(genreSchema)
 		.handler(({ context, input }) => {
 			return getGenreById({
 				db: context.db,
@@ -33,7 +50,15 @@ export const genreRouter = router({
 			});
 		}),
 	adminCreate: adminProcedure
+		.route({
+			method: "POST",
+			path: "/rpc/genre/adminCreate",
+			tags: ["Genre"],
+			summary: "Create genre",
+			description: "Requires admin or superadmin role.",
+		})
 		.input(genreAdminCreateInputSchema)
+		.output(genreSchema)
 		.handler(async ({ context, input }) => {
 			const created = await createGenre({
 				db: context.db,
@@ -48,7 +73,15 @@ export const genreRouter = router({
 			return created;
 		}),
 	adminUpdate: adminProcedure
+		.route({
+			method: "POST",
+			path: "/rpc/genre/adminUpdate",
+			tags: ["Genre"],
+			summary: "Update genre",
+			description: "Requires admin or superadmin role.",
+		})
 		.input(genreAdminUpdateInputSchema)
+		.output(genreSchema)
 		.handler(async ({ context, input }) => {
 			const updated = await updateGenre({
 				db: context.db,
@@ -66,7 +99,15 @@ export const genreRouter = router({
 			return updated;
 		}),
 	adminDelete: adminProcedure
+		.route({
+			method: "POST",
+			path: "/rpc/genre/adminDelete",
+			tags: ["Genre"],
+			summary: "Delete genre",
+			description: "Requires admin or superadmin role.",
+		})
 		.input(genreAdminDeleteInputSchema)
+		.output(genreDeleteOutputSchema)
 		.handler(async ({ context, input }) => {
 			const deleted = await deleteGenre({
 				db: context.db,

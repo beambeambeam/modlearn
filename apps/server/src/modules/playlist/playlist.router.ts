@@ -1,3 +1,4 @@
+import { z } from "zod";
 import { logAdminMutation } from "@/modules/admin-audit/admin-audit.service";
 import {
 	addEpisodeToPlaylist,
@@ -11,13 +12,24 @@ import {
 	playlistAdminCreateInputSchema,
 	playlistAdminReorderEpisodesInputSchema,
 	playlistByIdInputSchema,
+	playlistEpisodeRowSchema,
+	playlistEpisodeSchema,
 	playlistListEpisodesInputSchema,
+	playlistSchema,
+	playlistWithEpisodesOutputSchema,
 } from "@/modules/playlist/playlist.validators";
 import { adminProcedure, publicProcedure, router } from "@/orpc";
 
 export const playlistRouter = router({
 	getByIdWithEpisodes: publicProcedure
+		.route({
+			method: "POST",
+			path: "/rpc/playlist/getByIdWithEpisodes",
+			tags: ["Playlist"],
+			summary: "Get playlist with episodes",
+		})
 		.input(playlistByIdInputSchema)
+		.output(playlistWithEpisodesOutputSchema)
 		.handler(({ context, input }) => {
 			return getPlaylistByIdWithEpisodes({
 				db: context.db,
@@ -25,7 +37,14 @@ export const playlistRouter = router({
 			});
 		}),
 	listEpisodes: publicProcedure
+		.route({
+			method: "POST",
+			path: "/rpc/playlist/listEpisodes",
+			tags: ["Playlist"],
+			summary: "List playlist episodes",
+		})
 		.input(playlistListEpisodesInputSchema)
+		.output(z.array(playlistEpisodeSchema))
 		.handler(({ context, input }) => {
 			return listPlaylistEpisodes({
 				db: context.db,
@@ -33,7 +52,15 @@ export const playlistRouter = router({
 			});
 		}),
 	adminCreate: adminProcedure
+		.route({
+			method: "POST",
+			path: "/rpc/playlist/adminCreate",
+			tags: ["Playlist"],
+			summary: "Create playlist",
+			description: "Requires admin or superadmin role.",
+		})
 		.input(playlistAdminCreateInputSchema)
+		.output(playlistSchema)
 		.handler(async ({ context, input }) => {
 			const created = await createPlaylist({
 				db: context.db,
@@ -49,7 +76,15 @@ export const playlistRouter = router({
 			return created;
 		}),
 	adminAddEpisode: adminProcedure
+		.route({
+			method: "POST",
+			path: "/rpc/playlist/adminAddEpisode",
+			tags: ["Playlist"],
+			summary: "Add episode to playlist",
+			description: "Requires admin or superadmin role.",
+		})
 		.input(playlistAdminAddEpisodeInputSchema)
+		.output(playlistEpisodeRowSchema)
 		.handler(async ({ context, input }) => {
 			const added = await addEpisodeToPlaylist({
 				db: context.db,
@@ -68,7 +103,15 @@ export const playlistRouter = router({
 			return added;
 		}),
 	adminReorderEpisodes: adminProcedure
+		.route({
+			method: "POST",
+			path: "/rpc/playlist/adminReorderEpisodes",
+			tags: ["Playlist"],
+			summary: "Reorder playlist episodes",
+			description: "Requires admin or superadmin role.",
+		})
 		.input(playlistAdminReorderEpisodesInputSchema)
+		.output(z.array(playlistEpisodeRowSchema))
 		.handler(async ({ context, input }) => {
 			const reordered = await reorderPlaylistEpisodes({
 				db: context.db,

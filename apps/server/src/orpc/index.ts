@@ -1,7 +1,23 @@
 import { ORPCError, os } from "@orpc/server";
 import type { Context } from "./context";
+import { mapDomainErrorToOrpc, toInternalOrpcError } from "./error-mapper";
 
-const base = os.$context<Context>();
+const base = os.$context<Context>().use(async ({ next }) => {
+	try {
+		return await next();
+	} catch (error) {
+		if (error instanceof ORPCError) {
+			throw error;
+		}
+
+		const mapped = mapDomainErrorToOrpc(error);
+		if (mapped) {
+			throw mapped;
+		}
+
+		throw toInternalOrpcError(error);
+	}
+});
 
 export const router = <TRouter extends Record<string, unknown>>(
 	routerShape: TRouter

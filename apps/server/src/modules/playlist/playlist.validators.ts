@@ -29,3 +29,44 @@ export const playlistAdminReorderEpisodesInputSchema = z.object({
 	playlistId: z.uuid(),
 	episodeIds: z.array(z.uuid()).min(1),
 });
+
+export const playlistEpisodeContentSchema = z.object({
+	id: z.uuid(),
+	title: z.string(),
+	description: z.string().nullable(),
+	duration: z.number().int().nullable(),
+	releaseDate: z.date().nullable(),
+	contentType: z.enum(["MOVIE", "SERIES", "EPISODE", "MUSIC"]),
+	thumbnailImageId: z.string().nullable(),
+});
+
+export const playlistEpisodeSchema = z.object({
+	id: z.uuid(),
+	playlistId: z.uuid(),
+	contentId: z.uuid(),
+	episodeOrder: z.number().int(),
+	seasonNumber: z.number().int().nullable(),
+	episodeNumber: z.number().int().nullable(),
+	title: z.string().nullable(),
+	addedAt: z.date(),
+	content: playlistEpisodeContentSchema,
+});
+
+export const playlistEpisodeRowSchema = playlistEpisodeSchema.omit({
+	content: true,
+});
+
+export const playlistSchema = z.object({
+	id: z.uuid(),
+	creatorId: z.string(),
+	title: z.string(),
+	description: z.string().nullable(),
+	thumbnailImageId: z.string().nullable(),
+	isSeries: z.boolean(),
+	createdAt: z.date(),
+	updatedAt: z.date(),
+});
+
+export const playlistWithEpisodesOutputSchema = playlistSchema.extend({
+	episodes: z.array(playlistEpisodeSchema),
+});

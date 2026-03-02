@@ -29,3 +29,25 @@ export const genreAdminUpdateInputSchema = z.object({
 export const genreAdminDeleteInputSchema = z.object({
 	id: z.uuid(),
 });
+
+export const genreSchema = z.object({
+	id: z.uuid(),
+	title: z.string(),
+	description: z.string().nullable(),
+	slug: z.string().nullable(),
+});
+
+export const genreListOutputSchema = z.object({
+	items: z.array(genreSchema),
+	pagination: z.object({
+		page: z.number().int(),
+		limit: z.number().int(),
+		total: z.number().int(),
+		totalPages: z.number().int(),
+	}),
+});
+
+export const genreDeleteOutputSchema = z.object({
+	id: z.uuid(),
+	deleted: z.literal(true),
+});

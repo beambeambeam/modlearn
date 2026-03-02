@@ -111,3 +111,57 @@ export const contentAdminSetClassificationInputSchema = z
 			});
 		}
 	});
+
+export const contentClassificationItemSchema = z.object({
+	id: z.uuid(),
+	title: z.string(),
+	slug: z.string().nullable(),
+	description: z.string().nullable(),
+});
+
+export const contentSchema = z.object({
+	id: z.uuid(),
+	title: z.string(),
+	description: z.string().nullable(),
+	thumbnailImageId: z.string().nullable(),
+	duration: z.number().int().nullable(),
+	releaseDate: z.date().nullable(),
+	contentType: contentTypeSchema,
+	fileId: z.string().nullable(),
+	isPublished: z.boolean(),
+	publishedAt: z.date().nullable(),
+	isAvailable: z.boolean(),
+	viewCount: z.number().int(),
+	isDeleted: z.boolean(),
+	deletedAt: z.date().nullable(),
+	updatedBy: z.string(),
+	createdAt: z.date(),
+	updatedAt: z.date(),
+});
+
+export const contentListOutputSchema = z.object({
+	items: z.array(contentSchema),
+	pagination: z.object({
+		page: z.number().int(),
+		limit: z.number().int(),
+		total: z.number().int(),
+		totalPages: z.number().int(),
+	}),
+});
+
+export const contentDetailOutputSchema = contentSchema.extend({
+	categories: z.array(contentClassificationItemSchema),
+	genres: z.array(contentClassificationItemSchema),
+});
+
+export const contentClassificationOutputSchema = z.object({
+	contentId: z.uuid(),
+	categories: z.array(contentClassificationItemSchema),
+	genres: z.array(contentClassificationItemSchema),
+});
+
+export const contentDeleteOutputSchema = z.object({
+	id: z.uuid(),
+	deleted: z.literal(true),
+	deletedAt: z.date(),
+});

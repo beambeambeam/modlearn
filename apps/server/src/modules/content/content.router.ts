@@ -1,3 +1,4 @@
+import { z } from "zod";
 import { logAdminMutation } from "@/modules/admin-audit/admin-audit.service";
 import {
 	createContent,
@@ -18,14 +19,26 @@ import {
 	contentAdminSetPublishStateInputSchema,
 	contentAdminUpdateInputSchema,
 	contentByIdInputSchema,
+	contentClassificationOutputSchema,
+	contentDeleteOutputSchema,
+	contentDetailOutputSchema,
 	contentListInputSchema,
+	contentListOutputSchema,
 	contentListPopularInputSchema,
+	contentSchema,
 } from "@/modules/content/content.validators";
 import { adminProcedure, publicProcedure, router } from "@/orpc";
 
 export const contentRouter = router({
 	list: publicProcedure
+		.route({
+			method: "POST",
+			path: "/rpc/content/list",
+			tags: ["Content"],
+			summary: "List content",
+		})
 		.input(contentListInputSchema.optional())
+		.output(contentListOutputSchema)
 		.handler(({ context, input }) => {
 			return listContent({
 				db: context.db,
@@ -33,7 +46,14 @@ export const contentRouter = router({
 			});
 		}),
 	getById: publicProcedure
+		.route({
+			method: "POST",
+			path: "/rpc/content/getById",
+			tags: ["Content"],
+			summary: "Get content by ID",
+		})
 		.input(contentByIdInputSchema)
+		.output(contentDetailOutputSchema)
 		.handler(({ context, input }) => {
 			return getContentById({
 				db: context.db,
@@ -41,7 +61,14 @@ export const contentRouter = router({
 			});
 		}),
 	listPopular: publicProcedure
+		.route({
+			method: "POST",
+			path: "/rpc/content/listPopular",
+			tags: ["Content"],
+			summary: "List popular content",
+		})
 		.input(contentListPopularInputSchema.optional())
+		.output(z.array(contentSchema))
 		.handler(({ context, input }) => {
 			return listPopularContent({
 				db: context.db,
@@ -49,7 +76,15 @@ export const contentRouter = router({
 			});
 		}),
 	adminCreate: adminProcedure
+		.route({
+			method: "POST",
+			path: "/rpc/content/adminCreate",
+			tags: ["Content"],
+			summary: "Create content",
+			description: "Requires admin or superadmin role.",
+		})
 		.input(contentAdminCreateInputSchema)
+		.output(contentSchema)
 		.handler(async ({ context, input }) => {
 			const created = await createContent({
 				db: context.db,
@@ -65,7 +100,15 @@ export const contentRouter = router({
 			return created;
 		}),
 	adminUpdate: adminProcedure
+		.route({
+			method: "POST",
+			path: "/rpc/content/adminUpdate",
+			tags: ["Content"],
+			summary: "Update content",
+			description: "Requires admin or superadmin role.",
+		})
 		.input(contentAdminUpdateInputSchema)
+		.output(contentSchema)
 		.handler(async ({ context, input }) => {
 			const updated = await updateContent({
 				db: context.db,
@@ -84,7 +127,15 @@ export const contentRouter = router({
 			return updated;
 		}),
 	adminSetPublishState: adminProcedure
+		.route({
+			method: "POST",
+			path: "/rpc/content/adminSetPublishState",
+			tags: ["Content"],
+			summary: "Set publish state",
+			description: "Requires admin or superadmin role.",
+		})
 		.input(contentAdminSetPublishStateInputSchema)
+		.output(contentSchema)
 		.handler(async ({ context, input }) => {
 			const updated = await setContentPublishState({
 				db: context.db,
@@ -103,7 +154,15 @@ export const contentRouter = router({
 			return updated;
 		}),
 	adminSetClassification: adminProcedure
+		.route({
+			method: "POST",
+			path: "/rpc/content/adminSetClassification",
+			tags: ["Content"],
+			summary: "Set classification",
+			description: "Requires admin or superadmin role.",
+		})
 		.input(contentAdminSetClassificationInputSchema)
+		.output(contentClassificationOutputSchema)
 		.handler(async ({ context, input }) => {
 			const updated = await setContentClassification({
 				db: context.db,
@@ -122,7 +181,15 @@ export const contentRouter = router({
 			return updated;
 		}),
 	adminDelete: adminProcedure
+		.route({
+			method: "POST",
+			path: "/rpc/content/adminDelete",
+			tags: ["Content"],
+			summary: "Delete content",
+			description: "Requires admin or superadmin role.",
+		})
 		.input(contentAdminDeleteInputSchema)
+		.output(contentDeleteOutputSchema)
 		.handler(async ({ context, input }) => {
 			const deleted = await deleteContent({
 				db: context.db,
@@ -138,7 +205,15 @@ export const contentRouter = router({
 			return deleted;
 		}),
 	adminSetAvailability: adminProcedure
+		.route({
+			method: "POST",
+			path: "/rpc/content/adminSetAvailability",
+			tags: ["Content"],
+			summary: "Set availability",
+			description: "Requires admin or superadmin role.",
+		})
 		.input(contentAdminSetAvailabilityInputSchema)
+		.output(contentSchema)
 		.handler(async ({ context, input }) => {
 			const updated = await setContentAvailability({
 				db: context.db,

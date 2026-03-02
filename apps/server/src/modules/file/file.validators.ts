@@ -11,3 +11,22 @@ export const fileAdminCreateUploadRequestInputSchema = z.object({
 export const fileAdminByIdInputSchema = z.object({
 	fileId: z.uuid(),
 });
+
+export const fileAdminCreateUploadRequestOutputSchema = z.object({
+	fileId: z.uuid(),
+	storageKey: z.string(),
+	uploadUrl: z.string().url(),
+	expiresAt: z.date(),
+});
+
+export const fileAdminGetDownloadUrlOutputSchema = z.object({
+	storageKey: z.string(),
+	downloadUrl: z.string().url(),
+	expiresAt: z.date(),
+});
+
+export const fileAdminDeleteOutputSchema = z.object({
+	fileId: z.uuid(),
+	storageKey: z.string(),
+	deletedAt: z.date(),
+});

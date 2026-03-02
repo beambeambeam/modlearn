@@ -7,12 +7,23 @@ import {
 import {
 	fileAdminByIdInputSchema,
 	fileAdminCreateUploadRequestInputSchema,
+	fileAdminCreateUploadRequestOutputSchema,
+	fileAdminDeleteOutputSchema,
+	fileAdminGetDownloadUrlOutputSchema,
 } from "@/modules/file/file.validators";
 import { adminProcedure, router } from "@/orpc";
 
 export const fileRouter = router({
 	adminCreateUploadRequest: adminProcedure
+		.route({
+			method: "POST",
+			path: "/rpc/file/adminCreateUploadRequest",
+			tags: ["File"],
+			summary: "Create upload request",
+			description: "Requires admin or superadmin role.",
+		})
 		.input(fileAdminCreateUploadRequestInputSchema)
+		.output(fileAdminCreateUploadRequestOutputSchema)
 		.handler(async ({ context, input }) => {
 			const created = await createFileUploadRequest({
 				db: context.db,
@@ -30,7 +41,15 @@ export const fileRouter = router({
 			return created;
 		}),
 	adminGetDownloadUrl: adminProcedure
+		.route({
+			method: "POST",
+			path: "/rpc/file/adminGetDownloadUrl",
+			tags: ["File"],
+			summary: "Get file download URL",
+			description: "Requires admin or superadmin role.",
+		})
 		.input(fileAdminByIdInputSchema)
+		.output(fileAdminGetDownloadUrlOutputSchema)
 		.handler(({ context, input }) => {
 			return createFileDownloadUrl({
 				db: context.db,
@@ -38,7 +57,15 @@ export const fileRouter = router({
 			});
 		}),
 	adminDelete: adminProcedure
+		.route({
+			method: "POST",
+			path: "/rpc/file/adminDelete",
+			tags: ["File"],
+			summary: "Delete file",
+			description: "Requires admin or superadmin role.",
+		})
 		.input(fileAdminByIdInputSchema)
+		.output(fileAdminDeleteOutputSchema)
 		.handler(async ({ context, input }) => {
 			const deleted = await deleteFile({
 				db: context.db,

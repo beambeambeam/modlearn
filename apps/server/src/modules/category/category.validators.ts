@@ -29,3 +29,25 @@ export const categoryAdminUpdateInputSchema = z.object({
 export const categoryAdminDeleteInputSchema = z.object({
 	id: z.uuid(),
 });
+
+export const categorySchema = z.object({
+	id: z.uuid(),
+	title: z.string(),
+	description: z.string().nullable(),
+	slug: z.string().nullable(),
+});
+
+export const categoryListOutputSchema = z.object({
+	items: z.array(categorySchema),
+	pagination: z.object({
+		page: z.number().int(),
+		limit: z.number().int(),
+		total: z.number().int(),
+		totalPages: z.number().int(),
+	}),
+});
+
+export const categoryDeleteOutputSchema = z.object({
+	id: z.uuid(),
+	deleted: z.literal(true),
+});

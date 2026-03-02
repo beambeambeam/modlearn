@@ -6,6 +6,7 @@ import { auth } from "@/lib/auth";
 import { ensureBucketExists } from "@/lib/storage/s3-bucket";
 import { createContext } from "@/orpc/context";
 import { rpcErrorInterceptor } from "@/orpc/error-mapper";
+import { generateOpenApiSpec, renderScalarDocsHtml } from "@/orpc/openapi";
 import { appRouter } from "@/orpc/router";
 
 const rpcHandler = new RPCHandler(appRouter, {
@@ -28,6 +29,17 @@ export const createServerApp = () =>
 				return auth.handler(request);
 			}
 			return status(405);
+		})
+		.get("/docs/openapi.json", async () => {
+			const spec = await generateOpenApiSpec();
+			return Response.json(spec);
+		})
+		.get("/docs", () => {
+			return new Response(renderScalarDocsHtml("/docs/openapi.json"), {
+				headers: {
+					"content-type": "text/html; charset=utf-8",
+				},
+			});
 		})
 		.all(
 			"/rpc/*",
