@@ -49,10 +49,6 @@
 
 - Playback features:
   - Auto-resume from last watched position  
-  - Playback requires a valid streaming token  
-
-- Error handling:
-  - Handle expired or invalid streaming tokens  
 
 ---
 
@@ -121,8 +117,6 @@
 
 ## 9. Security & Performance
 
-- Secure video access using token-based authorization  
-- Streaming tokens have expiration  
 - Support CDN-based storage and delivery  
 - Prevent unauthorized content access  
 
