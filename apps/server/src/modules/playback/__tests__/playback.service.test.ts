@@ -26,7 +26,7 @@ import {
 	userLibrary,
 	watchProgress,
 } from "@/lib/db/schema";
-import { generateDownloadUrl } from "@/lib/storage/s3-operations";
+import { resolveDownloadDeliveryUrl } from "@/lib/storage/s3-operations";
 import {
 	createPlaybackSession,
 	getPlaybackSession,
@@ -43,10 +43,14 @@ import {
 } from "@/modules/playback/playback.types";
 
 vi.mock("@/lib/storage/s3-operations", () => ({
-	generateDownloadUrl: vi.fn(async () => ({
-		downloadUrl: "https://example.com/stream.m3u8",
-		expiresAt: new Date("2026-03-04T00:00:00.000Z"),
-	})),
+	resolveDownloadDeliveryUrl: vi.fn(
+		async (input: { key: string; cdnUrl?: string | null }) => ({
+			url:
+				input.cdnUrl ?? `https://cdn.example.com/modlearn-media/${input.key}`,
+			expiresAt: null,
+			source: "cdn",
+		})
+	),
 }));
 
 async function seedOwnedPlayableContent(params: {
@@ -76,6 +80,7 @@ async function seedOwnedPlayableContent(params: {
 		fileId: mediaFile.id,
 		storageProvider: "s3",
 		storageKey: `files/${mediaFile.id}.mp4`,
+		cdnUrl: `https://cdn.example.com/modlearn-media/files/${mediaFile.id}.mp4`,
 	});
 
 	const [movie] = await testDb.db
@@ -162,7 +167,7 @@ describe("playback service", () => {
 		await testDb.cleanup();
 	});
 
-	it("createPlaybackSession returns token, signed url, and invalidates prior active sessions", async () => {
+	it("createPlaybackSession returns token, CDN url, and invalidates prior active sessions", async () => {
 		const user = await createTestUser(testDb.client, {
 			email: "playback-create@example.com",
 		});
@@ -188,15 +193,17 @@ describe("playback service", () => {
 			},
 		});
 
-		expect(first.streamUrl).toBe("https://example.com/stream.m3u8");
+		expect(first.streamUrl).toBe(
+			`https://cdn.example.com/modlearn-media/files/${seeded.file.id}.mp4`
+		);
+		expect(first.streamUrlExpiresAt).toBeNull();
 		expect(first.resumePosition).toBe(40);
 		expect(first.playbackToken.length).toBeGreaterThan(16);
-		expect(generateDownloadUrl).toHaveBeenCalledWith(
-			expect.objectContaining({
-				key: `files/${seeded.file.id}.mp4`,
-				inline: true,
-			})
-		);
+		expect(resolveDownloadDeliveryUrl).toHaveBeenCalledWith({
+			key: `files/${seeded.file.id}.mp4`,
+			cdnUrl: `https://cdn.example.com/modlearn-media/files/${seeded.file.id}.mp4`,
+			inline: true,
+		});
 
 		const second = await createPlaybackSession({
 			db: testDb.db,

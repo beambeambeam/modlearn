@@ -12,7 +12,7 @@ import {
 	userLibrary,
 	watchProgress,
 } from "@/lib/db/schema";
-import { generateDownloadUrl } from "@/lib/storage/s3-operations";
+import { resolveDownloadDeliveryUrl } from "@/lib/storage/s3-operations";
 import {
 	markWatchProgressCompleted,
 	saveWatchProgress,
@@ -172,23 +172,26 @@ async function assertPlaybackAccess(params: {
 	}
 }
 
-async function getStorageKeyForContentFile(
+async function getStorageForContentFile(
 	db: DbClient,
 	fileId: string
-): Promise<string> {
+): Promise<{ storageKey: string; cdnUrl: string | null }> {
 	const row = await db.query.storage.findFirst({
 		where: and(
 			eq(storage.fileId, fileId),
 			eq(storage.storageProvider, STORAGE_PROVIDER)
 		),
-		columns: { storageKey: true },
+		columns: { storageKey: true, cdnUrl: true },
 	});
 
 	if (!row) {
 		throw new PlaybackFileNotReadyError();
 	}
 
-	return row.storageKey;
+	return {
+		storageKey: row.storageKey,
+		cdnUrl: row.cdnUrl,
+	};
 }
 
 async function getResumePosition(params: {
@@ -613,12 +616,13 @@ export async function createPlaybackSession(
 		throw new PlaybackFileNotReadyError();
 	}
 
-	const storageKey = await getStorageKeyForContentFile(
+	const storageRecord = await getStorageForContentFile(
 		db,
 		playableContent.fileId
 	);
-	const signedDownload = await generateDownloadUrl({
-		key: storageKey,
+	const delivery = await resolveDownloadDeliveryUrl({
+		key: storageRecord.storageKey,
+		cdnUrl: storageRecord.cdnUrl,
 		inline: true,
 	});
 
@@ -665,8 +669,8 @@ export async function createPlaybackSession(
 	return {
 		sessionId: created.id,
 		playbackToken: created.playbackToken,
-		streamUrl: signedDownload.downloadUrl,
-		streamUrlExpiresAt: signedDownload.expiresAt,
+		streamUrl: delivery.url,
+		streamUrlExpiresAt: delivery.expiresAt,
 		tokenExpiresAt: created.expiresAt,
 		resumePosition,
 		content: {
