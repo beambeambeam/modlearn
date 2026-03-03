@@ -11,7 +11,11 @@ import {
 	contentCategory,
 	watchProgress,
 } from "@/lib/db/schema";
-import { listRecommendationsForUser } from "@/modules/recommendation/recommendation.service";
+import {
+	listPopularRecommendations,
+	listRecentlyAddedRecommendations,
+	listRecommendationsForUser,
+} from "@/modules/recommendation/recommendation.service";
 
 describe("recommendation service", () => {
 	let testDb: TestDatabase;
@@ -372,5 +376,140 @@ describe("recommendation service", () => {
 
 		expect(result).toHaveLength(1);
 		expect(result[0]?.id).toBe(newer.id);
+	});
+
+	it("lists popular recommendations by view count and applies visibility filters", async () => {
+		const user = await createTestUser(testDb.client, {
+			email: "recommendation-popular-feed@example.com",
+		});
+
+		const [low, high, unpublished, unavailable, deleted] = await testDb.db
+			.insert(content)
+			.values([
+				{
+					title: "Low",
+					contentType: "MOVIE",
+					updatedBy: user.id,
+					isPublished: true,
+					isAvailable: true,
+					viewCount: 5,
+				},
+				{
+					title: "High",
+					contentType: "MOVIE",
+					updatedBy: user.id,
+					isPublished: true,
+					isAvailable: true,
+					viewCount: 10,
+				},
+				{
+					title: "Unpublished",
+					contentType: "MOVIE",
+					updatedBy: user.id,
+					isPublished: false,
+					isAvailable: true,
+					viewCount: 5000,
+				},
+				{
+					title: "Unavailable",
+					contentType: "MOVIE",
+					updatedBy: user.id,
+					isPublished: true,
+					isAvailable: false,
+					viewCount: 4000,
+				},
+				{
+					title: "Deleted",
+					contentType: "MOVIE",
+					updatedBy: user.id,
+					isPublished: true,
+					isAvailable: true,
+					isDeleted: true,
+					deletedAt: new Date("2025-01-01T00:00:00.000Z"),
+					viewCount: 3000,
+				},
+			])
+			.returning();
+
+		if (!(low && high && unpublished && unavailable && deleted)) {
+			throw new Error("Failed to create popular section fixtures");
+		}
+
+		const result = await listPopularRecommendations({
+			db: testDb.db,
+			input: { limit: 2 },
+		});
+
+		expect(result.map((row) => row.id)).toEqual([high.id, low.id]);
+	});
+
+	it("lists recently added recommendations by createdAt and applies visibility filters", async () => {
+		const user = await createTestUser(testDb.client, {
+			email: "recommendation-recent-feed@example.com",
+		});
+
+		const [older, newer, unpublished, unavailable, deleted] = await testDb.db
+			.insert(content)
+			.values([
+				{
+					title: "Older",
+					contentType: "MOVIE",
+					updatedBy: user.id,
+					isPublished: true,
+					isAvailable: true,
+					createdAt: new Date("2025-01-01T00:00:00.000Z"),
+					updatedAt: new Date("2025-01-01T00:00:00.000Z"),
+				},
+				{
+					title: "Newer",
+					contentType: "MOVIE",
+					updatedBy: user.id,
+					isPublished: true,
+					isAvailable: true,
+					createdAt: new Date("2025-01-02T00:00:00.000Z"),
+					updatedAt: new Date("2025-01-02T00:00:00.000Z"),
+				},
+				{
+					title: "Unpublished",
+					contentType: "MOVIE",
+					updatedBy: user.id,
+					isPublished: false,
+					isAvailable: true,
+					createdAt: new Date("2025-01-03T00:00:00.000Z"),
+					updatedAt: new Date("2025-01-03T00:00:00.000Z"),
+				},
+				{
+					title: "Unavailable",
+					contentType: "MOVIE",
+					updatedBy: user.id,
+					isPublished: true,
+					isAvailable: false,
+					createdAt: new Date("2025-01-04T00:00:00.000Z"),
+					updatedAt: new Date("2025-01-04T00:00:00.000Z"),
+				},
+				{
+					title: "Deleted",
+					contentType: "MOVIE",
+					updatedBy: user.id,
+					isPublished: true,
+					isAvailable: true,
+					isDeleted: true,
+					deletedAt: new Date("2025-01-05T00:00:00.000Z"),
+					createdAt: new Date("2025-01-05T00:00:00.000Z"),
+					updatedAt: new Date("2025-01-05T00:00:00.000Z"),
+				},
+			])
+			.returning();
+
+		if (!(older && newer && unpublished && unavailable && deleted)) {
+			throw new Error("Failed to create recently added section fixtures");
+		}
+
+		const result = await listRecentlyAddedRecommendations({
+			db: testDb.db,
+			input: { limit: 2 },
+		});
+
+		expect(result.map((row) => row.id)).toEqual([newer.id, older.id]);
 	});
 });
