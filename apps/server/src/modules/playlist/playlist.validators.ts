@@ -4,6 +4,13 @@ export const playlistByIdInputSchema = z.object({
 	id: z.uuid(),
 });
 
+export const playlistListInputSchema = z.object({
+	page: z.number().int().min(1).default(1),
+	limit: z.number().int().min(1).max(50).default(20),
+	search: z.string().trim().min(1).optional(),
+	isSeries: z.boolean().optional(),
+});
+
 export const playlistListEpisodesInputSchema = z.object({
 	playlistId: z.uuid(),
 	seasonNumber: z.number().int().min(1).optional(),
@@ -14,6 +21,20 @@ export const playlistAdminCreateInputSchema = z.object({
 	description: z.string().trim().min(1).nullable().optional(),
 	thumbnailImageId: z.uuid().nullable().optional(),
 	isSeries: z.boolean().default(true),
+});
+
+export const playlistAdminUpdateInputSchema = z.object({
+	id: z.uuid(),
+	patch: playlistAdminCreateInputSchema
+		.partial()
+		.refine(
+			(value) => Object.keys(value).length > 0,
+			"At least one field must be provided in patch"
+		),
+});
+
+export const playlistAdminDeleteInputSchema = z.object({
+	id: z.uuid(),
 });
 
 export const playlistAdminAddEpisodeInputSchema = z.object({
@@ -28,6 +49,26 @@ export const playlistAdminAddEpisodeInputSchema = z.object({
 export const playlistAdminReorderEpisodesInputSchema = z.object({
 	playlistId: z.uuid(),
 	episodeIds: z.array(z.uuid()).min(1),
+});
+
+export const playlistAdminUpdateEpisodeInputSchema = z.object({
+	id: z.uuid(),
+	patch: z
+		.object({
+			contentId: z.uuid().optional(),
+			episodeOrder: z.number().int().min(1).optional(),
+			seasonNumber: z.number().int().min(1).nullable().optional(),
+			episodeNumber: z.number().int().min(1).nullable().optional(),
+			title: z.string().trim().min(1).nullable().optional(),
+		})
+		.refine(
+			(value) => Object.keys(value).length > 0,
+			"At least one field must be provided in patch"
+		),
+});
+
+export const playlistAdminRemoveEpisodeInputSchema = z.object({
+	id: z.uuid(),
 });
 
 export const playlistEpisodeContentSchema = z.object({
@@ -69,4 +110,25 @@ export const playlistSchema = z.object({
 
 export const playlistWithEpisodesOutputSchema = playlistSchema.extend({
 	episodes: z.array(playlistEpisodeSchema),
+});
+
+export const playlistListOutputSchema = z.object({
+	items: z.array(playlistSchema),
+	pagination: z.object({
+		page: z.number().int(),
+		limit: z.number().int(),
+		total: z.number().int(),
+		totalPages: z.number().int(),
+	}),
+});
+
+export const playlistDeleteOutputSchema = z.object({
+	id: z.uuid(),
+	deleted: z.literal(true),
+});
+
+export const playlistEpisodeDeleteOutputSchema = z.object({
+	id: z.uuid(),
+	playlistId: z.uuid(),
+	deleted: z.literal(true),
 });
