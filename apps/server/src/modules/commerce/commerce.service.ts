@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { and, desc, eq, gt, gte, inArray, isNull, lte, or } from "drizzle-orm";
 import type { DbClient } from "@/lib/db/orm";
 import {
@@ -16,6 +17,9 @@ import {
 } from "@/lib/db/schema";
 import {
 	type CommerceActivePriceQuery,
+	type CommerceBuyContentInput,
+	type CommerceBuyPlaylistInput,
+	type CommerceBuyView,
 	type CommerceCartAddItemInput,
 	type CommerceCartRemoveItemInput,
 	type CommerceCartView,
@@ -49,6 +53,10 @@ function toCents(amount: string): number {
 		throw new Error(`Invalid money amount: ${amount}`);
 	}
 	return Math.round(numeric * CURRENCY_SCALE);
+}
+
+function buildProviderTransactionId(seed?: string): string {
+	return seed ?? `mock-${randomUUID()}`;
 }
 
 function fromCents(cents: number): string {
@@ -943,4 +951,218 @@ export function refundPayment(params: {
 			revokedCount: revoked.length,
 		};
 	});
+}
+
+async function findExistingPurchasePayment(params: {
+	db: DbClient;
+	userId: string;
+	contentIds: string[];
+}): Promise<{ orderId: string; paymentId: string } | null> {
+	const { db, userId, contentIds } = params;
+	if (contentIds.length === 0) {
+		return null;
+	}
+
+	const ownedRow = await db
+		.select({
+			orderId: userLibrary.orderId,
+		})
+		.from(userLibrary)
+		.where(
+			and(
+				eq(userLibrary.userId, userId),
+				inArray(userLibrary.contentId, contentIds)
+			)
+		)
+		.orderBy(desc(userLibrary.acquiredAt))
+		.limit(1);
+
+	const orderId = ownedRow[0]?.orderId;
+	if (!orderId) {
+		return null;
+	}
+
+	const paymentRow = await db.query.payment.findFirst({
+		where: and(eq(payment.orderId, orderId), eq(payment.status, "SUCCESS")),
+		orderBy: [desc(payment.paidAt), desc(payment.id)],
+		columns: {
+			id: true,
+		},
+	});
+
+	if (!paymentRow) {
+		return null;
+	}
+
+	return {
+		orderId,
+		paymentId: paymentRow.id,
+	};
+}
+
+async function createDirectOrder(params: {
+	db: DbClient;
+	userId: string;
+	itemType: CommerceItemType;
+	contentId?: string;
+	playlistId?: string;
+}): Promise<{ orderId: string; currency: string; price: string }> {
+	const { db, userId, itemType, contentId, playlistId } = params;
+	const price = await resolveActivePrice({
+		db,
+		itemType,
+		contentId,
+		playlistId,
+	});
+
+	const [createdOrder] = await db
+		.insert(order)
+		.values({
+			userId,
+			totalAmount: price.price,
+			currency: price.currency,
+			status: "PENDING",
+		})
+		.returning();
+	if (!createdOrder) {
+		throw new Error("Failed to create direct order");
+	}
+
+	await db.insert(orderItem).values({
+		orderId: createdOrder.id,
+		itemType,
+		contentId: contentId ?? null,
+		playlistId: playlistId ?? null,
+		price: price.price,
+	});
+
+	return {
+		orderId: createdOrder.id,
+		currency: createdOrder.currency,
+		price: createdOrder.totalAmount,
+	};
+}
+
+export async function buyContent(params: {
+	db: DbClient;
+	userId: string;
+	input: CommerceBuyContentInput;
+}): Promise<CommerceBuyView> {
+	const { db, userId, input } = params;
+	await assertContentExists(db, input.contentId);
+
+	const isOwned = await hasActiveContentOwnership({
+		db,
+		userId,
+		contentId: input.contentId,
+	});
+	if (isOwned) {
+		const existing = await findExistingPurchasePayment({
+			db,
+			userId,
+			contentIds: [input.contentId],
+		});
+		if (!existing) {
+			throw new CommerceOrderStateError(
+				"Owned content has no successful payment"
+			);
+		}
+		return {
+			orderId: existing.orderId,
+			paymentId: existing.paymentId,
+			status: "PAID",
+			alreadyOwned: true,
+			grantedContentCount: 0,
+		};
+	}
+
+	const created = await createDirectOrder({
+		db,
+		userId,
+		itemType: "CONTENT",
+		contentId: input.contentId,
+	});
+	const finalized = await markPaymentSuccess({
+		db,
+		userId,
+		input: {
+			orderId: created.orderId,
+			provider: "mock",
+			providerTransactionId: buildProviderTransactionId(
+				input.providerTransactionId
+			),
+		},
+	});
+
+	return {
+		orderId: finalized.orderId,
+		paymentId: finalized.paymentId,
+		status: "PAID",
+		alreadyOwned: false,
+		grantedContentCount: finalized.grantsCreated,
+	};
+}
+
+export async function buyPlaylist(params: {
+	db: DbClient;
+	userId: string;
+	input: CommerceBuyPlaylistInput;
+}): Promise<CommerceBuyView> {
+	const { db, userId, input } = params;
+	await assertPlaylistExists(db, input.playlistId);
+	const contentIds = await listPlaylistEpisodeContentIds(db, input.playlistId);
+	if (contentIds.length === 0) {
+		throw new CommercePlaylistEmptyError();
+	}
+
+	const isFullyOwned = await hasFullPlaylistOwnership({
+		db,
+		userId,
+		playlistId: input.playlistId,
+	});
+	if (isFullyOwned) {
+		const existing = await findExistingPurchasePayment({
+			db,
+			userId,
+			contentIds,
+		});
+		if (!existing) {
+			throw new CommerceOrderStateError(
+				"Owned playlist has no successful payment"
+			);
+		}
+		return {
+			orderId: existing.orderId,
+			paymentId: existing.paymentId,
+			status: "PAID",
+			alreadyOwned: true,
+			grantedContentCount: 0,
+		};
+	}
+
+	const created = await createDirectOrder({
+		db,
+		userId,
+		itemType: "PLAYLIST",
+		playlistId: input.playlistId,
+	});
+	const finalized = await markPaymentSuccess({
+		db,
+		userId,
+		input: {
+			orderId: created.orderId,
+			provider: "mock",
+			providerTransactionId: buildProviderTransactionId(
+				input.providerTransactionId
+			),
+		},
+	});
+
+	return {
+		orderId: finalized.orderId,
+		paymentId: finalized.paymentId,
+		status: "PAID",
+		alreadyOwned: false,
+		grantedContentCount: finalized.grantsCreated,
+	};
 }

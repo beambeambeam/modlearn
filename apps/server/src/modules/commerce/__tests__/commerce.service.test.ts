@@ -9,6 +9,7 @@ import {
 import {
 	content,
 	contentPricing,
+	contentPurchase,
 	order,
 	orderItem,
 	payment,
@@ -21,6 +22,8 @@ import {
 	addCartItem,
 	assertNotAlreadyOwned,
 	assertSingleCurrency,
+	buyContent,
+	buyPlaylist,
 	computeCartTotal,
 	createCheckoutOrder,
 	hasFullPlaylistOwnership,
@@ -547,5 +550,103 @@ describe("commerce service", () => {
 			.from(order)
 			.where(eq(order.id, checkout.orderId));
 		expect(orderRows[0]?.status).toBe("REFUNDED");
+	});
+
+	it("buyContent is single-step and idempotent when already owned", async () => {
+		const user = await createTestUser(testDb.client, {
+			email: "commerce-buy-content@example.com",
+		});
+		const movie = await createContentWithPricing({
+			testDb,
+			adminId: user.id,
+			title: "Single-step Movie",
+			price: "13.00",
+		});
+
+		const first = await buyContent({
+			db: testDb.db,
+			userId: user.id,
+			input: {
+				contentId: movie.id,
+			},
+		});
+		expect(first.alreadyOwned).toBe(false);
+		expect(first.grantedContentCount).toBe(1);
+
+		const second = await buyContent({
+			db: testDb.db,
+			userId: user.id,
+			input: {
+				contentId: movie.id,
+			},
+		});
+		expect(second.alreadyOwned).toBe(true);
+		expect(second.grantedContentCount).toBe(0);
+		expect(second.orderId).toBe(first.orderId);
+		expect(second.paymentId).toBe(first.paymentId);
+
+		const purchases = await testDb.db
+			.select()
+			.from(contentPurchase)
+			.where(eq(contentPurchase.contentId, movie.id));
+		expect(purchases).toHaveLength(1);
+	});
+
+	it("buyPlaylist grants only missing episodes when partially owned", async () => {
+		const user = await createTestUser(testDb.client, {
+			email: "commerce-buy-playlist@example.com",
+		});
+		const ep1 = await createContentWithPricing({
+			testDb,
+			adminId: user.id,
+			title: "Playlist EP 1",
+			price: "4.00",
+		});
+		const ep2 = await createContentWithPricing({
+			testDb,
+			adminId: user.id,
+			title: "Playlist EP 2",
+			price: "5.00",
+		});
+		const series = await createPlaylistWithPricing({
+			testDb,
+			adminId: user.id,
+			title: "Partial Playlist",
+			price: "22.00",
+			episodeContentIds: [ep1.id, ep2.id],
+		});
+
+		const priorOrder = await createPaidOrderFixture(testDb, user.id);
+		await testDb.db.insert(userLibrary).values({
+			userId: user.id,
+			contentId: ep1.id,
+			orderId: priorOrder.id,
+		});
+		await testDb.db.insert(contentPurchase).values({
+			userId: user.id,
+			contentId: ep1.id,
+			price: "4.00",
+			status: "PAID",
+			orderId: priorOrder.id,
+		});
+
+		const result = await buyPlaylist({
+			db: testDb.db,
+			userId: user.id,
+			input: {
+				playlistId: series.id,
+			},
+		});
+		expect(result.alreadyOwned).toBe(false);
+		expect(result.grantedContentCount).toBe(1);
+
+		const purchasedRows = await testDb.db
+			.select()
+			.from(contentPurchase)
+			.where(eq(contentPurchase.userId, user.id));
+		const purchasedContentIds = purchasedRows
+			.map((row) => row.contentId)
+			.sort();
+		expect(purchasedContentIds).toEqual([ep1.id, ep2.id].sort());
 	});
 });
