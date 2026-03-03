@@ -4,6 +4,19 @@ import {
 	CategorySlugConflictError,
 } from "@/modules/category/category.types";
 import {
+	CommerceContentNotFoundError,
+	CommerceCurrencyMismatchError,
+	CommerceDuplicateCartItemError,
+	CommerceInvalidCartItemError,
+	CommerceItemAlreadyOwnedError,
+	CommerceOrderNotFoundError,
+	CommerceOrderStateError,
+	CommercePaymentConflictError,
+	CommercePlaylistEmptyError,
+	CommercePlaylistNotFoundError,
+	CommercePriceNotFoundError,
+} from "@/modules/commerce/commerce.types";
+import {
 	CategoryNotFoundError as ContentCategoryNotFoundError,
 	ContentNotFoundError,
 	InvalidClassificationInputError,
@@ -71,6 +84,11 @@ export function mapDomainErrorToOrpc(
 		});
 	}
 
+	const commerceError = mapCommerceDomainErrorToOrpc(error);
+	if (commerceError) {
+		return commerceError;
+	}
+
 	if (
 		error instanceof PlaylistNotFoundError ||
 		error instanceof PlaylistEpisodeNotFoundError ||
@@ -131,6 +149,44 @@ export function mapDomainErrorToOrpc(
 	}
 
 	if (error instanceof WatchProgressValidationError) {
+		return new ORPCError("BAD_REQUEST", {
+			message: error.message,
+		});
+	}
+
+	return null;
+}
+
+function mapCommerceDomainErrorToOrpc(
+	error: unknown
+): ORPCError<string, unknown> | null {
+	if (
+		error instanceof CommerceContentNotFoundError ||
+		error instanceof CommercePlaylistNotFoundError ||
+		error instanceof CommerceOrderNotFoundError
+	) {
+		return new ORPCError("NOT_FOUND", {
+			message: error.message,
+		});
+	}
+
+	if (
+		error instanceof CommerceItemAlreadyOwnedError ||
+		error instanceof CommerceDuplicateCartItemError ||
+		error instanceof CommercePaymentConflictError
+	) {
+		return new ORPCError("CONFLICT", {
+			message: error.message,
+		});
+	}
+
+	if (
+		error instanceof CommercePriceNotFoundError ||
+		error instanceof CommerceCurrencyMismatchError ||
+		error instanceof CommerceOrderStateError ||
+		error instanceof CommercePlaylistEmptyError ||
+		error instanceof CommerceInvalidCartItemError
+	) {
 		return new ORPCError("BAD_REQUEST", {
 			message: error.message,
 		});
