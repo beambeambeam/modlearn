@@ -9,6 +9,7 @@ export interface PlaybackCreateSessionInput {
 }
 
 export interface PlaybackLifecycleInput {
+	userId: string;
 	sessionId: string;
 	playbackToken: string;
 	position: number;
@@ -21,6 +22,7 @@ export interface PlaybackSeekInput extends PlaybackLifecycleInput {
 }
 
 export interface PlaybackGetSessionInput {
+	userId: string;
 	sessionId: string;
 	playbackToken: string;
 }
