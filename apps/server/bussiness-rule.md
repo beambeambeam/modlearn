@@ -33,7 +33,6 @@
   - Content availability is checked before playback  
 
 - Content classification:
-  - Genres  
   - Categories  
 
 ---
@@ -56,7 +55,6 @@
 
 - Search content by title  
 - Browse content by:
-  - Genre  
   - Category  
 
 - Sort content by:
