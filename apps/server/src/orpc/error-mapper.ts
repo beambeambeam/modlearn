@@ -5,7 +5,6 @@ import {
 } from "@/modules/category/category.types";
 import {
 	CategoryNotFoundError as ContentCategoryNotFoundError,
-	GenreNotFoundError as ContentGenreNotFoundError,
 	ContentNotFoundError,
 	InvalidClassificationInputError,
 } from "@/modules/content/content.types";
@@ -15,10 +14,6 @@ import {
 	FileNotFoundError,
 	StorageRecordNotFoundError,
 } from "@/modules/file/file.types";
-import {
-	GenreNotFoundError,
-	GenreSlugConflictError,
-} from "@/modules/genre/genre.types";
 import {
 	ContentNotFoundError as PlaylistContentNotFoundError,
 	PlaylistNotFoundError,
@@ -55,22 +50,9 @@ export function mapDomainErrorToOrpc(
 		});
 	}
 
-	if (error instanceof GenreNotFoundError) {
-		return new ORPCError("NOT_FOUND", {
-			message: error.message,
-		});
-	}
-
-	if (error instanceof GenreSlugConflictError) {
-		return new ORPCError("CONFLICT", {
-			message: error.message,
-		});
-	}
-
 	if (
 		error instanceof ContentNotFoundError ||
-		error instanceof ContentCategoryNotFoundError ||
-		error instanceof ContentGenreNotFoundError
+		error instanceof ContentCategoryNotFoundError
 	) {
 		return new ORPCError("NOT_FOUND", {
 			message: error.message,

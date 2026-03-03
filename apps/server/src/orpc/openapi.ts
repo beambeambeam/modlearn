@@ -16,7 +16,6 @@ export function generateOpenApiSpec() {
 		tags: [
 			{ name: "System" },
 			{ name: "Category" },
-			{ name: "Genre" },
 			{ name: "Content" },
 			{ name: "File" },
 			{ name: "Playlist" },

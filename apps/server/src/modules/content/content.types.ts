@@ -13,7 +13,6 @@ export interface ContentListInput {
 	sortBy?: ContentSortBy;
 	onlyPublished?: boolean;
 	categoryIds?: string[];
-	genreIds?: string[];
 }
 
 export interface ContentByIdInput {
@@ -63,8 +62,7 @@ export interface AdminSetAvailabilityInput {
 
 export interface AdminSetClassificationInput {
 	id: string;
-	categoryIds?: string[];
-	genreIds?: string[];
+	categoryIds: string[];
 }
 
 export interface ListContentParams {
@@ -123,7 +121,6 @@ export interface BuildFiltersInput {
 	contentType?: ContentListInput["contentType"];
 	onlyPublished?: boolean;
 	categoryIds?: string[];
-	genreIds?: string[];
 }
 
 export interface ContentPagination {
@@ -141,7 +138,6 @@ export interface ListContentResult {
 export interface ContentClassificationResult {
 	contentId: string;
 	categories: ContentClassificationItem[];
-	genres: ContentClassificationItem[];
 }
 
 export interface DeleteContentResult {
@@ -154,7 +150,6 @@ type ContentRow = typeof content.$inferSelect;
 
 export type ContentDetailResult = ContentRow & {
 	categories: ContentClassificationItem[];
-	genres: ContentClassificationItem[];
 };
 
 export class ContentNotFoundError extends Error {
@@ -168,13 +163,6 @@ export class CategoryNotFoundError extends Error {
 	constructor() {
 		super("Category not found");
 		this.name = "CategoryNotFoundError";
-	}
-}
-
-export class GenreNotFoundError extends Error {
-	constructor() {
-		super("Genre not found");
-		this.name = "GenreNotFoundError";
 	}
 }
 

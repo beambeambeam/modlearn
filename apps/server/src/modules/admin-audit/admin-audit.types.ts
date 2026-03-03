@@ -6,7 +6,6 @@ export type AuditEntityType =
 	| "PLAYLIST"
 	| "PLAYLIST_EPISODE"
 	| "CATEGORY"
-	| "GENRE"
 	| "FILE";
 
 export type AuditAction =

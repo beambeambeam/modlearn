@@ -14,7 +14,6 @@ export const contentListInputSchema = z
 		search: z.string().trim().min(1).optional(),
 		contentType: contentTypeSchema.optional(),
 		categoryIds: z.array(z.uuid()).optional(),
-		genreIds: z.array(z.uuid()).optional(),
 		sortBy: z
 			.enum(["RECENTLY_ADDED", "RECENTLY_PUBLISHED"])
 			.default("RECENTLY_ADDED"),
@@ -26,14 +25,6 @@ export const contentListInputSchema = z
 				code: "custom",
 				path: ["categoryIds"],
 				message: "categoryIds contains duplicates",
-			});
-		}
-
-		if (value.genreIds && hasDuplicates(value.genreIds)) {
-			ctx.addIssue({
-				code: "custom",
-				path: ["genreIds"],
-				message: "genreIds contains duplicates",
 			});
 		}
 	});
@@ -84,30 +75,14 @@ export const contentAdminSetAvailabilityInputSchema = z.object({
 export const contentAdminSetClassificationInputSchema = z
 	.object({
 		id: z.uuid(),
-		categoryIds: z.array(z.uuid()).optional(),
-		genreIds: z.array(z.uuid()).optional(),
+		categoryIds: z.array(z.uuid()),
 	})
 	.superRefine((value, ctx) => {
-		if (value.categoryIds === undefined && value.genreIds === undefined) {
-			ctx.addIssue({
-				code: "custom",
-				message: "At least one of categoryIds or genreIds must be provided",
-			});
-		}
-
 		if (value.categoryIds && hasDuplicates(value.categoryIds)) {
 			ctx.addIssue({
 				code: "custom",
 				path: ["categoryIds"],
 				message: "categoryIds contains duplicates",
-			});
-		}
-
-		if (value.genreIds && hasDuplicates(value.genreIds)) {
-			ctx.addIssue({
-				code: "custom",
-				path: ["genreIds"],
-				message: "genreIds contains duplicates",
 			});
 		}
 	});
@@ -151,13 +126,11 @@ export const contentListOutputSchema = z.object({
 
 export const contentDetailOutputSchema = contentSchema.extend({
 	categories: z.array(contentClassificationItemSchema),
-	genres: z.array(contentClassificationItemSchema),
 });
 
 export const contentClassificationOutputSchema = z.object({
 	contentId: z.uuid(),
 	categories: z.array(contentClassificationItemSchema),
-	genres: z.array(contentClassificationItemSchema),
 });
 
 export const contentDeleteOutputSchema = z.object({

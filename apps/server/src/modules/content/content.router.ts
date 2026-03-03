@@ -175,7 +175,6 @@ export const contentRouter = router({
 				entityId: updated.contentId,
 				metadata: {
 					categoryIds: input.categoryIds,
-					genreIds: input.genreIds,
 				},
 			});
 			return updated;

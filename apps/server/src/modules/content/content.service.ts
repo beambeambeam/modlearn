@@ -11,13 +11,7 @@ import {
 	sql,
 } from "drizzle-orm";
 import type { DbClient } from "@/lib/db/orm";
-import {
-	category,
-	content,
-	contentCategory,
-	contentGenre,
-	genre,
-} from "@/lib/db/schema";
+import { category, content, contentCategory } from "@/lib/db/schema";
 import type {
 	BuildFiltersInput,
 	ContentClassificationResult,
@@ -37,7 +31,6 @@ import type {
 import {
 	CategoryNotFoundError,
 	ContentNotFoundError,
-	GenreNotFoundError,
 	InvalidClassificationInputError,
 } from "./content.types";
 import { hasDuplicates, normalizeString, toReleaseDate } from "./content.utils";
@@ -70,20 +63,6 @@ async function ensureCategoriesExist(
 		.where(inArray(category.id, ids));
 	if (rows.length !== ids.length) {
 		throw new CategoryNotFoundError();
-	}
-}
-
-async function ensureGenresExist(db: DbClient, ids: string[]): Promise<void> {
-	if (ids.length === 0) {
-		return;
-	}
-
-	const rows = await db
-		.select({ id: genre.id })
-		.from(genre)
-		.where(inArray(genre.id, ids));
-	if (rows.length !== ids.length) {
-		throw new GenreNotFoundError();
 	}
 }
 
@@ -127,22 +106,6 @@ function buildContentFilters(
 		);
 	}
 
-	if (input.genreIds && input.genreIds.length > 0) {
-		conditions.push(
-			exists(
-				db
-					.select({ id: contentGenre.id })
-					.from(contentGenre)
-					.where(
-						and(
-							eq(contentGenre.contentId, content.id),
-							inArray(contentGenre.genreId, input.genreIds)
-						)
-					)
-			)
-		);
-	}
-
 	return and(...conditions);
 }
 
@@ -158,7 +121,6 @@ export async function listContent(
 		contentType: input.contentType,
 		onlyPublished: input.onlyPublished ?? true,
 		categoryIds: input.categoryIds,
-		genreIds: input.genreIds,
 	});
 
 	const countRows = await db
@@ -219,7 +181,6 @@ export async function getContentById(
 	return {
 		...row,
 		categories: classification.categories,
-		genres: classification.genres,
 	};
 }
 
@@ -362,22 +323,9 @@ export async function getContentClassification(params: {
 		.where(eq(contentCategory.contentId, contentId))
 		.orderBy(asc(category.title), asc(category.id));
 
-	const genreRows = await db
-		.select({
-			id: genre.id,
-			title: genre.title,
-			slug: genre.slug,
-			description: genre.description,
-		})
-		.from(contentGenre)
-		.innerJoin(genre, eq(contentGenre.genreId, genre.id))
-		.where(eq(contentGenre.contentId, contentId))
-		.orderBy(asc(genre.title), asc(genre.id));
-
 	return {
 		contentId,
 		categories: categoryRows,
-		genres: genreRows,
 	};
 }
 
@@ -386,63 +334,29 @@ export function setContentClassification(
 ): Promise<ContentClassificationResult> {
 	const { db, input } = params;
 
-	if (input.categoryIds === undefined && input.genreIds === undefined) {
-		throw new InvalidClassificationInputError(
-			"At least one of categoryIds or genreIds must be provided"
-		);
-	}
-	if (input.categoryIds && hasDuplicates(input.categoryIds)) {
+	if (hasDuplicates(input.categoryIds)) {
 		throw new InvalidClassificationInputError(
 			"categoryIds contains duplicates"
 		);
-	}
-	if (input.genreIds && hasDuplicates(input.genreIds)) {
-		throw new InvalidClassificationInputError("genreIds contains duplicates");
 	}
 
 	return db.transaction(async (tx) => {
 		await ensureContentExists(tx, input.id);
 
-		const normalizedCategoryIds = input.categoryIds
-			? [...new Set(input.categoryIds)]
-			: undefined;
-		const normalizedGenreIds = input.genreIds
-			? [...new Set(input.genreIds)]
-			: undefined;
+		const normalizedCategoryIds = [...new Set(input.categoryIds)];
+		await ensureCategoriesExist(tx, normalizedCategoryIds);
 
-		if (normalizedCategoryIds !== undefined) {
-			await ensureCategoriesExist(tx, normalizedCategoryIds);
-		}
-		if (normalizedGenreIds !== undefined) {
-			await ensureGenresExist(tx, normalizedGenreIds);
-		}
+		await tx
+			.delete(contentCategory)
+			.where(eq(contentCategory.contentId, input.id));
 
-		if (normalizedCategoryIds !== undefined) {
-			await tx
-				.delete(contentCategory)
-				.where(eq(contentCategory.contentId, input.id));
-
-			if (normalizedCategoryIds.length > 0) {
-				await tx.insert(contentCategory).values(
-					normalizedCategoryIds.map((categoryId) => ({
-						contentId: input.id,
-						categoryId,
-					}))
-				);
-			}
-		}
-
-		if (normalizedGenreIds !== undefined) {
-			await tx.delete(contentGenre).where(eq(contentGenre.contentId, input.id));
-
-			if (normalizedGenreIds.length > 0) {
-				await tx.insert(contentGenre).values(
-					normalizedGenreIds.map((genreId) => ({
-						contentId: input.id,
-						genreId,
-					}))
-				);
-			}
+		if (normalizedCategoryIds.length > 0) {
+			await tx.insert(contentCategory).values(
+				normalizedCategoryIds.map((categoryId) => ({
+					contentId: input.id,
+					categoryId,
+				}))
+			);
 		}
 
 		return getContentClassification({
