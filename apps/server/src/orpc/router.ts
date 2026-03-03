@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { categoryRouter } from "@/modules/category/category.router";
+import { commerceRouter } from "@/modules/commerce/commerce.router";
 import { contentRouter } from "@/modules/content/content.router";
 import { fileRouter } from "@/modules/file/file.router";
 import { libraryRouter } from "@/modules/library/library.router";
@@ -74,6 +75,7 @@ export const appRouter = router({
 			};
 		}),
 	category: categoryRouter,
+	commerce: commerceRouter,
 	content: contentRouter,
 	file: fileRouter,
 	library: libraryRouter,
