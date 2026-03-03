@@ -63,33 +63,6 @@ export const watchProgress = pgTable(
 	]
 );
 
-export const contentView = pgTable(
-	"content_view",
-	{
-		id: uuid("id").primaryKey().defaultRandom(),
-		contentId: uuid("content_id")
-			.notNull()
-			.references(() => content.id, { onDelete: "cascade" }),
-		userId: text("user_id").references(() => user.id, {
-			onDelete: "set null",
-		}),
-		sessionId: text("session_id").references(() => session.id, {
-			onDelete: "set null",
-		}),
-		viewedAt: timestamp("viewed_at", { withTimezone: true })
-			.defaultNow()
-			.notNull(),
-		watchDuration: bigint("watch_duration", { mode: "number" }).default(0),
-		deviceType: text("device_type"),
-	},
-	(table) => [
-		index("contentView_contentId_idx").on(table.contentId),
-		index("contentView_userId_idx").on(table.userId),
-		index("contentView_viewedAt_idx").on(table.viewedAt),
-		index("contentView_sessionId_idx").on(table.sessionId),
-	]
-);
-
 export const playbackSession = pgTable(
 	"playback_session",
 	{
@@ -131,6 +104,41 @@ export const playbackSession = pgTable(
 		index("playbackSession_contentId_idx").on(table.contentId),
 		index("playbackSession_token_idx").on(table.playbackToken),
 		index("playbackSession_expiresAt_idx").on(table.expiresAt),
+	]
+);
+
+export const contentView = pgTable(
+	"content_view",
+	{
+		id: uuid("id").primaryKey().defaultRandom(),
+		contentId: uuid("content_id")
+			.notNull()
+			.references(() => content.id, { onDelete: "cascade" }),
+		userId: text("user_id").references(() => user.id, {
+			onDelete: "set null",
+		}),
+		sessionId: text("session_id").references(() => session.id, {
+			onDelete: "set null",
+		}),
+		playbackSessionId: uuid("playback_session_id").references(
+			() => playbackSession.id,
+			{
+				onDelete: "set null",
+			}
+		),
+		viewedAt: timestamp("viewed_at", { withTimezone: true })
+			.defaultNow()
+			.notNull(),
+		watchDuration: bigint("watch_duration", { mode: "number" }).default(0),
+		deviceType: text("device_type"),
+	},
+	(table) => [
+		index("contentView_contentId_idx").on(table.contentId),
+		index("contentView_userId_idx").on(table.userId),
+		index("contentView_viewedAt_idx").on(table.viewedAt),
+		index("contentView_sessionId_idx").on(table.sessionId),
+		index("contentView_playbackSessionId_idx").on(table.playbackSessionId),
+		unique("contentView_playbackSessionId_unique").on(table.playbackSessionId),
 	]
 );
 
@@ -188,6 +196,10 @@ export const contentViewRelations = relations(contentView, ({ one }) => ({
 	session: one(session, {
 		fields: [contentView.sessionId],
 		references: [session.id],
+	}),
+	playbackSession: one(playbackSession, {
+		fields: [contentView.playbackSessionId],
+		references: [playbackSession.id],
 	}),
 }));
 
