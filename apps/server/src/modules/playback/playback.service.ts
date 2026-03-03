@@ -74,9 +74,11 @@ function isCompleted(lastPosition: number, duration: number): boolean {
 }
 
 function activeEntitlementCondition(userId: string, now: Date): SQL<unknown> {
-	return and(
-		eq(userLibrary.userId, userId),
-		or(isNull(userLibrary.expiresAt), gt(userLibrary.expiresAt, now))
+	return (
+		and(
+			eq(userLibrary.userId, userId),
+			or(isNull(userLibrary.expiresAt), gt(userLibrary.expiresAt, now))
+		) ?? sql`true`
 	);
 }
 
