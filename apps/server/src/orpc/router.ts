@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { adminAuditRouter } from "@/modules/admin-audit/admin-audit.router";
 import { analyticsRouter } from "@/modules/analytics/analytics.router";
 import { categoryRouter } from "@/modules/category/category.router";
 import { commerceRouter } from "@/modules/commerce/commerce.router";
@@ -77,6 +78,7 @@ export const appRouter = router({
 				user: context.session.user,
 			};
 		}),
+	adminAudit: adminAuditRouter,
 	analytics: analyticsRouter,
 	category: categoryRouter,
 	commerce: commerceRouter,
