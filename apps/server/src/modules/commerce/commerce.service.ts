@@ -1,8 +1,14 @@
 import { and, desc, eq, gt, gte, inArray, isNull, lte, or } from "drizzle-orm";
 import type { DbClient } from "@/lib/db/orm";
 import {
+	cart,
+	cartItem,
 	content,
 	contentPricing,
+	contentPurchase,
+	order,
+	orderItem,
+	payment,
 	playlist,
 	playlistEpisode,
 	playlistPricing,
@@ -11,16 +17,28 @@ import {
 import {
 	type CommerceActivePriceQuery,
 	type CommerceCartAddItemInput,
+	type CommerceCartRemoveItemInput,
+	type CommerceCartView,
+	type CommerceCheckoutCreateOrderInput,
+	type CommerceCheckoutOrderView,
 	CommerceContentNotFoundError,
 	CommerceCurrencyMismatchError,
+	CommerceDuplicateCartItemError,
 	CommerceInvalidCartItemError,
 	CommerceItemAlreadyOwnedError,
 	type CommerceItemType,
+	CommerceOrderNotFoundError,
+	CommerceOrderStateError,
 	type CommerceOwnershipQuery,
+	CommercePaymentConflictError,
+	type CommercePaymentMarkSuccessInput,
+	type CommercePaymentRefundInput,
+	type CommercePaymentSuccessView,
 	CommercePlaylistEmptyError,
 	CommercePlaylistNotFoundError,
 	CommercePriceNotFoundError,
 	type CommercePriceSnapshot,
+	type CommerceRefundView,
 } from "./commerce.types";
 
 const CURRENCY_SCALE = 100;
@@ -315,4 +333,614 @@ export async function assertNotAlreadyOwned(params: {
 	if (owned) {
 		throw new CommerceItemAlreadyOwnedError();
 	}
+}
+
+async function getOrCreateCartId(
+	db: DbClient,
+	userId: string
+): Promise<string> {
+	const existing = await db.query.cart.findFirst({
+		where: eq(cart.userId, userId),
+		columns: { id: true },
+	});
+	if (existing) {
+		return existing.id;
+	}
+
+	const [created] = await db.insert(cart).values({ userId }).returning();
+	if (!created) {
+		throw new Error("Failed to create cart");
+	}
+
+	return created.id;
+}
+
+function listCartItems(db: DbClient, userId: string) {
+	return db
+		.select({
+			id: cartItem.id,
+			itemType: cartItem.itemType,
+			contentId: cartItem.contentId,
+			playlistId: cartItem.playlistId,
+			price: cartItem.price,
+			addedAt: cartItem.addedAt,
+		})
+		.from(cartItem)
+		.innerJoin(cart, eq(cartItem.cartId, cart.id))
+		.where(eq(cart.userId, userId))
+		.orderBy(desc(cartItem.addedAt), desc(cartItem.id));
+}
+
+async function resolveCartItemCurrency(params: {
+	db: DbClient;
+	itemType: CommerceItemType;
+	contentId: string | null;
+	playlistId: string | null;
+	now?: Date;
+}): Promise<string> {
+	const { db, itemType, contentId, playlistId, now } = params;
+	if (itemType === "CONTENT") {
+		const price = await resolveActiveContentPrice({
+			db,
+			contentId: contentId ?? undefined,
+			now,
+		});
+		return price.currency;
+	}
+	const price = await resolveActivePlaylistPrice({
+		db,
+		playlistId: playlistId ?? undefined,
+		now,
+	});
+	return price.currency;
+}
+
+async function withCartItemCurrency(
+	db: DbClient,
+	rows: {
+		id: string;
+		itemType: CommerceItemType;
+		contentId: string | null;
+		playlistId: string | null;
+		price: string;
+		addedAt: Date;
+	}[]
+) {
+	const enriched: {
+		id: string;
+		itemType: CommerceItemType;
+		contentId: string | null;
+		playlistId: string | null;
+		price: string;
+		currency: string;
+		addedAt: Date;
+	}[] = [];
+
+	for (const row of rows) {
+		const currency = await resolveCartItemCurrency({
+			db,
+			itemType: row.itemType,
+			contentId: row.contentId,
+			playlistId: row.playlistId,
+		});
+		enriched.push({ ...row, currency });
+	}
+
+	return enriched;
+}
+
+function toCartView(
+	rows: {
+		id: string;
+		itemType: "CONTENT" | "PLAYLIST";
+		contentId: string | null;
+		playlistId: string | null;
+		price: string;
+		currency: string;
+		addedAt: Date;
+	}[]
+): CommerceCartView {
+	const currency = assertSingleCurrency(rows.map((item) => item.currency));
+
+	return {
+		items: rows.map((row) => ({
+			id: row.id,
+			itemType: row.itemType,
+			contentId: row.contentId,
+			playlistId: row.playlistId,
+			price: row.price,
+			currency: row.currency,
+			addedAt: row.addedAt,
+		})),
+		totalAmount: computeCartTotal(rows.map((item) => item.price)),
+		currency,
+	};
+}
+
+async function assertCartItemNotDuplicate(params: {
+	db: DbClient;
+	cartId: string;
+	itemType: CommerceItemType;
+	contentId?: string;
+	playlistId?: string;
+}) {
+	const { db, cartId, itemType, contentId, playlistId } = params;
+	let exists: { id: string } | undefined;
+	if (itemType === "CONTENT") {
+		if (!contentId) {
+			throw new CommerceInvalidCartItemError("contentId is required");
+		}
+		exists = await db.query.cartItem.findFirst({
+			where: and(
+				eq(cartItem.cartId, cartId),
+				eq(cartItem.contentId, contentId)
+			),
+			columns: { id: true },
+		});
+	} else {
+		if (!playlistId) {
+			throw new CommerceInvalidCartItemError("playlistId is required");
+		}
+		exists = await db.query.cartItem.findFirst({
+			where: and(
+				eq(cartItem.cartId, cartId),
+				eq(cartItem.playlistId, playlistId)
+			),
+			columns: { id: true },
+		});
+	}
+
+	if (exists) {
+		throw new CommerceDuplicateCartItemError();
+	}
+}
+
+async function expandOrderItemGrants(params: {
+	db: DbClient;
+	items: (typeof orderItem.$inferSelect)[];
+}) {
+	const { db, items } = params;
+	const grants: {
+		contentId: string;
+		playlistId: string | null;
+		price: string;
+	}[] = [];
+	for (const item of items) {
+		if (item.itemType === "CONTENT") {
+			if (!item.contentId) {
+				continue;
+			}
+			grants.push({
+				contentId: item.contentId,
+				playlistId: null,
+				price: item.price,
+			});
+			continue;
+		}
+
+		if (!item.playlistId) {
+			continue;
+		}
+		const contentIds = await listPlaylistEpisodeContentIds(db, item.playlistId);
+		for (const contentId of contentIds) {
+			grants.push({
+				contentId,
+				playlistId: item.playlistId,
+				price: item.price,
+			});
+		}
+	}
+
+	const deduped = new Map<string, (typeof grants)[number]>();
+	for (const grant of grants) {
+		if (!deduped.has(grant.contentId)) {
+			deduped.set(grant.contentId, grant);
+		}
+	}
+	return Array.from(deduped.values());
+}
+
+function finalizePaidOrder(params: {
+	db: DbClient;
+	userId: string;
+	orderId: string;
+	providerTransactionId: string;
+	provider: string;
+}): Promise<CommercePaymentSuccessView> {
+	const { db, userId, orderId, providerTransactionId, provider } = params;
+	const now = new Date();
+
+	return db.transaction(async (tx) => {
+		const targetOrder = await tx.query.order.findFirst({
+			where: and(eq(order.id, orderId), eq(order.userId, userId)),
+		});
+		if (!targetOrder) {
+			throw new CommerceOrderNotFoundError();
+		}
+		if (targetOrder.status === "FAILED" || targetOrder.status === "REFUNDED") {
+			throw new CommerceOrderStateError(
+				"Order cannot be marked as paid from current state"
+			);
+		}
+
+		const existingPayment = await tx.query.payment.findFirst({
+			where: and(
+				eq(payment.provider, provider),
+				eq(payment.providerTransactionId, providerTransactionId)
+			),
+		});
+		if (existingPayment && existingPayment.orderId !== targetOrder.id) {
+			throw new CommercePaymentConflictError();
+		}
+
+		const existingSuccessPayment = await tx.query.payment.findFirst({
+			where: and(
+				eq(payment.orderId, targetOrder.id),
+				eq(payment.status, "SUCCESS")
+			),
+		});
+		if (targetOrder.status === "PAID" && existingSuccessPayment) {
+			const grantRows = await tx
+				.select({ id: userLibrary.id })
+				.from(userLibrary)
+				.where(
+					and(
+						eq(userLibrary.userId, userId),
+						eq(userLibrary.orderId, targetOrder.id)
+					)
+				);
+			return {
+				orderId: targetOrder.id,
+				paymentId: existingSuccessPayment.id,
+				status: "PAID",
+				grantsCreated: grantRows.length,
+			};
+		}
+
+		const [savedPayment] = existingPayment
+			? await tx
+					.update(payment)
+					.set({
+						orderId: targetOrder.id,
+						status: "SUCCESS",
+						amount: targetOrder.totalAmount,
+						currency: targetOrder.currency,
+						paidAt: now,
+						failureReason: null,
+					})
+					.where(eq(payment.id, existingPayment.id))
+					.returning()
+			: await tx
+					.insert(payment)
+					.values({
+						orderId: targetOrder.id,
+						provider,
+						providerTransactionId,
+						amount: targetOrder.totalAmount,
+						currency: targetOrder.currency,
+						status: "SUCCESS",
+						paidAt: now,
+					})
+					.returning();
+
+		if (!savedPayment) {
+			throw new Error("Failed to persist payment");
+		}
+
+		await tx
+			.update(order)
+			.set({
+				status: "PAID",
+				updatedAt: now,
+			})
+			.where(eq(order.id, targetOrder.id));
+
+		const orderItems = await tx.query.orderItem.findMany({
+			where: eq(orderItem.orderId, targetOrder.id),
+		});
+		const expandedGrants = await expandOrderItemGrants({
+			db: tx,
+			items: orderItems,
+		});
+		const owned = await listOwnedContentIds({
+			db: tx,
+			userId,
+			contentIds: expandedGrants.map((item) => item.contentId),
+			now,
+		});
+		const grantsToInsert = expandedGrants.filter(
+			(grant) => !owned.has(grant.contentId)
+		);
+
+		if (grantsToInsert.length > 0) {
+			await tx
+				.insert(userLibrary)
+				.values(
+					grantsToInsert.map((grant) => ({
+						userId,
+						contentId: grant.contentId,
+						playlistId: grant.playlistId,
+						orderId: targetOrder.id,
+						acquiredAt: now,
+					}))
+				)
+				.onConflictDoNothing({
+					target: [userLibrary.userId, userLibrary.contentId],
+				});
+
+			await tx
+				.insert(contentPurchase)
+				.values(
+					grantsToInsert.map((grant) => ({
+						userId,
+						contentId: grant.contentId,
+						price: grant.price,
+						status: "PAID",
+						orderId: targetOrder.id,
+						purchasedAt: now,
+					}))
+				)
+				.onConflictDoNothing({
+					target: [contentPurchase.userId, contentPurchase.contentId],
+				});
+		}
+
+		return {
+			orderId: targetOrder.id,
+			paymentId: savedPayment.id,
+			status: "PAID",
+			grantsCreated: grantsToInsert.length,
+		};
+	});
+}
+
+export async function listCart(params: {
+	db: DbClient;
+	userId: string;
+}): Promise<CommerceCartView> {
+	const rows = await listCartItems(params.db, params.userId);
+	const enrichedRows = await withCartItemCurrency(params.db, rows);
+	return toCartView(enrichedRows);
+}
+
+export async function listCartForCheckout(params: {
+	db: DbClient;
+	userId: string;
+}): Promise<
+	{
+		id: string;
+		itemType: CommerceItemType;
+		contentId: string | null;
+		playlistId: string | null;
+		price: string;
+		currency: string;
+		addedAt: Date;
+	}[]
+> {
+	const rows = await listCartItems(params.db, params.userId);
+	return withCartItemCurrency(params.db, rows);
+}
+
+export async function addCartItem(params: {
+	db: DbClient;
+	userId: string;
+	input: CommerceCartAddItemInput;
+}): Promise<CommerceCartView> {
+	const { db, userId, input } = params;
+	const validated = validateCartAddItemInput(input);
+	const contentId = validated.contentId;
+	const playlistId = validated.playlistId;
+	if (validated.itemType === "CONTENT") {
+		if (!contentId) {
+			throw new CommerceInvalidCartItemError("contentId is required");
+		}
+		await assertContentExists(db, contentId);
+	} else {
+		if (!playlistId) {
+			throw new CommerceInvalidCartItemError("playlistId is required");
+		}
+		await assertPlaylistExists(db, playlistId);
+	}
+	await assertNotAlreadyOwned({
+		db,
+		userId,
+		itemType: validated.itemType,
+		contentId,
+		playlistId,
+	});
+
+	const price = await resolveActivePrice({
+		db,
+		itemType: validated.itemType,
+		contentId,
+		playlistId,
+	});
+	const cartId = await getOrCreateCartId(db, userId);
+	await assertCartItemNotDuplicate({
+		db,
+		cartId,
+		itemType: validated.itemType,
+		contentId,
+		playlistId,
+	});
+
+	await db.insert(cartItem).values({
+		cartId,
+		itemType: validated.itemType,
+		contentId: contentId ?? null,
+		playlistId: playlistId ?? null,
+		price: price.price,
+	});
+
+	return listCart({ db, userId });
+}
+
+export async function removeCartItem(params: {
+	db: DbClient;
+	userId: string;
+	input: CommerceCartRemoveItemInput;
+}): Promise<CommerceCartView> {
+	const { db, userId, input } = params;
+	const userCart = await db.query.cart.findFirst({
+		where: eq(cart.userId, userId),
+		columns: { id: true },
+	});
+	if (!userCart) {
+		return {
+			items: [],
+			totalAmount: "0.00",
+			currency: null,
+		};
+	}
+
+	await db
+		.delete(cartItem)
+		.where(
+			and(eq(cartItem.cartId, userCart.id), eq(cartItem.id, input.cartItemId))
+		);
+
+	return listCart({ db, userId });
+}
+
+export async function createCheckoutOrder(params: {
+	db: DbClient;
+	userId: string;
+	input: CommerceCheckoutCreateOrderInput;
+}): Promise<CommerceCheckoutOrderView> {
+	const { db, userId, input } = params;
+	if ((input.source ?? "CART") !== "CART") {
+		throw new CommerceInvalidCartItemError("Unsupported checkout source");
+	}
+
+	const userCart = await db.query.cart.findFirst({
+		where: eq(cart.userId, userId),
+		columns: { id: true },
+	});
+	if (!userCart) {
+		throw new CommerceInvalidCartItemError("Cart is empty");
+	}
+
+	const items = await listCartForCheckout({ db, userId });
+	if (items.length === 0) {
+		throw new CommerceInvalidCartItemError("Cart is empty");
+	}
+
+	const currencies = items.map((item) => item.currency);
+	const currency = assertSingleCurrency(currencies);
+	if (!currency) {
+		throw new CommerceCurrencyMismatchError();
+	}
+	const totalAmount = computeCartTotal(items.map((item) => item.price));
+
+	return db.transaction(async (tx) => {
+		const [createdOrder] = await tx
+			.insert(order)
+			.values({
+				userId,
+				totalAmount,
+				currency,
+				status: "PENDING",
+			})
+			.returning();
+		if (!createdOrder) {
+			throw new Error("Failed to create order");
+		}
+
+		await tx.insert(orderItem).values(
+			items.map((item) => ({
+				orderId: createdOrder.id,
+				itemType: item.itemType,
+				contentId: item.contentId,
+				playlistId: item.playlistId,
+				price: item.price,
+			}))
+		);
+
+		await tx.delete(cartItem).where(eq(cartItem.cartId, userCart.id));
+
+		return {
+			orderId: createdOrder.id,
+			status: createdOrder.status,
+			totalAmount: createdOrder.totalAmount,
+			currency: createdOrder.currency,
+			items: items.map((item) => ({
+				itemType: item.itemType,
+				contentId: item.contentId,
+				playlistId: item.playlistId,
+				price: item.price,
+				currency: item.currency,
+			})),
+		};
+	});
+}
+
+export function markPaymentSuccess(params: {
+	db: DbClient;
+	userId: string;
+	input: CommercePaymentMarkSuccessInput;
+}): Promise<CommercePaymentSuccessView> {
+	const { db, userId, input } = params;
+	return finalizePaidOrder({
+		db,
+		userId,
+		orderId: input.orderId,
+		provider: input.provider ?? "mock",
+		providerTransactionId: input.providerTransactionId,
+	});
+}
+
+export function confirmPaymentWebhook(params: {
+	db: DbClient;
+	userId: string;
+	input: CommercePaymentMarkSuccessInput;
+}): Promise<CommercePaymentSuccessView> {
+	return markPaymentSuccess(params);
+}
+
+export function refundPayment(params: {
+	db: DbClient;
+	userId: string;
+	input: CommercePaymentRefundInput;
+}): Promise<CommerceRefundView> {
+	const { db, userId, input } = params;
+
+	return db.transaction(async (tx) => {
+		const targetOrder = await tx.query.order.findFirst({
+			where: and(eq(order.id, input.orderId), eq(order.userId, userId)),
+		});
+		if (!targetOrder) {
+			throw new CommerceOrderNotFoundError();
+		}
+
+		await tx
+			.update(order)
+			.set({
+				status: "REFUNDED",
+				updatedAt: new Date(),
+			})
+			.where(eq(order.id, targetOrder.id));
+
+		await tx
+			.update(contentPurchase)
+			.set({
+				status: "REFUNDED",
+			})
+			.where(eq(contentPurchase.orderId, targetOrder.id));
+
+		const revoked = await tx
+			.delete(userLibrary)
+			.where(
+				and(
+					eq(userLibrary.userId, userId),
+					eq(userLibrary.orderId, targetOrder.id)
+				)
+			)
+			.returning();
+
+		return {
+			orderId: targetOrder.id,
+			status: "REFUNDED",
+			revokedCount: revoked.length,
+		};
+	});
 }
