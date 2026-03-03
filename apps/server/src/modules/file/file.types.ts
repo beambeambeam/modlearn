@@ -31,7 +31,7 @@ export interface CreateFileDownloadUrlParams {
 export interface CreateFileDownloadUrlResult {
 	storageKey: string;
 	downloadUrl: string;
-	expiresAt: Date;
+	expiresAt: Date | null;
 }
 
 export interface DeleteFileParams {

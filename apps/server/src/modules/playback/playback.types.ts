@@ -77,7 +77,7 @@ export interface PlaybackCreateSessionResult {
 	sessionId: string;
 	playbackToken: string;
 	streamUrl: string;
-	streamUrlExpiresAt: Date;
+	streamUrlExpiresAt: Date | null;
 	tokenExpiresAt: Date;
 	resumePosition: number;
 	content: PlaybackContentSummary;

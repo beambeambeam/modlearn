@@ -87,7 +87,7 @@ export const playbackCreateSessionOutputSchema = z.object({
 	sessionId: z.uuid(),
 	playbackToken: z.string(),
 	streamUrl: z.url(),
-	streamUrlExpiresAt: z.date(),
+	streamUrlExpiresAt: z.date().nullable(),
 	tokenExpiresAt: z.date(),
 	resumePosition: z.number().int().min(0),
 	content: z.object({

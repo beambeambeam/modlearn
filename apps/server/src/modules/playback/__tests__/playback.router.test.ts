@@ -21,10 +21,14 @@ import {
 } from "@/orpc/__tests__/helpers";
 
 vi.mock("@/lib/storage/s3-operations", () => ({
-	generateDownloadUrl: vi.fn(async () => ({
-		downloadUrl: "https://example.com/router-stream.m3u8",
-		expiresAt: new Date("2026-03-04T00:00:00.000Z"),
-	})),
+	resolveDownloadDeliveryUrl: vi.fn(
+		async (input: { key: string; cdnUrl?: string | null }) => ({
+			url:
+				input.cdnUrl ?? `https://cdn.example.com/modlearn-media/${input.key}`,
+			expiresAt: null,
+			source: "cdn",
+		})
+	),
 }));
 
 async function seedOwnedContent(params: {
@@ -53,6 +57,7 @@ async function seedOwnedContent(params: {
 		fileId: mediaFile.id,
 		storageProvider: "s3",
 		storageKey: `files/${mediaFile.id}.mp4`,
+		cdnUrl: `https://cdn.example.com/modlearn-media/files/${mediaFile.id}.mp4`,
 	});
 
 	const [movie] = await testDb.db
@@ -186,7 +191,10 @@ describe("playback router", () => {
 			contentId: movie.id,
 			deviceType: "web",
 		});
-		expect(created.streamUrl).toBe("https://example.com/router-stream.m3u8");
+		expect(created.streamUrl).toBe(
+			`https://cdn.example.com/modlearn-media/files/${movie.fileId}.mp4`
+		);
+		expect(created.streamUrlExpiresAt).toBeNull();
 
 		const played = await caller.playback.play({
 			sessionId: created.sessionId,
