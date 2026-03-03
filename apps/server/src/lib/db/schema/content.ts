@@ -33,17 +33,6 @@ export const category = pgTable(
 	(table) => [index("category_slug_idx").on(table.slug)]
 );
 
-export const genre = pgTable(
-	"genre",
-	{
-		id: uuid("id").primaryKey().defaultRandom(),
-		title: text("title").notNull(),
-		description: text("description"),
-		slug: text("slug").unique(),
-	},
-	(table) => [index("genre_slug_idx").on(table.slug)]
-);
-
 export const file = pgTable(
 	"file",
 	{
@@ -123,24 +112,6 @@ export const contentCategory = pgTable(
 	]
 );
 
-export const contentGenre = pgTable(
-	"content_genre",
-	{
-		id: uuid("id").primaryKey().defaultRandom(),
-		contentId: uuid("content_id")
-			.notNull()
-			.references(() => content.id, { onDelete: "cascade" }),
-		genreId: uuid("genre_id")
-			.notNull()
-			.references(() => genre.id, { onDelete: "cascade" }),
-	},
-	(table) => [
-		index("contentGenre_contentId_idx").on(table.contentId),
-		index("contentGenre_genreId_idx").on(table.genreId),
-		unique("contentGenre_unique").on(table.contentId, table.genreId),
-	]
-);
-
 export const contentPricing = pgTable(
 	"content_pricing",
 	{
@@ -174,10 +145,6 @@ export const categoryRelations = relations(category, ({ many }) => ({
 	contentCategories: many(contentCategory),
 }));
 
-export const genreRelations = relations(genre, ({ many }) => ({
-	contentGenres: many(contentGenre),
-}));
-
 export const fileRelations = relations(file, ({ one, many }) => ({
 	uploader: one(user, {
 		fields: [file.uploaderId],
@@ -203,7 +170,6 @@ export const contentRelations = relations(content, ({ one, many }) => ({
 		references: [user.id],
 	}),
 	contentCategories: many(contentCategory),
-	contentGenres: many(contentGenre),
 	contentPricings: many(contentPricing),
 }));
 
@@ -220,17 +186,6 @@ export const contentCategoryRelations = relations(
 		}),
 	})
 );
-
-export const contentGenreRelations = relations(contentGenre, ({ one }) => ({
-	content: one(content, {
-		fields: [contentGenre.contentId],
-		references: [content.id],
-	}),
-	genre: one(genre, {
-		fields: [contentGenre.genreId],
-		references: [genre.id],
-	}),
-}));
 
 export const contentPricingRelations = relations(contentPricing, ({ one }) => ({
 	content: one(content, {
