@@ -41,3 +41,47 @@ export interface LogAdminMutationParams {
 	entityId: string;
 	metadata?: Record<string, unknown> | null;
 }
+
+export interface AdminAuditListInput {
+	page?: number;
+	limit?: number;
+	adminId?: string;
+	entityId?: string;
+	entityType?: AuditEntityType;
+	action?: AuditAction;
+	from?: Date;
+	to?: Date;
+}
+
+export interface AdminAuditListItem {
+	id: string;
+	adminId: string;
+	entityId: string;
+	entityType: AuditEntityType;
+	action: AuditAction;
+	metadata: Record<string, unknown> | null;
+	createdAt: Date;
+	ipAddress: string | null;
+	admin: {
+		id: string;
+		email: string;
+		name: string;
+	};
+}
+
+export interface AdminAuditPagination {
+	page: number;
+	limit: number;
+	total: number;
+	totalPages: number;
+}
+
+export interface AdminAuditListResult {
+	items: AdminAuditListItem[];
+	pagination: AdminAuditPagination;
+}
+
+export interface AdminAuditListParams {
+	db: DbClient;
+	input: AdminAuditListInput;
+}
