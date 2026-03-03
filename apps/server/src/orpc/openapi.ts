@@ -18,6 +18,7 @@ export function generateOpenApiSpec() {
 			{ name: "Category" },
 			{ name: "Content" },
 			{ name: "File" },
+			{ name: "Playback" },
 			{ name: "Playlist" },
 			{ name: "Watch Progress" },
 		],
