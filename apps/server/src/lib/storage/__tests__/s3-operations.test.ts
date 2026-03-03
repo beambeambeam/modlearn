@@ -1,8 +1,11 @@
 import { HeadObjectCommand } from "@aws-sdk/client-s3";
+import { env } from "@modlearn/env/server";
 import { beforeEach, describe, expect, it } from "vitest";
 import { s3Mock } from "@/lib/storage/__tests__/helpers/s3-mock";
 import type { UploadUrlInput } from "@/lib/storage/s3-types";
 import { S3_ERROR_CODES, S3StorageError } from "@/lib/storage/s3-types";
+
+const TRAILING_SLASH_REGEX = /\/$/;
 
 describe("S3 Operations", () => {
 	beforeEach(() => {
@@ -232,6 +235,65 @@ describe("S3 Operations", () => {
 					"Invalid download parameters"
 				);
 			}
+		});
+	});
+
+	describe("resolveDownloadDeliveryUrl", () => {
+		it("uses explicit cdnUrl when provided and valid", async () => {
+			const { resolveDownloadDeliveryUrl } = await import("../s3-operations");
+
+			const result = await resolveDownloadDeliveryUrl({
+				key: "test/video.mp4",
+				cdnUrl: "https://cdn.example.com/media/video.mp4",
+			});
+
+			expect(result).toEqual({
+				url: "https://cdn.example.com/media/video.mp4",
+				expiresAt: null,
+				source: "cdn",
+			});
+		});
+
+		it("derives CDN URL from S3_PUBLIC_URL and key when cdnUrl is missing", async () => {
+			const { resolveDownloadDeliveryUrl } = await import("../s3-operations");
+
+			const result = await resolveDownloadDeliveryUrl({
+				key: "files/my video.mp4",
+			});
+
+			expect(result.expiresAt).toBeNull();
+			expect(result.source).toBe("cdn");
+			expect(result.url).toBe(
+				`${env.S3_PUBLIC_URL.replace(TRAILING_SLASH_REGEX, "")}/${env.S3_BUCKET_NAME}/files/my%20video.mp4`
+			);
+		});
+
+		it("falls back to presigned URL when CDN delivery is disabled", async () => {
+			const { resolveDownloadDeliveryUrl } = await import("../s3-operations");
+
+			const result = await resolveDownloadDeliveryUrl({
+				key: "test/video.mp4",
+				preferCdn: false,
+			});
+
+			expect(result.source).toBe("presigned");
+			expect(result.expiresAt).toBeInstanceOf(Date);
+			expect(result.url).toContain("X-Amz-Algorithm");
+		});
+
+		it("derives CDN URL when stored cdnUrl is invalid", async () => {
+			const { resolveDownloadDeliveryUrl } = await import("../s3-operations");
+
+			const result = await resolveDownloadDeliveryUrl({
+				key: "files/clip.mp4",
+				cdnUrl: "not-a-url",
+			});
+
+			expect(result.source).toBe("cdn");
+			expect(result.expiresAt).toBeNull();
+			expect(result.url).toBe(
+				`${env.S3_PUBLIC_URL.replace(TRAILING_SLASH_REGEX, "")}/${env.S3_BUCKET_NAME}/files/clip.mp4`
+			);
 		});
 	});
 

@@ -23,6 +23,84 @@ import {
 } from "@/lib/storage/s3-types";
 import { toError } from "@/orpc/error-mapper";
 
+export interface ResolveDownloadDeliveryUrlInput {
+	key: string;
+	cdnUrl?: string | null;
+	preferCdn?: boolean;
+	filename?: string;
+	inline?: boolean;
+	expiresIn?: number;
+}
+
+export interface ResolveDownloadDeliveryUrlResult {
+	url: string;
+	expiresAt: Date | null;
+	source: "cdn" | "presigned";
+}
+
+export function buildCdnUrlFromKey(key: string): string | null {
+	try {
+		const baseUrl = new URL(env.S3_PUBLIC_URL);
+		const encodedKey = key
+			.split("/")
+			.map((segment) => encodeURIComponent(segment))
+			.join("/");
+		const basePath = baseUrl.pathname.endsWith("/")
+			? baseUrl.pathname.slice(0, -1)
+			: baseUrl.pathname;
+
+		baseUrl.pathname = `${basePath}/${env.S3_BUCKET_NAME}/${encodedKey}`;
+		baseUrl.search = "";
+		baseUrl.hash = "";
+		return baseUrl.toString();
+	} catch {
+		return null;
+	}
+}
+
+export async function resolveDownloadDeliveryUrl(
+	params: ResolveDownloadDeliveryUrlInput
+): Promise<ResolveDownloadDeliveryUrlResult> {
+	const { cdnUrl, preferCdn = true } = params;
+
+	if (preferCdn && cdnUrl) {
+		try {
+			const validated = new URL(cdnUrl);
+			return {
+				url: validated.toString(),
+				expiresAt: null,
+				source: "cdn",
+			};
+		} catch {
+			// Ignore invalid stored cdnUrl and continue with fallback strategy.
+		}
+	}
+
+	if (preferCdn) {
+		const derivedCdnUrl = buildCdnUrlFromKey(params.key);
+		if (derivedCdnUrl) {
+			return {
+				url: derivedCdnUrl,
+				expiresAt: null,
+				source: "cdn",
+			};
+		}
+	}
+
+	const presigned = await generateDownloadUrl({
+		key: params.key,
+		expiresIn: params.expiresIn,
+		filename: params.filename,
+		inline: params.inline,
+	});
+
+	return {
+		url: presigned.downloadUrl,
+		expiresAt: presigned.expiresAt,
+		source: "presigned",
+	};
+}
+
 export async function generateUploadUrl(
 	params: UploadUrlInput
 ): Promise<PresignedUploadResponse> {
