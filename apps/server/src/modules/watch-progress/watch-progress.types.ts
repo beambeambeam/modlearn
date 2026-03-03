@@ -1,5 +1,5 @@
 import type { DbClient } from "@/lib/db/orm";
-import type { content, watchProgress } from "@/lib/db/schema";
+import type { content, playlistEpisode, watchProgress } from "@/lib/db/schema";
 
 export interface WatchProgressSaveInput {
 	userId: string;
@@ -20,6 +20,17 @@ export interface WatchProgressMarkCompletedInput {
 
 export interface WatchProgressGetResumeInput {
 	userId: string;
+	contentId: string;
+}
+
+export interface WatchProgressGetPlaylistResumeInput {
+	userId: string;
+	playlistId: string;
+}
+
+export interface WatchProgressGetPlaylistAutoPlayNextInput {
+	userId: string;
+	playlistId: string;
 	contentId: string;
 }
 
@@ -44,6 +55,16 @@ export interface GetWatchProgressResumeParams {
 	input: WatchProgressGetResumeInput;
 }
 
+export interface GetPlaylistWatchProgressResumeParams {
+	db: DbClient;
+	input: WatchProgressGetPlaylistResumeInput;
+}
+
+export interface GetPlaylistAutoPlayNextParams {
+	db: DbClient;
+	input: WatchProgressGetPlaylistAutoPlayNextInput;
+}
+
 export interface ListContinueWatchingParams {
 	db: DbClient;
 	input: WatchProgressContinueWatchingInput;
@@ -56,6 +77,48 @@ export interface ProgressEnvelope {
 
 export interface WatchProgressResumeResult extends ProgressEnvelope {
 	resumePosition: number;
+}
+
+type PlaylistEpisodeRow = Pick<
+	typeof playlistEpisode.$inferSelect,
+	| "id"
+	| "playlistId"
+	| "contentId"
+	| "episodeOrder"
+	| "seasonNumber"
+	| "episodeNumber"
+	| "title"
+	| "addedAt"
+>;
+
+type PlaylistEpisodeContentSummary = Pick<
+	typeof content.$inferSelect,
+	| "id"
+	| "title"
+	| "thumbnailImageId"
+	| "duration"
+	| "contentType"
+	| "releaseDate"
+>;
+
+export type PlaylistEpisodeProgressSummary = PlaylistEpisodeRow & {
+	content: PlaylistEpisodeContentSummary;
+};
+
+export interface PlaylistWatchProgressResumeResult {
+	playlistId: string;
+	currentEpisode: PlaylistEpisodeProgressSummary;
+	resumePosition: number;
+	nextEpisode: PlaylistEpisodeProgressSummary | null;
+	isPlaylistCompleted: boolean;
+	lastWatchedContentId: string | null;
+}
+
+export interface PlaylistAutoPlayNextResult {
+	playlistId: string;
+	contentId: string;
+	nextEpisode: PlaylistEpisodeProgressSummary | null;
+	isPlaylistCompleted: boolean;
 }
 
 type ContinueWatchingContentSummary = Pick<

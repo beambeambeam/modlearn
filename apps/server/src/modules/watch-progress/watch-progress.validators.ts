@@ -21,6 +21,15 @@ export const watchProgressGetResumeInputSchema = z.object({
 	contentId: z.uuid(),
 });
 
+export const watchProgressGetPlaylistResumeInputSchema = z.object({
+	playlistId: z.uuid(),
+});
+
+export const watchProgressGetPlaylistAutoPlayNextInputSchema = z.object({
+	playlistId: z.uuid(),
+	contentId: z.uuid(),
+});
+
 export const watchProgressContinueWatchingInputSchema = z.object({
 	page: z.number().int().min(1).default(1),
 	limit: z.number().int().min(1).max(50).default(20),
@@ -60,6 +69,43 @@ export const continueWatchingItemSchema = z.object({
 		contentType: z.enum(["MOVIE", "SERIES", "EPISODE", "MUSIC"]),
 		releaseDate: z.date().nullable(),
 	}),
+});
+
+export const playlistProgressEpisodeSchema = z.object({
+	id: z.uuid(),
+	playlistId: z.uuid(),
+	contentId: z.uuid(),
+	episodeOrder: z.number().int(),
+	seasonNumber: z.number().int().nullable(),
+	episodeNumber: z.number().int().nullable(),
+	title: z.string().nullable(),
+	addedAt: z.date(),
+	content: z.object({
+		id: z.uuid(),
+		title: z.string(),
+		thumbnailImageId: z.string().nullable(),
+		duration: z.number().int().nullable(),
+		contentType: z.enum(["MOVIE", "SERIES", "EPISODE", "MUSIC"]),
+		releaseDate: z.date().nullable(),
+	}),
+});
+
+export const playlistWatchProgressResumeOutputSchema = z
+	.object({
+		playlistId: z.uuid(),
+		currentEpisode: playlistProgressEpisodeSchema,
+		resumePosition: z.number().int().min(0),
+		nextEpisode: playlistProgressEpisodeSchema.nullable(),
+		isPlaylistCompleted: z.boolean(),
+		lastWatchedContentId: z.uuid().nullable(),
+	})
+	.nullable();
+
+export const playlistAutoPlayNextOutputSchema = z.object({
+	playlistId: z.uuid(),
+	contentId: z.uuid(),
+	nextEpisode: playlistProgressEpisodeSchema.nullable(),
+	isPlaylistCompleted: z.boolean(),
 });
 
 export const continueWatchingOutputSchema = z.object({

@@ -1,4 +1,6 @@
 import {
+	getPlaylistAutoPlayNext,
+	getPlaylistWatchProgressResume,
 	getWatchProgressResume,
 	listContinueWatching,
 	markWatchProgressCompleted,
@@ -6,8 +8,12 @@ import {
 } from "@/modules/watch-progress/watch-progress.service";
 import {
 	continueWatchingOutputSchema,
+	playlistAutoPlayNextOutputSchema,
+	playlistWatchProgressResumeOutputSchema,
 	watchProgressContinueWatchingInputSchema,
 	watchProgressEnvelopeSchema,
+	watchProgressGetPlaylistAutoPlayNextInputSchema,
+	watchProgressGetPlaylistResumeInputSchema,
 	watchProgressGetResumeInputSchema,
 	watchProgressMarkCompletedInputSchema,
 	watchProgressResumeOutputSchema,
@@ -66,6 +72,44 @@ export const watchProgressRouter = router({
 		.output(watchProgressResumeOutputSchema)
 		.handler(({ context, input }) => {
 			return getWatchProgressResume({
+				db: context.db,
+				input: {
+					userId: context.session.user.id,
+					...input,
+				},
+			});
+		}),
+	getPlaylistResume: protectedProcedure
+		.route({
+			method: "POST",
+			path: "/rpc/watchProgress/getPlaylistResume",
+			tags: ["Watch Progress"],
+			summary: "Get playlist resume target",
+			description: "Requires authentication.",
+		})
+		.input(watchProgressGetPlaylistResumeInputSchema)
+		.output(playlistWatchProgressResumeOutputSchema)
+		.handler(({ context, input }) => {
+			return getPlaylistWatchProgressResume({
+				db: context.db,
+				input: {
+					userId: context.session.user.id,
+					...input,
+				},
+			});
+		}),
+	getPlaylistAutoPlayNext: protectedProcedure
+		.route({
+			method: "POST",
+			path: "/rpc/watchProgress/getPlaylistAutoPlayNext",
+			tags: ["Watch Progress"],
+			summary: "Get playlist auto-play next episode",
+			description: "Requires authentication.",
+		})
+		.input(watchProgressGetPlaylistAutoPlayNextInputSchema)
+		.output(playlistAutoPlayNextOutputSchema)
+		.handler(({ context, input }) => {
+			return getPlaylistAutoPlayNext({
 				db: context.db,
 				input: {
 					userId: context.session.user.id,

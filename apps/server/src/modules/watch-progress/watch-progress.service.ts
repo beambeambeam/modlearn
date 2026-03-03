@@ -1,14 +1,25 @@
-import { count, desc } from "drizzle-orm";
+import { asc, count, desc, sql } from "drizzle-orm";
 import type { DbClient } from "@/lib/db/orm";
 import { and, eq } from "@/lib/db/orm";
 
-import { content, playlist, watchProgress } from "@/lib/db/schema";
+import {
+	content,
+	playlist,
+	playlistContent,
+	playlistEpisode,
+	watchProgress,
+} from "@/lib/db/schema";
 import type {
 	ContinueWatchingItem,
 	ContinueWatchingResult,
+	GetPlaylistAutoPlayNextParams,
+	GetPlaylistWatchProgressResumeParams,
 	GetWatchProgressResumeParams,
 	ListContinueWatchingParams,
 	MarkWatchProgressCompletedParams,
+	PlaylistAutoPlayNextResult,
+	PlaylistEpisodeProgressSummary,
+	PlaylistWatchProgressResumeResult,
 	ProgressEnvelope,
 	SaveWatchProgressParams,
 	WatchProgressResumeResult,
@@ -79,6 +90,114 @@ function clampPosition(lastPosition: number, duration: number): number {
 	return Math.min(lastPosition, duration);
 }
 
+function normalizeResumePosition(params: {
+	lastPosition: number;
+	duration: number | null;
+}): number {
+	const { lastPosition, duration } = params;
+	if (duration === null || duration <= 0) {
+		return Math.max(0, lastPosition);
+	}
+	return Math.min(Math.max(0, lastPosition), duration);
+}
+
+async function setLatestPlaylistContent(params: {
+	db: DbClient;
+	userId: string;
+	playlistId?: string | null;
+	contentId: string;
+}): Promise<void> {
+	const { db, userId, playlistId, contentId } = params;
+	if (!playlistId) {
+		return;
+	}
+
+	await db
+		.update(playlistContent)
+		.set({
+			isLatestWatched: false,
+			updatedAt: new Date(),
+		})
+		.where(
+			and(
+				eq(playlistContent.userId, userId),
+				eq(playlistContent.playlistId, playlistId),
+				eq(playlistContent.isLatestWatched, true)
+			)
+		);
+
+	const existing = await db.query.playlistContent.findFirst({
+		where: and(
+			eq(playlistContent.userId, userId),
+			eq(playlistContent.playlistId, playlistId),
+			eq(playlistContent.contentId, contentId)
+		),
+		columns: { id: true },
+		orderBy: [desc(playlistContent.updatedAt), desc(playlistContent.id)],
+	});
+
+	if (existing) {
+		await db
+			.update(playlistContent)
+			.set({
+				isLatestWatched: true,
+				updatedAt: new Date(),
+			})
+			.where(eq(playlistContent.id, existing.id));
+		return;
+	}
+
+	await db.insert(playlistContent).values({
+		userId,
+		playlistId,
+		contentId,
+		isLatestWatched: true,
+	});
+}
+
+async function listVisiblePlaylistEpisodes(
+	db: DbClient,
+	playlistId: string
+): Promise<PlaylistEpisodeProgressSummary[]> {
+	const rows = await db
+		.select({
+			id: playlistEpisode.id,
+			playlistId: playlistEpisode.playlistId,
+			contentId: playlistEpisode.contentId,
+			episodeOrder: playlistEpisode.episodeOrder,
+			seasonNumber: playlistEpisode.seasonNumber,
+			episodeNumber: playlistEpisode.episodeNumber,
+			title: playlistEpisode.title,
+			addedAt: playlistEpisode.addedAt,
+			content: {
+				id: content.id,
+				title: content.title,
+				thumbnailImageId: content.thumbnailImageId,
+				duration: content.duration,
+				contentType: content.contentType,
+				releaseDate: content.releaseDate,
+			},
+		})
+		.from(playlistEpisode)
+		.innerJoin(content, eq(playlistEpisode.contentId, content.id))
+		.where(
+			and(
+				eq(playlistEpisode.playlistId, playlistId),
+				eq(content.isDeleted, false),
+				eq(content.isPublished, true),
+				eq(content.isAvailable, true)
+			)
+		)
+		.orderBy(
+			sql`${playlistEpisode.seasonNumber} ASC NULLS LAST`,
+			asc(playlistEpisode.episodeOrder),
+			asc(playlistEpisode.addedAt),
+			asc(playlistEpisode.id)
+		);
+
+	return rows;
+}
+
 export async function saveWatchProgress(
 	params: SaveWatchProgressParams
 ): Promise<ProgressEnvelope> {
@@ -90,29 +209,44 @@ export async function saveWatchProgress(
 	const lastPosition = clampPosition(input.lastPosition, input.duration);
 	const isCompleted = lastPosition / input.duration >= COMPLETION_THRESHOLD;
 
-	const [saved] = await db
-		.insert(watchProgress)
-		.values({
-			userId: input.userId,
-			contentId: input.contentId,
-			playlistId: input.playlistId ?? null,
-			lastPosition,
-			duration: input.duration,
-			isCompleted,
-			deviceType: input.deviceType ?? null,
-		})
-		.onConflictDoUpdate({
-			target: [watchProgress.userId, watchProgress.contentId],
-			set: {
+	const saved = await db.transaction(async (tx) => {
+		const [row] = await tx
+			.insert(watchProgress)
+			.values({
+				userId: input.userId,
+				contentId: input.contentId,
 				playlistId: input.playlistId ?? null,
 				lastPosition,
 				duration: input.duration,
 				isCompleted,
 				deviceType: input.deviceType ?? null,
-				updatedAt: new Date(),
-			},
-		})
-		.returning();
+			})
+			.onConflictDoUpdate({
+				target: [watchProgress.userId, watchProgress.contentId],
+				set: {
+					playlistId: input.playlistId ?? null,
+					lastPosition,
+					duration: input.duration,
+					isCompleted,
+					deviceType: input.deviceType ?? null,
+					updatedAt: new Date(),
+				},
+			})
+			.returning();
+
+		if (!row) {
+			throw new Error("Failed to save watch progress");
+		}
+
+		await setLatestPlaylistContent({
+			db: tx,
+			userId: input.userId,
+			playlistId: input.playlistId,
+			contentId: input.contentId,
+		});
+
+		return row;
+	});
 
 	if (!saved) {
 		throw new Error("Failed to save watch progress");
@@ -143,29 +277,45 @@ export async function markWatchProgressCompleted(
 		);
 	}
 
-	const [saved] = await db
-		.insert(watchProgress)
-		.values({
-			userId: input.userId,
-			contentId: input.contentId,
-			playlistId: input.playlistId ?? existing?.playlistId ?? null,
-			lastPosition: duration,
-			duration,
-			isCompleted: true,
-			deviceType: input.deviceType ?? existing?.deviceType ?? null,
-		})
-		.onConflictDoUpdate({
-			target: [watchProgress.userId, watchProgress.contentId],
-			set: {
-				playlistId: input.playlistId ?? existing?.playlistId ?? null,
+	const resolvedPlaylistId = input.playlistId ?? existing?.playlistId ?? null;
+	const saved = await db.transaction(async (tx) => {
+		const [row] = await tx
+			.insert(watchProgress)
+			.values({
+				userId: input.userId,
+				contentId: input.contentId,
+				playlistId: resolvedPlaylistId,
 				lastPosition: duration,
 				duration,
 				isCompleted: true,
 				deviceType: input.deviceType ?? existing?.deviceType ?? null,
-				updatedAt: new Date(),
-			},
-		})
-		.returning();
+			})
+			.onConflictDoUpdate({
+				target: [watchProgress.userId, watchProgress.contentId],
+				set: {
+					playlistId: resolvedPlaylistId,
+					lastPosition: duration,
+					duration,
+					isCompleted: true,
+					deviceType: input.deviceType ?? existing?.deviceType ?? null,
+					updatedAt: new Date(),
+				},
+			})
+			.returning();
+
+		if (!row) {
+			throw new Error("Failed to mark watch progress as completed");
+		}
+
+		await setLatestPlaylistContent({
+			db: tx,
+			userId: input.userId,
+			playlistId: resolvedPlaylistId,
+			contentId: input.contentId,
+		});
+
+		return row;
+	});
 
 	if (!saved) {
 		throw new Error("Failed to mark watch progress as completed");
@@ -195,6 +345,148 @@ export async function getWatchProgressResume(
 	return {
 		...toEnvelope(row),
 		resumePosition: row.lastPosition,
+	};
+}
+
+export async function getPlaylistWatchProgressResume(
+	params: GetPlaylistWatchProgressResumeParams
+): Promise<PlaylistWatchProgressResumeResult | null> {
+	const { db, input } = params;
+	await assertPlaylistExists(db, input.playlistId);
+
+	const episodes = await listVisiblePlaylistEpisodes(db, input.playlistId);
+	if (episodes.length === 0) {
+		return null;
+	}
+
+	const latest = await db.query.playlistContent.findFirst({
+		where: and(
+			eq(playlistContent.userId, input.userId),
+			eq(playlistContent.playlistId, input.playlistId),
+			eq(playlistContent.isLatestWatched, true)
+		),
+		columns: {
+			contentId: true,
+		},
+		orderBy: [desc(playlistContent.updatedAt), desc(playlistContent.id)],
+	});
+
+	const lastWatchedContentId = latest?.contentId ?? null;
+	const firstEpisode = episodes[0];
+	if (!firstEpisode) {
+		return null;
+	}
+
+	if (!lastWatchedContentId) {
+		return {
+			playlistId: input.playlistId,
+			currentEpisode: firstEpisode,
+			resumePosition: 0,
+			nextEpisode: episodes[1] ?? null,
+			isPlaylistCompleted: false,
+			lastWatchedContentId: null,
+		};
+	}
+
+	const lastEpisodeIndex = episodes.findIndex(
+		(episode) => episode.contentId === lastWatchedContentId
+	);
+
+	if (lastEpisodeIndex < 0) {
+		return {
+			playlistId: input.playlistId,
+			currentEpisode: firstEpisode,
+			resumePosition: 0,
+			nextEpisode: episodes[1] ?? null,
+			isPlaylistCompleted: false,
+			lastWatchedContentId,
+		};
+	}
+
+	const lastProgress = await db.query.watchProgress.findFirst({
+		where: and(
+			eq(watchProgress.userId, input.userId),
+			eq(watchProgress.contentId, lastWatchedContentId)
+		),
+		columns: {
+			lastPosition: true,
+			duration: true,
+			isCompleted: true,
+		},
+	});
+
+	const lastEpisode = episodes[lastEpisodeIndex];
+	if (!lastEpisode) {
+		return {
+			playlistId: input.playlistId,
+			currentEpisode: firstEpisode,
+			resumePosition: 0,
+			nextEpisode: episodes[1] ?? null,
+			isPlaylistCompleted: false,
+			lastWatchedContentId,
+		};
+	}
+	const nextFromLast = episodes[lastEpisodeIndex + 1] ?? null;
+	const isLastEpisodeCompleted = Boolean(lastProgress?.isCompleted);
+
+	if (isLastEpisodeCompleted && nextFromLast) {
+		return {
+			playlistId: input.playlistId,
+			currentEpisode: nextFromLast,
+			resumePosition: 0,
+			nextEpisode: episodes[lastEpisodeIndex + 2] ?? null,
+			isPlaylistCompleted: false,
+			lastWatchedContentId,
+		};
+	}
+
+	if (isLastEpisodeCompleted && !nextFromLast) {
+		return {
+			playlistId: input.playlistId,
+			currentEpisode: lastEpisode,
+			resumePosition: 0,
+			nextEpisode: null,
+			isPlaylistCompleted: true,
+			lastWatchedContentId,
+		};
+	}
+
+	return {
+		playlistId: input.playlistId,
+		currentEpisode: lastEpisode,
+		resumePosition: normalizeResumePosition({
+			lastPosition: lastProgress?.lastPosition ?? 0,
+			duration: lastEpisode.content.duration,
+		}),
+		nextEpisode: nextFromLast,
+		isPlaylistCompleted: false,
+		lastWatchedContentId,
+	};
+}
+
+export async function getPlaylistAutoPlayNext(
+	params: GetPlaylistAutoPlayNextParams
+): Promise<PlaylistAutoPlayNextResult> {
+	const { db, input } = params;
+	await assertPlaylistExists(db, input.playlistId);
+
+	const episodes = await listVisiblePlaylistEpisodes(db, input.playlistId);
+	const currentIndex = episodes.findIndex(
+		(episode) => episode.contentId === input.contentId
+	);
+
+	if (currentIndex < 0) {
+		throw new WatchProgressValidationError(
+			"contentId does not belong to a playable episode in this playlist"
+		);
+	}
+
+	const nextEpisode = episodes[currentIndex + 1] ?? null;
+	return {
+		playlistId: input.playlistId,
+		contentId: input.contentId,
+		nextEpisode,
+		isPlaylistCompleted: nextEpisode === null,
 	};
 }
 
