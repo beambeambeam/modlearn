@@ -2,6 +2,7 @@ import { z } from "zod";
 import { categoryRouter } from "@/modules/category/category.router";
 import { contentRouter } from "@/modules/content/content.router";
 import { fileRouter } from "@/modules/file/file.router";
+import { libraryRouter } from "@/modules/library/library.router";
 import { playlistRouter } from "@/modules/playlist/playlist.router";
 import { watchProgressRouter } from "@/modules/watch-progress/watch-progress.router";
 import {
@@ -75,6 +76,7 @@ export const appRouter = router({
 	category: categoryRouter,
 	content: contentRouter,
 	file: fileRouter,
+	library: libraryRouter,
 	playlist: playlistRouter,
 	watchProgress: watchProgressRouter,
 });
