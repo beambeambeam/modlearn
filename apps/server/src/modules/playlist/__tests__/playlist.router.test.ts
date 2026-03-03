@@ -32,7 +32,7 @@ describe("playlist router", () => {
 		await testDb.cleanup();
 	});
 
-	it("allows public access to getByIdWithEpisodes and listEpisodes", async () => {
+	it("allows public access to list, getByIdWithEpisodes and listEpisodes", async () => {
 		const admin = await createTestUser(testDb.client, {
 			email: "playlist-router-public@example.com",
 			role: "admin",
@@ -72,6 +72,9 @@ describe("playlist router", () => {
 
 		const caller = createCaller(makeTestContext({ db: testDb.db }));
 
+		const listed = await caller.playlist.list({});
+		expect(listed.items.length).toBeGreaterThanOrEqual(1);
+
 		const detail = await caller.playlist.getByIdWithEpisodes({
 			id: createdPlaylist.id,
 		});
@@ -86,6 +89,16 @@ describe("playlist router", () => {
 
 	it("rejects invalid public input", async () => {
 		const caller = createCaller(makeTestContext({ db: testDb.db }));
+
+		await expect(
+			caller.playlist.list({
+				page: 0,
+			})
+		).rejects.toThrow(
+			expect.objectContaining({
+				code: "BAD_REQUEST",
+			})
+		);
 
 		await expect(
 			caller.playlist.getByIdWithEpisodes({
@@ -143,7 +156,7 @@ describe("playlist router", () => {
 		);
 	});
 
-	it("allows admin and superadmin to perform admin mutations", async () => {
+	it("allows admin and superadmin to perform admin mutations and writes audits", async () => {
 		const admin = await createTestUser(testDb.client, {
 			email: "playlist-router-admin@example.com",
 			role: "admin",
@@ -168,6 +181,21 @@ describe("playlist router", () => {
 			throw new Error("Failed to create content fixture");
 		}
 
+		const [episodeContent2] = await testDb.db
+			.insert(content)
+			.values({
+				title: "Episode Admin 2",
+				contentType: "EPISODE",
+				updatedBy: admin.id,
+				isPublished: true,
+				isAvailable: true,
+				publishedAt: new Date("2025-01-01T00:00:00.000Z"),
+			})
+			.returning();
+		if (!episodeContent2) {
+			throw new Error("Failed to create content fixture");
+		}
+
 		const adminCaller = createCaller(
 			makeAuthenticatedContext(admin.id, "admin", { db: testDb.db })
 		);
@@ -180,6 +208,14 @@ describe("playlist router", () => {
 		});
 		expect(created.title).toBe("Admin Playlist");
 
+		const updated = await adminCaller.playlist.adminUpdate({
+			id: created.id,
+			patch: {
+				title: "Admin Playlist Updated",
+			},
+		});
+		expect(updated.title).toBe("Admin Playlist Updated");
+
 		const added = await adminCaller.playlist.adminAddEpisode({
 			playlistId: created.id,
 			contentId: episodeContent.id,
@@ -187,19 +223,15 @@ describe("playlist router", () => {
 		expect(added.playlistId).toBe(created.id);
 		expect(added.episodeOrder).toBe(1);
 
-		const auditRows = await testDb.db.select().from(adminAuditLog);
-		const addEpisodeAudit = auditRows.find(
-			(row) =>
-				row.entityType === "PLAYLIST_EPISODE" &&
-				row.action === "ADD_EPISODE" &&
-				row.entityId === added.id &&
-				row.adminId === admin.id
-		);
-		expect(addEpisodeAudit).toBeDefined();
-		expect(addEpisodeAudit?.metadata).toEqual({
-			playlistId: created.id,
-			contentId: episodeContent.id,
+		const updatedEpisode = await adminCaller.playlist.adminUpdateEpisode({
+			id: added.id,
+			patch: {
+				contentId: episodeContent2.id,
+				title: "Renamed Episode",
+			},
 		});
+		expect(updatedEpisode.contentId).toBe(episodeContent2.id);
+		expect(updatedEpisode.title).toBe("Renamed Episode");
 
 		const reordered = await superadminCaller.playlist.adminReorderEpisodes({
 			playlistId: created.id,
@@ -208,5 +240,157 @@ describe("playlist router", () => {
 		expect(reordered).toHaveLength(1);
 		expect(reordered[0]?.id).toBe(added.id);
 		expect(reordered[0]?.episodeOrder).toBe(1);
+
+		const removed = await adminCaller.playlist.adminRemoveEpisode({
+			id: added.id,
+		});
+		expect(removed).toEqual({
+			id: added.id,
+			playlistId: created.id,
+			deleted: true,
+		});
+
+		const deleted = await adminCaller.playlist.adminDelete({
+			id: created.id,
+		});
+		expect(deleted).toEqual({
+			id: created.id,
+			deleted: true,
+		});
+
+		const auditRows = await testDb.db.select().from(adminAuditLog);
+		expect(
+			auditRows.some(
+				(row) =>
+					row.entityType === "PLAYLIST" &&
+					row.action === "CREATE" &&
+					row.entityId === created.id
+			)
+		).toBe(true);
+		expect(
+			auditRows.some(
+				(row) =>
+					row.entityType === "PLAYLIST" &&
+					row.action === "UPDATE" &&
+					row.entityId === created.id
+			)
+		).toBe(true);
+		expect(
+			auditRows.some(
+				(row) =>
+					row.entityType === "PLAYLIST_EPISODE" &&
+					row.action === "ADD_EPISODE" &&
+					row.entityId === added.id
+			)
+		).toBe(true);
+		expect(
+			auditRows.some(
+				(row) =>
+					row.entityType === "PLAYLIST_EPISODE" &&
+					row.action === "UPDATE_EPISODE" &&
+					row.entityId === added.id
+			)
+		).toBe(true);
+		expect(
+			auditRows.some(
+				(row) =>
+					row.entityType === "PLAYLIST" &&
+					row.action === "REORDER_EPISODES" &&
+					row.entityId === created.id
+			)
+		).toBe(true);
+		expect(
+			auditRows.some(
+				(row) =>
+					row.entityType === "PLAYLIST_EPISODE" &&
+					row.action === "REMOVE_EPISODE" &&
+					row.entityId === added.id
+			)
+		).toBe(true);
+		expect(
+			auditRows.some(
+				(row) =>
+					row.entityType === "PLAYLIST" &&
+					row.action === "DELETE" &&
+					row.entityId === created.id
+			)
+		).toBe(true);
+	});
+
+	it("maps duplicate episode content to CONFLICT", async () => {
+		const admin = await createTestUser(testDb.client, {
+			email: "playlist-router-conflict@example.com",
+			role: "admin",
+		});
+
+		const [episodeContent] = await testDb.db
+			.insert(content)
+			.values({
+				title: "Episode Conflict",
+				contentType: "EPISODE",
+				updatedBy: admin.id,
+				isPublished: true,
+				isAvailable: true,
+				publishedAt: new Date("2025-01-01T00:00:00.000Z"),
+			})
+			.returning();
+		if (!episodeContent) {
+			throw new Error("Failed to create content fixture");
+		}
+
+		const caller = createCaller(
+			makeAuthenticatedContext(admin.id, "admin", { db: testDb.db })
+		);
+		const created = await caller.playlist.adminCreate({
+			title: "Conflict playlist",
+		});
+		await caller.playlist.adminAddEpisode({
+			playlistId: created.id,
+			contentId: episodeContent.id,
+		});
+
+		await expect(
+			caller.playlist.adminAddEpisode({
+				playlistId: created.id,
+				contentId: episodeContent.id,
+			})
+		).rejects.toThrow(
+			expect.objectContaining({
+				code: "CONFLICT",
+			})
+		);
+	});
+
+	it("maps not found errors for episode update/remove", async () => {
+		const admin = await createTestUser(testDb.client, {
+			email: "playlist-router-not-found@example.com",
+			role: "admin",
+		});
+		const caller = createCaller(
+			makeAuthenticatedContext(admin.id, "admin", { db: testDb.db })
+		);
+
+		await expect(
+			caller.playlist.adminUpdateEpisode({
+				id: "00000000-0000-0000-0000-000000000000",
+				patch: {
+					title: "x",
+				},
+			})
+		).rejects.toThrow(
+			expect.objectContaining({
+				code: "NOT_FOUND",
+			})
+		);
+
+		await expect(
+			caller.playlist.adminRemoveEpisode({
+				id: "00000000-0000-0000-0000-000000000000",
+			})
+		).rejects.toThrow(
+			expect.objectContaining({
+				code: "NOT_FOUND",
+			})
+		);
 	});
 });
