@@ -22,7 +22,7 @@ export const fileAdminCreateUploadRequestOutputSchema = z.object({
 export const fileAdminGetDownloadUrlOutputSchema = z.object({
 	storageKey: z.string(),
 	downloadUrl: z.string().url(),
-	expiresAt: z.date(),
+	expiresAt: z.date().nullable(),
 });
 
 export const fileAdminDeleteOutputSchema = z.object({

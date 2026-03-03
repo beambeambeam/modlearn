@@ -35,6 +35,17 @@ vi.mock("@/lib/storage/s3-operations", () => ({
 		success: true,
 		key: input.key,
 	})),
+	buildCdnUrlFromKey: vi.fn(
+		(key: string) => `https://cdn.example.com/modlearn-media/${key}`
+	),
+	resolveDownloadDeliveryUrl: vi.fn(
+		async (input: { key: string; cdnUrl?: string | null }) => ({
+			url:
+				input.cdnUrl ?? `https://cdn.example.com/modlearn-media/${input.key}`,
+			expiresAt: null,
+			source: "cdn",
+		})
+	),
 }));
 
 describe("file router", () => {
@@ -161,7 +172,7 @@ describe("file router", () => {
 		});
 		expect(download.storageKey).toBe(upload.storageKey);
 		expect(download.downloadUrl).toBeDefined();
-		expect(download.expiresAt).toBeInstanceOf(Date);
+		expect(download.expiresAt).toBeNull();
 
 		const auditAfterDownload = await testDb.db.select().from(adminAuditLog);
 		expect(auditAfterDownload).toHaveLength(auditCountBeforeDownload);

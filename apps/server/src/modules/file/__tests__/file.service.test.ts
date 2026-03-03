@@ -16,9 +16,11 @@ import {
 import { eq } from "@/lib/db/orm";
 import { file, storage } from "@/lib/db/schema/index";
 import {
+	buildCdnUrlFromKey,
 	deleteObject,
 	generateDownloadUrl,
 	generateUploadUrl,
+	resolveDownloadDeliveryUrl,
 } from "@/lib/storage/s3-operations";
 import {
 	createFileDownloadUrl,
@@ -46,6 +48,17 @@ vi.mock("@/lib/storage/s3-operations", () => ({
 		success: true,
 		key: input.key,
 	})),
+	buildCdnUrlFromKey: vi.fn(
+		(key: string) => `https://cdn.example.com/modlearn-media/${key}`
+	),
+	resolveDownloadDeliveryUrl: vi.fn(
+		async (input: { key: string; cdnUrl?: string | null }) => ({
+			url:
+				input.cdnUrl ?? `https://cdn.example.com/modlearn-media/${input.key}`,
+			expiresAt: null,
+			source: "cdn",
+		})
+	),
 }));
 
 describe("file service", () => {
@@ -123,12 +136,16 @@ describe("file service", () => {
 				fileId: result.fileId,
 				storageProvider: "s3",
 				storageKey: `files/${result.fileId}.mp4`,
+				cdnUrl: `https://cdn.example.com/modlearn-media/files/${result.fileId}.mp4`,
 			});
+			expect(buildCdnUrlFromKey).toHaveBeenCalledWith(
+				`files/${result.fileId}.mp4`
+			);
 		});
 	});
 
 	describe("createFileDownloadUrl", () => {
-		it("returns a download URL for an existing file", async () => {
+		it("returns CDN download URL for an existing file when cdnUrl is present", async () => {
 			const uploader = await createTestUser(testDb.client, {
 				name: "Downloader",
 				email: "downloader@example.com",
@@ -156,6 +173,7 @@ describe("file service", () => {
 				fileId: insertedFile.id,
 				storageProvider: "s3",
 				storageKey,
+				cdnUrl: "https://cdn.example.com/modlearn-media/custom.mp4",
 			});
 
 			const result = await createFileDownloadUrl({
@@ -163,15 +181,62 @@ describe("file service", () => {
 				fileId: insertedFile.id,
 			});
 
-			expect(result.downloadUrl).toBe("https://example.com/download");
-			expect(result.expiresAt).toBeInstanceOf(Date);
-			expect(result.storageKey).toBe(storageKey);
-
-			expect(generateDownloadUrl).toHaveBeenCalledWith(
-				expect.objectContaining({
-					key: storageKey,
-				})
+			expect(result.downloadUrl).toBe(
+				"https://cdn.example.com/modlearn-media/custom.mp4"
 			);
+			expect(result.expiresAt).toBeNull();
+			expect(result.storageKey).toBe(storageKey);
+			expect(resolveDownloadDeliveryUrl).toHaveBeenCalledWith({
+				key: storageKey,
+				cdnUrl: "https://cdn.example.com/modlearn-media/custom.mp4",
+			});
+		});
+
+		it("derives CDN download URL when cdnUrl is missing", async () => {
+			const uploader = await createTestUser(testDb.client, {
+				name: "Downloader Derived",
+				email: "downloader-derived@example.com",
+			});
+
+			const [insertedFile] = await testDb.db
+				.insert(file)
+				.values({
+					uploaderId: uploader.id,
+					name: "lesson-2.mp4",
+					size: 2048,
+					mimeType: "video/mp4",
+					extension: "mp4",
+					checksum: "f".repeat(64),
+				})
+				.returning();
+
+			if (!insertedFile) {
+				throw new Error("Failed to create file row for derive test");
+			}
+
+			const storageKey = `files/${insertedFile.id}.mp4`;
+
+			await testDb.db.insert(storage).values({
+				fileId: insertedFile.id,
+				storageProvider: "s3",
+				storageKey,
+				cdnUrl: null,
+			});
+
+			const result = await createFileDownloadUrl({
+				db: testDb.db,
+				fileId: insertedFile.id,
+			});
+
+			expect(result.downloadUrl).toBe(
+				`https://cdn.example.com/modlearn-media/${storageKey}`
+			);
+			expect(result.expiresAt).toBeNull();
+			expect(resolveDownloadDeliveryUrl).toHaveBeenCalledWith({
+				key: storageKey,
+				cdnUrl: null,
+			});
+			expect(generateDownloadUrl).not.toHaveBeenCalled();
 		});
 
 		it("throws when file does not exist", async () => {

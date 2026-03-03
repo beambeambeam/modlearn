@@ -2,9 +2,10 @@ import { env } from "@modlearn/env/server";
 import { sql } from "@/lib/db/orm";
 import { file, storage } from "@/lib/db/schema/index";
 import {
+	buildCdnUrlFromKey,
 	deleteObject,
-	generateDownloadUrl,
 	generateUploadUrl,
+	resolveDownloadDeliveryUrl,
 } from "@/lib/storage/s3-operations";
 import {
 	type CreateFileDownloadUrlParams,
@@ -54,6 +55,7 @@ export function createFileUploadRequest(
 		}
 
 		const storageKey = `files/${insertedFile.id}.${input.extension}`;
+		const cdnUrl = buildCdnUrlFromKey(storageKey);
 
 		await tx.execute(
 			sql`
@@ -61,12 +63,14 @@ export function createFileUploadRequest(
 					${sql.identifier(storage.fileId.name)},
 					${sql.identifier(storage.storageProvider.name)},
 					${sql.identifier(storage.bucket.name)},
-					${sql.identifier(storage.storageKey.name)}
+					${sql.identifier(storage.storageKey.name)},
+					${sql.identifier(storage.cdnUrl.name)}
 				) values (
 					${insertedFile.id},
 					${STORAGE_PROVIDER},
 					${env.S3_BUCKET_NAME},
-					${storageKey}
+					${storageKey},
+					${cdnUrl}
 				)
 			`
 		);
@@ -115,28 +119,31 @@ export async function createFileDownloadUrl(
 
 	const storageResult = await db.execute(
 		sql`
-			select ${storage.storageKey} as "storageKey"
+			select
+				${storage.storageKey} as "storageKey",
+				${storage.cdnUrl} as "cdnUrl"
 			from ${storage}
 			where ${storage.fileId} = ${fileId}
 				and ${storage.storageProvider} = ${STORAGE_PROVIDER}
 		`
 	);
 	const storageRow = storageResult.rows[0] as
-		| { storageKey: string }
+		| { storageKey: string; cdnUrl: string | null }
 		| undefined;
 
 	if (!storageRow) {
 		throw new StorageRecordNotFoundError();
 	}
 
-	const presigned = await generateDownloadUrl({
+	const delivery = await resolveDownloadDeliveryUrl({
 		key: storageRow.storageKey,
+		cdnUrl: storageRow.cdnUrl,
 	});
 
 	return {
 		storageKey: storageRow.storageKey,
-		downloadUrl: presigned.downloadUrl,
-		expiresAt: presigned.expiresAt,
+		downloadUrl: delivery.url,
+		expiresAt: delivery.expiresAt,
 	};
 }
 
