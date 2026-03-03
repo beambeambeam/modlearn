@@ -7,6 +7,8 @@ import {
 	type TestDatabase,
 } from "@/__tests__/helpers/test-db";
 import {
+	cart,
+	cartItem,
 	content,
 	contentPricing,
 	contentPurchase,
@@ -40,6 +42,7 @@ import {
 	CommerceDuplicateCartItemError,
 	CommerceInvalidCartItemError,
 	CommerceItemAlreadyOwnedError,
+	CommerceOrderStateError,
 	CommercePriceNotFoundError,
 } from "@/modules/commerce/commerce.types";
 
@@ -648,5 +651,149 @@ describe("commerce service", () => {
 			.map((row) => row.contentId)
 			.sort();
 		expect(purchasedContentIds).toEqual([ep1.id, ep2.id].sort());
+	});
+
+	it("rejects checkout when cart has mixed currencies", async () => {
+		const user = await createTestUser(testDb.client, {
+			email: "commerce-currency-mismatch@example.com",
+		});
+		const usdMovie = await createContentWithPricing({
+			testDb,
+			adminId: user.id,
+			title: "USD Movie",
+			price: "10.00",
+			currency: "USD",
+		});
+		const thbMovie = await createContentWithPricing({
+			testDb,
+			adminId: user.id,
+			title: "THB Movie",
+			price: "100.00",
+			currency: "THB",
+		});
+
+		const [userCart] = await testDb.db
+			.insert(cart)
+			.values({ userId: user.id })
+			.returning();
+
+		if (!userCart) {
+			throw new Error("Failed to create cart fixture");
+		}
+
+		await testDb.db.insert(cartItem).values([
+			{
+				cartId: userCart.id,
+				itemType: "CONTENT",
+				contentId: usdMovie.id,
+				price: "10.00",
+			},
+			{
+				cartId: userCart.id,
+				itemType: "CONTENT",
+				contentId: thbMovie.id,
+				price: "100.00",
+			},
+		]);
+
+		await expect(
+			createCheckoutOrder({
+				db: testDb.db,
+				userId: user.id,
+				input: { source: "CART" },
+			})
+		).rejects.toThrow(CommerceCurrencyMismatchError);
+	});
+
+	it("enforces active price windows for cart and direct buy", async () => {
+		const user = await createTestUser(testDb.client, {
+			email: "commerce-price-window@example.com",
+		});
+		const [futureMovie] = await testDb.db
+			.insert(content)
+			.values({
+				title: "Future Price Movie",
+				contentType: "MOVIE",
+				updatedBy: user.id,
+			})
+			.returning();
+
+		if (!futureMovie) {
+			throw new Error("Failed to create future movie");
+		}
+
+		await testDb.db.insert(contentPricing).values({
+			contentId: futureMovie.id,
+			price: "15.00",
+			currency: "USD",
+			effectiveFrom: new Date("2030-01-01T00:00:00.000Z"),
+			createdBy: user.id,
+		});
+
+		await expect(
+			addCartItem({
+				db: testDb.db,
+				userId: user.id,
+				input: { itemType: "CONTENT", contentId: futureMovie.id },
+			})
+		).rejects.toThrow(CommercePriceNotFoundError);
+
+		await expect(
+			buyContent({
+				db: testDb.db,
+				userId: user.id,
+				input: { contentId: futureMovie.id },
+			})
+		).rejects.toThrow(CommercePriceNotFoundError);
+	});
+
+	it("prevents payment success on failed order and keeps grants empty", async () => {
+		const user = await createTestUser(testDb.client, {
+			email: "commerce-failed-order@example.com",
+		});
+		const movie = await createContentWithPricing({
+			testDb,
+			adminId: user.id,
+			title: "Failed Finalize Movie",
+			price: "8.00",
+		});
+		const [failedOrder] = await testDb.db
+			.insert(order)
+			.values({
+				userId: user.id,
+				totalAmount: "8.00",
+				currency: "USD",
+				status: "FAILED",
+			})
+			.returning();
+
+		if (!failedOrder) {
+			throw new Error("Failed to create failed order");
+		}
+
+		await testDb.db.insert(orderItem).values({
+			orderId: failedOrder.id,
+			itemType: "CONTENT",
+			contentId: movie.id,
+			price: "8.00",
+		});
+
+		await expect(
+			markPaymentSuccess({
+				db: testDb.db,
+				userId: user.id,
+				input: {
+					orderId: failedOrder.id,
+					provider: "mock",
+					providerTransactionId: "failed-order-txn-001",
+				},
+			})
+		).rejects.toThrow(CommerceOrderStateError);
+
+		const libraryRows = await testDb.db
+			.select()
+			.from(userLibrary)
+			.where(eq(userLibrary.orderId, failedOrder.id));
+		expect(libraryRows).toHaveLength(0);
 	});
 });
