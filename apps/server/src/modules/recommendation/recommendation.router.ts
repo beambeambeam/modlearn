@@ -1,7 +1,15 @@
-import { listRecommendationsForUser } from "@/modules/recommendation/recommendation.service";
+import {
+	listPopularRecommendations,
+	listRecentlyAddedRecommendations,
+	listRecommendationsForUser,
+} from "@/modules/recommendation/recommendation.service";
 import {
 	recommendationListForMeInputSchema,
 	recommendationListForMeOutputSchema,
+	recommendationListPopularInputSchema,
+	recommendationListPopularOutputSchema,
+	recommendationListRecentlyAddedInputSchema,
+	recommendationListRecentlyAddedOutputSchema,
 } from "@/modules/recommendation/recommendation.validators";
 import { protectedProcedure, router } from "@/orpc";
 
@@ -23,6 +31,38 @@ export const recommendationRouter = router({
 					userId: context.session.user.id,
 					...recommendationListForMeInputSchema.parse(input ?? {}),
 				},
+			});
+		}),
+	listPopular: protectedProcedure
+		.route({
+			method: "POST",
+			path: "/rpc/recommendation/listPopular",
+			tags: ["Recommendation"],
+			summary: "List popular recommendations",
+			description: "Requires authentication.",
+		})
+		.input(recommendationListPopularInputSchema.optional())
+		.output(recommendationListPopularOutputSchema)
+		.handler(({ context, input }) => {
+			return listPopularRecommendations({
+				db: context.db,
+				input: recommendationListPopularInputSchema.parse(input ?? {}),
+			});
+		}),
+	listRecentlyAdded: protectedProcedure
+		.route({
+			method: "POST",
+			path: "/rpc/recommendation/listRecentlyAdded",
+			tags: ["Recommendation"],
+			summary: "List recently added recommendations",
+			description: "Requires authentication.",
+		})
+		.input(recommendationListRecentlyAddedInputSchema.optional())
+		.output(recommendationListRecentlyAddedOutputSchema)
+		.handler(({ context, input }) => {
+			return listRecentlyAddedRecommendations({
+				db: context.db,
+				input: recommendationListRecentlyAddedInputSchema.parse(input ?? {}),
 			});
 		}),
 });

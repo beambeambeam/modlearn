@@ -4,6 +4,8 @@ import type { DbClient } from "@/lib/db/orm";
 import { content, contentCategory, watchProgress } from "@/lib/db/schema";
 import { listPopularContent } from "@/modules/content/content.service";
 import type {
+	ListPopularRecommendationsParams,
+	ListRecentlyAddedRecommendationsParams,
 	ListRecommendationsForUserParams,
 	RecommendationItem,
 } from "./recommendation.types";
@@ -30,6 +32,38 @@ async function listPopularFallback(params: {
 
 	const excluded = new Set(excludedContentIds);
 	return popularItems.filter((item) => !excluded.has(item.id)).slice(0, limit);
+}
+
+export function listPopularRecommendations(
+	params: ListPopularRecommendationsParams
+): Promise<RecommendationItem[]> {
+	const { db, input } = params;
+	return listPopularContent({
+		db,
+		input: {
+			limit: input.limit ?? 10,
+		},
+	});
+}
+
+export function listRecentlyAddedRecommendations(
+	params: ListRecentlyAddedRecommendationsParams
+): Promise<RecommendationItem[]> {
+	const { db, input } = params;
+	const limit = input.limit ?? 10;
+
+	return db
+		.select()
+		.from(content)
+		.where(
+			and(
+				eq(content.isDeleted, false),
+				eq(content.isPublished, true),
+				eq(content.isAvailable, true)
+			)
+		)
+		.orderBy(desc(content.createdAt), desc(content.id))
+		.limit(limit);
 }
 
 export async function listRecommendationsForUser(
