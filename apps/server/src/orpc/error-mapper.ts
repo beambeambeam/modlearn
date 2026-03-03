@@ -15,6 +15,10 @@ import {
 	StorageRecordNotFoundError,
 } from "@/modules/file/file.types";
 import {
+	LibraryAccessDeniedError,
+	LibraryPlaylistNotFoundError,
+} from "@/modules/library/library.types";
+import {
 	ContentNotFoundError as PlaylistContentNotFoundError,
 	PlaylistEpisodeDuplicateContentError,
 	PlaylistEpisodeNotFoundError,
@@ -101,6 +105,18 @@ export function mapDomainErrorToOrpc(
 
 	if (error instanceof FileCreationError) {
 		return new ORPCError("BAD_REQUEST", {
+			message: error.message,
+		});
+	}
+
+	if (error instanceof LibraryPlaylistNotFoundError) {
+		return new ORPCError("NOT_FOUND", {
+			message: error.message,
+		});
+	}
+
+	if (error instanceof LibraryAccessDeniedError) {
+		return new ORPCError("FORBIDDEN", {
 			message: error.message,
 		});
 	}
