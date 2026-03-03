@@ -16,6 +16,8 @@ import {
 } from "@/modules/file/file.types";
 import {
 	ContentNotFoundError as PlaylistContentNotFoundError,
+	PlaylistEpisodeDuplicateContentError,
+	PlaylistEpisodeNotFoundError,
 	PlaylistNotFoundError,
 	PlaylistReorderValidationError,
 } from "@/modules/playlist/playlist.types";
@@ -67,9 +69,16 @@ export function mapDomainErrorToOrpc(
 
 	if (
 		error instanceof PlaylistNotFoundError ||
+		error instanceof PlaylistEpisodeNotFoundError ||
 		error instanceof PlaylistContentNotFoundError
 	) {
 		return new ORPCError("NOT_FOUND", {
+			message: error.message,
+		});
+	}
+
+	if (error instanceof PlaylistEpisodeDuplicateContentError) {
+		return new ORPCError("CONFLICT", {
 			message: error.message,
 		});
 	}

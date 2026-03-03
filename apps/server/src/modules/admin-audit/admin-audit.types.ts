@@ -16,7 +16,9 @@ export type AuditAction =
 	| "SET_AVAILABILITY"
 	| "SET_CLASSIFICATION"
 	| "ADD_EPISODE"
-	| "REORDER_EPISODES";
+	| "REORDER_EPISODES"
+	| "UPDATE_EPISODE"
+	| "REMOVE_EPISODE";
 
 export interface AuditLogInput {
 	adminId: string;

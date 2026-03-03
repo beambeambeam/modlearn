@@ -1,5 +1,5 @@
 import type { DbClient } from "@/lib/db/orm";
-import type { content, playlistEpisode } from "@/lib/db/schema";
+import type { content, playlist, playlistEpisode } from "@/lib/db/schema";
 
 export interface PlaylistGetByIdInput {
 	id: string;
@@ -10,11 +10,32 @@ export interface PlaylistListEpisodesInput {
 	seasonNumber?: number;
 }
 
+export interface PlaylistListInput {
+	page?: number;
+	limit?: number;
+	search?: string;
+	isSeries?: boolean;
+}
+
 export interface PlaylistAdminCreateInput {
 	title: string;
 	description?: string | null;
 	thumbnailImageId?: string | null;
 	isSeries?: boolean;
+}
+
+export interface PlaylistAdminUpdateInput {
+	id: string;
+	patch: {
+		title?: string;
+		description?: string | null;
+		thumbnailImageId?: string | null;
+		isSeries?: boolean;
+	};
+}
+
+export interface PlaylistAdminDeleteInput {
+	id: string;
 }
 
 export interface PlaylistAdminAddEpisodeInput {
@@ -31,9 +52,29 @@ export interface PlaylistAdminReorderEpisodesInput {
 	episodeIds: string[];
 }
 
+export interface PlaylistAdminUpdateEpisodeInput {
+	id: string;
+	patch: {
+		contentId?: string;
+		episodeOrder?: number;
+		seasonNumber?: number | null;
+		episodeNumber?: number | null;
+		title?: string | null;
+	};
+}
+
+export interface PlaylistAdminRemoveEpisodeInput {
+	id: string;
+}
+
 export interface GetPlaylistByIdWithEpisodesParams {
 	db: DbClient;
 	input: PlaylistGetByIdInput;
+}
+
+export interface ListPlaylistsParams {
+	db: DbClient;
+	input: PlaylistListInput;
 }
 
 export interface ListPlaylistEpisodesParams {
@@ -47,9 +88,29 @@ export interface CreatePlaylistParams {
 	creatorId: string;
 }
 
+export interface UpdatePlaylistParams {
+	db: DbClient;
+	input: PlaylistAdminUpdateInput;
+}
+
+export interface DeletePlaylistParams {
+	db: DbClient;
+	input: PlaylistAdminDeleteInput;
+}
+
 export interface AddEpisodeToPlaylistParams {
 	db: DbClient;
 	input: PlaylistAdminAddEpisodeInput;
+}
+
+export interface UpdatePlaylistEpisodeParams {
+	db: DbClient;
+	input: PlaylistAdminUpdateEpisodeInput;
+}
+
+export interface RemoveEpisodeFromPlaylistParams {
+	db: DbClient;
+	input: PlaylistAdminRemoveEpisodeInput;
 }
 
 export interface ReorderPlaylistEpisodesParams {
@@ -85,6 +146,27 @@ export interface PlaylistWithEpisodes {
 	episodes: PlaylistEpisodeWithContent[];
 }
 
+export interface PlaylistListResult {
+	items: (typeof playlist.$inferSelect)[];
+	pagination: {
+		page: number;
+		limit: number;
+		total: number;
+		totalPages: number;
+	};
+}
+
+export interface PlaylistDeleteResult {
+	id: string;
+	deleted: true;
+}
+
+export interface PlaylistEpisodeDeleteResult {
+	id: string;
+	playlistId: string;
+	deleted: true;
+}
+
 export class PlaylistNotFoundError extends Error {
 	constructor() {
 		super("Playlist not found");
@@ -103,5 +185,19 @@ export class PlaylistReorderValidationError extends Error {
 	constructor(message = "Invalid reorder payload for playlist episodes") {
 		super(message);
 		this.name = "PlaylistReorderValidationError";
+	}
+}
+
+export class PlaylistEpisodeNotFoundError extends Error {
+	constructor() {
+		super("Playlist episode not found");
+		this.name = "PlaylistEpisodeNotFoundError";
+	}
+}
+
+export class PlaylistEpisodeDuplicateContentError extends Error {
+	constructor() {
+		super("Content is already added to this playlist");
+		this.name = "PlaylistEpisodeDuplicateContentError";
 	}
 }
