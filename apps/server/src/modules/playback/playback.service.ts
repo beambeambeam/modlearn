@@ -462,12 +462,8 @@ async function ensureSessionViewAnalytics(params: {
 			watchDuration: 0,
 			deviceType: deviceType ?? session.deviceType ?? null,
 		})
-		.onConflictDoNothing({
-			target: [contentView.playbackSessionId],
-		})
-		.returning({
-			id: contentView.id,
-		});
+		.onConflictDoNothing()
+		.returning();
 
 	if (!created) {
 		return;
