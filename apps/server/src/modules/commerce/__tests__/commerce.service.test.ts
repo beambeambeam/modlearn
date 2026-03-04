@@ -28,13 +28,19 @@ import {
 	buyPlaylist,
 	computeCartTotal,
 	createCheckoutOrder,
+	createContentPricingWindow,
+	createPlaylistPricingWindow,
 	hasFullPlaylistOwnership,
 	listCart,
+	listContentPricingWindows,
+	listPlaylistPricingWindows,
 	markPaymentSuccess,
 	refundPayment,
 	removeCartItem,
 	resolveActiveContentPrice,
 	resolveActivePlaylistPrice,
+	updateContentPricingWindow,
+	updatePlaylistPricingWindow,
 	validateCartAddItemInput,
 } from "@/modules/commerce/commerce.service";
 import {
@@ -44,6 +50,9 @@ import {
 	CommerceItemAlreadyOwnedError,
 	CommerceOrderStateError,
 	CommercePriceNotFoundError,
+	CommercePricingWindowNotFoundError,
+	CommercePricingWindowOverlapError,
+	CommercePricingWindowValidationError,
 } from "@/modules/commerce/commerce.types";
 
 async function createPaidOrderFixture(testDb: TestDatabase, userId: string) {
@@ -317,6 +326,191 @@ describe("commerce service", () => {
 				playlistId: series.id,
 			})
 		).rejects.toThrow(CommerceItemAlreadyOwnedError);
+	});
+
+	it("manages content pricing windows with overlap checks and normalization", async () => {
+		const admin = await createTestUser(testDb.client, {
+			email: "commerce-content-pricing-admin@example.com",
+		});
+		const [pricedContent] = await testDb.db
+			.insert(content)
+			.values({
+				title: "Managed Content Pricing",
+				contentType: "MOVIE",
+				updatedBy: admin.id,
+			})
+			.returning();
+		if (!pricedContent) {
+			throw new Error("Failed to create content fixture");
+		}
+
+		const now = new Date();
+		const firstFrom = new Date(now.getTime() - 60 * 60 * 1000);
+		const firstTo = new Date(now.getTime() + 60 * 60 * 1000);
+		const secondTo = new Date(now.getTime() + 2 * 60 * 60 * 1000);
+
+		const created = await createContentPricingWindow({
+			db: testDb.db,
+			createdBy: admin.id,
+			input: {
+				contentId: pricedContent.id,
+				price: "19.99",
+				currency: "usd",
+				effectiveFrom: firstFrom,
+				effectiveTo: firstTo,
+			},
+		});
+		expect(created.currency).toBe("USD");
+		expect(created.isActive).toBe(true);
+
+		await expect(
+			createContentPricingWindow({
+				db: testDb.db,
+				createdBy: admin.id,
+				input: {
+					contentId: pricedContent.id,
+					price: "18.99",
+					currency: "USD",
+					effectiveFrom: new Date(now.getTime()),
+					effectiveTo: secondTo,
+				},
+			})
+		).rejects.toThrow(CommercePricingWindowOverlapError);
+
+		const touching = await createContentPricingWindow({
+			db: testDb.db,
+			createdBy: admin.id,
+			input: {
+				contentId: pricedContent.id,
+				price: "25.00",
+				currency: "usd",
+				effectiveFrom: firstTo,
+				effectiveTo: secondTo,
+			},
+		});
+		expect(touching.currency).toBe("USD");
+
+		const listed = await listContentPricingWindows({
+			db: testDb.db,
+			input: { contentId: pricedContent.id },
+		});
+		expect(listed.items).toHaveLength(2);
+
+		const updated = await updateContentPricingWindow({
+			db: testDb.db,
+			input: {
+				id: touching.id,
+				patch: {
+					currency: "thb",
+					price: "26.00",
+				},
+			},
+		});
+		expect(updated.currency).toBe("THB");
+		expect(updated.price).toBe("26.00");
+
+		await expect(
+			updateContentPricingWindow({
+				db: testDb.db,
+				input: {
+					id: touching.id,
+					patch: {
+						effectiveFrom: secondTo,
+						effectiveTo: firstTo,
+					},
+				},
+			})
+		).rejects.toThrow(CommercePricingWindowValidationError);
+
+		await expect(
+			updateContentPricingWindow({
+				db: testDb.db,
+				input: {
+					id: "00000000-0000-0000-0000-000000000000",
+					patch: { price: "11.00" },
+				},
+			})
+		).rejects.toThrow(CommercePricingWindowNotFoundError);
+	});
+
+	it("manages playlist pricing windows with inclusive-date overlap rules", async () => {
+		const admin = await createTestUser(testDb.client, {
+			email: "commerce-playlist-pricing-admin@example.com",
+		});
+		const [createdPlaylist] = await testDb.db
+			.insert(playlist)
+			.values({
+				creatorId: admin.id,
+				title: "Managed Playlist Pricing",
+			})
+			.returning();
+		if (!createdPlaylist) {
+			throw new Error("Failed to create playlist fixture");
+		}
+
+		const day1 = new Date("2026-03-01");
+		const day2 = new Date("2026-03-02");
+		const day3 = new Date("2026-03-03");
+		const day4 = new Date("2026-03-04");
+
+		const created = await createPlaylistPricingWindow({
+			db: testDb.db,
+			createdBy: admin.id,
+			input: {
+				playlistId: createdPlaylist.id,
+				price: "49.00",
+				currency: "usd",
+				effectiveFrom: day1,
+				effectiveTo: day2,
+			},
+		});
+		expect(created.currency).toBe("USD");
+
+		await expect(
+			createPlaylistPricingWindow({
+				db: testDb.db,
+				createdBy: admin.id,
+				input: {
+					playlistId: createdPlaylist.id,
+					price: "55.00",
+					currency: "USD",
+					effectiveFrom: day2,
+					effectiveTo: day4,
+				},
+			})
+		).rejects.toThrow(CommercePricingWindowOverlapError);
+
+		const nonOverlapping = await createPlaylistPricingWindow({
+			db: testDb.db,
+			createdBy: admin.id,
+			input: {
+				playlistId: createdPlaylist.id,
+				price: "60.00",
+				currency: "usd",
+				effectiveFrom: day3,
+				effectiveTo: day4,
+			},
+		});
+		expect(nonOverlapping.currency).toBe("USD");
+
+		const listed = await listPlaylistPricingWindows({
+			db: testDb.db,
+			input: { playlistId: createdPlaylist.id },
+		});
+		expect(listed.items).toHaveLength(2);
+
+		await expect(
+			updatePlaylistPricingWindow({
+				db: testDb.db,
+				input: {
+					id: nonOverlapping.id,
+					patch: {
+						effectiveFrom: day4,
+						effectiveTo: day3,
+					},
+				},
+			})
+		).rejects.toThrow(CommercePricingWindowValidationError);
 	});
 
 	it("supports cart add/list/remove and duplicate prevention", async () => {

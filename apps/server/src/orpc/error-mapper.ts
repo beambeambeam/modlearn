@@ -15,6 +15,9 @@ import {
 	CommercePlaylistEmptyError,
 	CommercePlaylistNotFoundError,
 	CommercePriceNotFoundError,
+	CommercePricingWindowNotFoundError,
+	CommercePricingWindowOverlapError,
+	CommercePricingWindowValidationError,
 } from "@/modules/commerce/commerce.types";
 import {
 	CategoryNotFoundError as ContentCategoryNotFoundError,
@@ -180,7 +183,8 @@ function mapCommerceDomainErrorToOrpc(
 	if (
 		error instanceof CommerceContentNotFoundError ||
 		error instanceof CommercePlaylistNotFoundError ||
-		error instanceof CommerceOrderNotFoundError
+		error instanceof CommerceOrderNotFoundError ||
+		error instanceof CommercePricingWindowNotFoundError
 	) {
 		return new ORPCError("NOT_FOUND", {
 			message: error.message,
@@ -190,7 +194,8 @@ function mapCommerceDomainErrorToOrpc(
 	if (
 		error instanceof CommerceItemAlreadyOwnedError ||
 		error instanceof CommerceDuplicateCartItemError ||
-		error instanceof CommercePaymentConflictError
+		error instanceof CommercePaymentConflictError ||
+		error instanceof CommercePricingWindowOverlapError
 	) {
 		return new ORPCError("CONFLICT", {
 			message: error.message,
@@ -202,7 +207,8 @@ function mapCommerceDomainErrorToOrpc(
 		error instanceof CommerceCurrencyMismatchError ||
 		error instanceof CommerceOrderStateError ||
 		error instanceof CommercePlaylistEmptyError ||
-		error instanceof CommerceInvalidCartItemError
+		error instanceof CommerceInvalidCartItemError ||
+		error instanceof CommercePricingWindowValidationError
 	) {
 		return new ORPCError("BAD_REQUEST", {
 			message: error.message,

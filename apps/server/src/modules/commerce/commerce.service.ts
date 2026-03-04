@@ -1,5 +1,18 @@
 import { randomUUID } from "node:crypto";
-import { and, desc, eq, gt, gte, inArray, isNull, lte, or } from "drizzle-orm";
+import {
+	and,
+	count,
+	desc,
+	eq,
+	gt,
+	gte,
+	inArray,
+	isNull,
+	lt,
+	lte,
+	ne,
+	or,
+} from "drizzle-orm";
 import type { DbClient } from "@/lib/db/orm";
 import {
 	cart,
@@ -26,6 +39,11 @@ import {
 	type CommerceCheckoutCreateOrderInput,
 	type CommerceCheckoutOrderView,
 	CommerceContentNotFoundError,
+	type CommerceContentPricingCreateInput,
+	type CommerceContentPricingListInput,
+	type CommerceContentPricingListView,
+	type CommerceContentPricingUpdateInput,
+	type CommerceContentPricingWindowView,
 	CommerceCurrencyMismatchError,
 	CommerceDuplicateCartItemError,
 	CommerceInvalidCartItemError,
@@ -40,8 +58,16 @@ import {
 	type CommercePaymentSuccessView,
 	CommercePlaylistEmptyError,
 	CommercePlaylistNotFoundError,
+	type CommercePlaylistPricingCreateInput,
+	type CommercePlaylistPricingListInput,
+	type CommercePlaylistPricingListView,
+	type CommercePlaylistPricingUpdateInput,
+	type CommercePlaylistPricingWindowView,
 	CommercePriceNotFoundError,
 	type CommercePriceSnapshot,
+	CommercePricingWindowNotFoundError,
+	CommercePricingWindowOverlapError,
+	CommercePricingWindowValidationError,
 	type CommerceRefundView,
 } from "./commerce.types";
 
@@ -231,6 +257,375 @@ export function resolveActivePrice(
 		return resolveActiveContentPrice(query);
 	}
 	return resolveActivePlaylistPrice(query);
+}
+
+function toContentPricingWindowView(params: {
+	row: typeof contentPricing.$inferSelect;
+	now?: Date;
+}): CommerceContentPricingWindowView {
+	const { row, now = new Date() } = params;
+	const isActive =
+		row.effectiveFrom <= now &&
+		(row.effectiveTo === null || row.effectiveTo > now);
+	return {
+		id: row.id,
+		contentId: row.contentId,
+		price: row.price,
+		currency: row.currency.toUpperCase(),
+		effectiveFrom: row.effectiveFrom,
+		effectiveTo: row.effectiveTo,
+		createdBy: row.createdBy,
+		createdAt: row.createdAt,
+		isActive,
+	};
+}
+
+function toPlaylistPricingWindowView(params: {
+	row: typeof playlistPricing.$inferSelect;
+	now?: Date;
+}): CommercePlaylistPricingWindowView {
+	const { row, now = new Date() } = params;
+	const todayDate = new Date(
+		Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())
+	);
+	const isActive =
+		row.effectiveFrom <= todayDate &&
+		(row.effectiveTo === null || row.effectiveTo >= todayDate);
+	return {
+		id: row.id,
+		playlistId: row.playlistId,
+		price: row.price,
+		currency: row.currency.toUpperCase(),
+		effectiveFrom: row.effectiveFrom,
+		effectiveTo: row.effectiveTo,
+		createdBy: row.createdBy,
+		createdAt: row.createdAt,
+		isActive,
+	};
+}
+
+function assertContentPricingWindowValidity(params: {
+	effectiveFrom: Date;
+	effectiveTo: Date | null;
+}) {
+	const { effectiveFrom, effectiveTo } = params;
+	if (effectiveTo && effectiveTo <= effectiveFrom) {
+		throw new CommercePricingWindowValidationError(
+			"effectiveTo must be greater than effectiveFrom"
+		);
+	}
+}
+
+function assertPlaylistPricingWindowValidity(params: {
+	effectiveFrom: Date;
+	effectiveTo: Date | null;
+}) {
+	const { effectiveFrom, effectiveTo } = params;
+	if (effectiveTo && effectiveTo < effectiveFrom) {
+		throw new CommercePricingWindowValidationError(
+			"effectiveTo must be greater than or equal to effectiveFrom"
+		);
+	}
+}
+
+async function assertNoContentPricingOverlap(params: {
+	db: DbClient;
+	contentId: string;
+	effectiveFrom: Date;
+	effectiveTo: Date | null;
+	excludeId?: string;
+}) {
+	const { db, contentId, effectiveFrom, effectiveTo, excludeId } = params;
+	const overlap = await db.query.contentPricing.findFirst({
+		where: and(
+			eq(contentPricing.contentId, contentId),
+			excludeId ? ne(contentPricing.id, excludeId) : undefined,
+			effectiveTo ? lt(contentPricing.effectiveFrom, effectiveTo) : undefined,
+			or(
+				isNull(contentPricing.effectiveTo),
+				gt(contentPricing.effectiveTo, effectiveFrom)
+			)
+		),
+		columns: { id: true },
+	});
+
+	if (overlap) {
+		throw new CommercePricingWindowOverlapError();
+	}
+}
+
+async function assertNoPlaylistPricingOverlap(params: {
+	db: DbClient;
+	playlistId: string;
+	effectiveFrom: Date;
+	effectiveTo: Date | null;
+	excludeId?: string;
+}) {
+	const { db, playlistId, effectiveFrom, effectiveTo, excludeId } = params;
+	const overlap = await db.query.playlistPricing.findFirst({
+		where: and(
+			eq(playlistPricing.playlistId, playlistId),
+			excludeId ? ne(playlistPricing.id, excludeId) : undefined,
+			effectiveTo ? lte(playlistPricing.effectiveFrom, effectiveTo) : undefined,
+			or(
+				isNull(playlistPricing.effectiveTo),
+				gte(playlistPricing.effectiveTo, effectiveFrom)
+			)
+		),
+		columns: { id: true },
+	});
+
+	if (overlap) {
+		throw new CommercePricingWindowOverlapError();
+	}
+}
+
+export async function listContentPricingWindows(params: {
+	db: DbClient;
+	input: CommerceContentPricingListInput;
+}): Promise<CommerceContentPricingListView> {
+	const { db, input } = params;
+	const page = input.page ?? 1;
+	const limit = input.limit ?? 20;
+	const offset = (page - 1) * limit;
+	await assertContentExists(db, input.contentId);
+
+	const [countRow] = await db
+		.select({ total: count() })
+		.from(contentPricing)
+		.where(eq(contentPricing.contentId, input.contentId));
+	const total = Number(countRow?.total ?? 0);
+
+	const rows = await db.query.contentPricing.findMany({
+		where: eq(contentPricing.contentId, input.contentId),
+		orderBy: [
+			desc(contentPricing.effectiveFrom),
+			desc(contentPricing.createdAt),
+			desc(contentPricing.id),
+		],
+		limit,
+		offset,
+	});
+
+	return {
+		items: rows.map((row) => toContentPricingWindowView({ row })),
+		pagination: {
+			page,
+			limit,
+			total,
+			totalPages: total === 0 ? 0 : Math.ceil(total / limit),
+		},
+	};
+}
+
+export async function createContentPricingWindow(params: {
+	db: DbClient;
+	createdBy: string;
+	input: CommerceContentPricingCreateInput;
+}): Promise<CommerceContentPricingWindowView> {
+	const { db, createdBy, input } = params;
+	await assertContentExists(db, input.contentId);
+	const effectiveTo = input.effectiveTo ?? null;
+	assertContentPricingWindowValidity({
+		effectiveFrom: input.effectiveFrom,
+		effectiveTo,
+	});
+	await assertNoContentPricingOverlap({
+		db,
+		contentId: input.contentId,
+		effectiveFrom: input.effectiveFrom,
+		effectiveTo,
+	});
+
+	const [created] = await db
+		.insert(contentPricing)
+		.values({
+			contentId: input.contentId,
+			price: input.price,
+			currency: input.currency.toUpperCase(),
+			effectiveFrom: input.effectiveFrom,
+			effectiveTo,
+			createdBy,
+		})
+		.returning();
+
+	if (!created) {
+		throw new Error("Failed to create content pricing window");
+	}
+
+	return toContentPricingWindowView({ row: created });
+}
+
+export async function updateContentPricingWindow(params: {
+	db: DbClient;
+	input: CommerceContentPricingUpdateInput;
+}): Promise<CommerceContentPricingWindowView> {
+	const { db, input } = params;
+	const existing = await db.query.contentPricing.findFirst({
+		where: eq(contentPricing.id, input.id),
+	});
+	if (!existing) {
+		throw new CommercePricingWindowNotFoundError();
+	}
+
+	const nextEffectiveFrom = input.patch.effectiveFrom ?? existing.effectiveFrom;
+	const nextEffectiveTo =
+		input.patch.effectiveTo === undefined
+			? existing.effectiveTo
+			: input.patch.effectiveTo;
+	assertContentPricingWindowValidity({
+		effectiveFrom: nextEffectiveFrom,
+		effectiveTo: nextEffectiveTo,
+	});
+	await assertNoContentPricingOverlap({
+		db,
+		contentId: existing.contentId,
+		effectiveFrom: nextEffectiveFrom,
+		effectiveTo: nextEffectiveTo,
+		excludeId: existing.id,
+	});
+
+	const [updated] = await db
+		.update(contentPricing)
+		.set({
+			price: input.patch.price ?? existing.price,
+			currency:
+				input.patch.currency?.toUpperCase() ?? existing.currency.toUpperCase(),
+			effectiveFrom: nextEffectiveFrom,
+			effectiveTo: nextEffectiveTo,
+		})
+		.where(eq(contentPricing.id, input.id))
+		.returning();
+
+	if (!updated) {
+		throw new CommercePricingWindowNotFoundError();
+	}
+
+	return toContentPricingWindowView({ row: updated });
+}
+
+export async function listPlaylistPricingWindows(params: {
+	db: DbClient;
+	input: CommercePlaylistPricingListInput;
+}): Promise<CommercePlaylistPricingListView> {
+	const { db, input } = params;
+	const page = input.page ?? 1;
+	const limit = input.limit ?? 20;
+	const offset = (page - 1) * limit;
+	await assertPlaylistExists(db, input.playlistId);
+
+	const [countRow] = await db
+		.select({ total: count() })
+		.from(playlistPricing)
+		.where(eq(playlistPricing.playlistId, input.playlistId));
+	const total = Number(countRow?.total ?? 0);
+
+	const rows = await db.query.playlistPricing.findMany({
+		where: eq(playlistPricing.playlistId, input.playlistId),
+		orderBy: [
+			desc(playlistPricing.effectiveFrom),
+			desc(playlistPricing.createdAt),
+			desc(playlistPricing.id),
+		],
+		limit,
+		offset,
+	});
+
+	return {
+		items: rows.map((row) => toPlaylistPricingWindowView({ row })),
+		pagination: {
+			page,
+			limit,
+			total,
+			totalPages: total === 0 ? 0 : Math.ceil(total / limit),
+		},
+	};
+}
+
+export async function createPlaylistPricingWindow(params: {
+	db: DbClient;
+	createdBy: string;
+	input: CommercePlaylistPricingCreateInput;
+}): Promise<CommercePlaylistPricingWindowView> {
+	const { db, createdBy, input } = params;
+	await assertPlaylistExists(db, input.playlistId);
+	const effectiveTo = input.effectiveTo ?? null;
+	assertPlaylistPricingWindowValidity({
+		effectiveFrom: input.effectiveFrom,
+		effectiveTo,
+	});
+	await assertNoPlaylistPricingOverlap({
+		db,
+		playlistId: input.playlistId,
+		effectiveFrom: input.effectiveFrom,
+		effectiveTo,
+	});
+
+	const [created] = await db
+		.insert(playlistPricing)
+		.values({
+			playlistId: input.playlistId,
+			price: input.price,
+			currency: input.currency.toUpperCase(),
+			effectiveFrom: input.effectiveFrom,
+			effectiveTo,
+			createdBy,
+		})
+		.returning();
+
+	if (!created) {
+		throw new Error("Failed to create playlist pricing window");
+	}
+
+	return toPlaylistPricingWindowView({ row: created });
+}
+
+export async function updatePlaylistPricingWindow(params: {
+	db: DbClient;
+	input: CommercePlaylistPricingUpdateInput;
+}): Promise<CommercePlaylistPricingWindowView> {
+	const { db, input } = params;
+	const existing = await db.query.playlistPricing.findFirst({
+		where: eq(playlistPricing.id, input.id),
+	});
+	if (!existing) {
+		throw new CommercePricingWindowNotFoundError();
+	}
+
+	const nextEffectiveFrom = input.patch.effectiveFrom ?? existing.effectiveFrom;
+	const nextEffectiveTo =
+		input.patch.effectiveTo === undefined
+			? existing.effectiveTo
+			: input.patch.effectiveTo;
+	assertPlaylistPricingWindowValidity({
+		effectiveFrom: nextEffectiveFrom,
+		effectiveTo: nextEffectiveTo,
+	});
+	await assertNoPlaylistPricingOverlap({
+		db,
+		playlistId: existing.playlistId,
+		effectiveFrom: nextEffectiveFrom,
+		effectiveTo: nextEffectiveTo,
+		excludeId: existing.id,
+	});
+
+	const [updated] = await db
+		.update(playlistPricing)
+		.set({
+			price: input.patch.price ?? existing.price,
+			currency:
+				input.patch.currency?.toUpperCase() ?? existing.currency.toUpperCase(),
+			effectiveFrom: nextEffectiveFrom,
+			effectiveTo: nextEffectiveTo,
+		})
+		.where(eq(playlistPricing.id, input.id))
+		.returning();
+
+	if (!updated) {
+		throw new CommercePricingWindowNotFoundError();
+	}
+
+	return toPlaylistPricingWindowView({ row: updated });
 }
 
 export async function listOwnedContentIds(params: {

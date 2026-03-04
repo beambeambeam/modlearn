@@ -1,16 +1,33 @@
 import { z } from "zod";
+import { logAdminMutation } from "@/modules/admin-audit/admin-audit.service";
 import {
 	addCartItem,
 	buyContent,
 	buyPlaylist,
 	confirmPaymentWebhook,
 	createCheckoutOrder,
+	createContentPricingWindow,
+	createPlaylistPricingWindow,
 	listCart,
+	listContentPricingWindows,
+	listPlaylistPricingWindows,
 	markPaymentSuccess,
 	refundPayment,
 	removeCartItem,
+	updateContentPricingWindow,
+	updatePlaylistPricingWindow,
 } from "@/modules/commerce/commerce.service";
 import {
+	commerceAdminContentPricingCreateInputSchema,
+	commerceAdminContentPricingListInputSchema,
+	commerceAdminContentPricingListOutputSchema,
+	commerceAdminContentPricingOutputSchema,
+	commerceAdminContentPricingUpdateInputSchema,
+	commerceAdminPlaylistPricingCreateInputSchema,
+	commerceAdminPlaylistPricingListInputSchema,
+	commerceAdminPlaylistPricingListOutputSchema,
+	commerceAdminPlaylistPricingOutputSchema,
+	commerceAdminPlaylistPricingUpdateInputSchema,
 	commerceBuyContentInputSchema,
 	commerceBuyOutputSchema,
 	commerceBuyPlaylistInputSchema,
@@ -25,7 +42,7 @@ import {
 	commercePaymentRefundOutputSchema,
 	commercePaymentSuccessOutputSchema,
 } from "@/modules/commerce/commerce.validators";
-import { protectedProcedure, router } from "@/orpc";
+import { adminProcedure, protectedProcedure, router } from "@/orpc";
 
 export const commerceRouter = router({
 	cart: router({
@@ -191,5 +208,155 @@ export const commerceRouter = router({
 					input,
 				});
 			}),
+	}),
+	adminPricing: router({
+		content: router({
+			list: adminProcedure
+				.route({
+					method: "POST",
+					path: "/rpc/commerce/adminPricing/content/list",
+					tags: ["Commerce"],
+					summary: "Admin list content pricing windows",
+					description: "Requires admin or superadmin role.",
+				})
+				.input(commerceAdminContentPricingListInputSchema)
+				.output(commerceAdminContentPricingListOutputSchema)
+				.handler(({ context, input }) => {
+					return listContentPricingWindows({
+						db: context.db,
+						input,
+					});
+				}),
+			create: adminProcedure
+				.route({
+					method: "POST",
+					path: "/rpc/commerce/adminPricing/content/create",
+					tags: ["Commerce"],
+					summary: "Admin create content pricing window",
+					description: "Requires admin or superadmin role.",
+				})
+				.input(commerceAdminContentPricingCreateInputSchema)
+				.output(commerceAdminContentPricingOutputSchema)
+				.handler(async ({ context, input }) => {
+					const created = await createContentPricingWindow({
+						db: context.db,
+						createdBy: context.session.user.id,
+						input,
+					});
+					await logAdminMutation({
+						context,
+						entityType: "CONTENT",
+						action: "UPDATE",
+						entityId: created.contentId,
+						metadata: {
+							operation: "CREATE_PRICING",
+							pricingId: created.id,
+						},
+					});
+					return created;
+				}),
+			update: adminProcedure
+				.route({
+					method: "POST",
+					path: "/rpc/commerce/adminPricing/content/update",
+					tags: ["Commerce"],
+					summary: "Admin update content pricing window",
+					description: "Requires admin or superadmin role.",
+				})
+				.input(commerceAdminContentPricingUpdateInputSchema)
+				.output(commerceAdminContentPricingOutputSchema)
+				.handler(async ({ context, input }) => {
+					const updated = await updateContentPricingWindow({
+						db: context.db,
+						input,
+					});
+					await logAdminMutation({
+						context,
+						entityType: "CONTENT",
+						action: "UPDATE",
+						entityId: updated.contentId,
+						metadata: {
+							operation: "UPDATE_PRICING",
+							pricingId: updated.id,
+							patchKeys: Object.keys(input.patch),
+						},
+					});
+					return updated;
+				}),
+		}),
+		playlist: router({
+			list: adminProcedure
+				.route({
+					method: "POST",
+					path: "/rpc/commerce/adminPricing/playlist/list",
+					tags: ["Commerce"],
+					summary: "Admin list playlist pricing windows",
+					description: "Requires admin or superadmin role.",
+				})
+				.input(commerceAdminPlaylistPricingListInputSchema)
+				.output(commerceAdminPlaylistPricingListOutputSchema)
+				.handler(({ context, input }) => {
+					return listPlaylistPricingWindows({
+						db: context.db,
+						input,
+					});
+				}),
+			create: adminProcedure
+				.route({
+					method: "POST",
+					path: "/rpc/commerce/adminPricing/playlist/create",
+					tags: ["Commerce"],
+					summary: "Admin create playlist pricing window",
+					description: "Requires admin or superadmin role.",
+				})
+				.input(commerceAdminPlaylistPricingCreateInputSchema)
+				.output(commerceAdminPlaylistPricingOutputSchema)
+				.handler(async ({ context, input }) => {
+					const created = await createPlaylistPricingWindow({
+						db: context.db,
+						createdBy: context.session.user.id,
+						input,
+					});
+					await logAdminMutation({
+						context,
+						entityType: "PLAYLIST",
+						action: "UPDATE",
+						entityId: created.playlistId,
+						metadata: {
+							operation: "CREATE_PRICING",
+							pricingId: created.id,
+						},
+					});
+					return created;
+				}),
+			update: adminProcedure
+				.route({
+					method: "POST",
+					path: "/rpc/commerce/adminPricing/playlist/update",
+					tags: ["Commerce"],
+					summary: "Admin update playlist pricing window",
+					description: "Requires admin or superadmin role.",
+				})
+				.input(commerceAdminPlaylistPricingUpdateInputSchema)
+				.output(commerceAdminPlaylistPricingOutputSchema)
+				.handler(async ({ context, input }) => {
+					const updated = await updatePlaylistPricingWindow({
+						db: context.db,
+						input,
+					});
+					await logAdminMutation({
+						context,
+						entityType: "PLAYLIST",
+						action: "UPDATE",
+						entityId: updated.playlistId,
+						metadata: {
+							operation: "UPDATE_PRICING",
+							pricingId: updated.id,
+							patchKeys: Object.keys(input.patch),
+						},
+					});
+					return updated;
+				}),
+		}),
 	}),
 });

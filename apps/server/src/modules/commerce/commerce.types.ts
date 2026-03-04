@@ -91,6 +91,95 @@ export interface CommerceBuyView {
 	grantedContentCount: number;
 }
 
+export interface CommercePricingPagination {
+	page: number;
+	limit: number;
+	total: number;
+	totalPages: number;
+}
+
+export interface CommerceContentPricingWindowView {
+	id: string;
+	contentId: string;
+	price: string;
+	currency: string;
+	effectiveFrom: Date;
+	effectiveTo: Date | null;
+	createdBy: string;
+	createdAt: Date;
+	isActive: boolean;
+}
+
+export interface CommercePlaylistPricingWindowView {
+	id: string;
+	playlistId: string;
+	price: string;
+	currency: string;
+	effectiveFrom: Date;
+	effectiveTo: Date | null;
+	createdBy: string;
+	createdAt: Date;
+	isActive: boolean;
+}
+
+export interface CommerceContentPricingListInput {
+	contentId: string;
+	page?: number;
+	limit?: number;
+}
+
+export interface CommercePlaylistPricingListInput {
+	playlistId: string;
+	page?: number;
+	limit?: number;
+}
+
+export interface CommerceContentPricingCreateInput {
+	contentId: string;
+	price: string;
+	currency: string;
+	effectiveFrom: Date;
+	effectiveTo?: Date | null;
+}
+
+export interface CommercePlaylistPricingCreateInput {
+	playlistId: string;
+	price: string;
+	currency: string;
+	effectiveFrom: Date;
+	effectiveTo?: Date | null;
+}
+
+export interface CommerceContentPricingUpdateInput {
+	id: string;
+	patch: {
+		price?: string;
+		currency?: string;
+		effectiveFrom?: Date;
+		effectiveTo?: Date | null;
+	};
+}
+
+export interface CommercePlaylistPricingUpdateInput {
+	id: string;
+	patch: {
+		price?: string;
+		currency?: string;
+		effectiveFrom?: Date;
+		effectiveTo?: Date | null;
+	};
+}
+
+export interface CommerceContentPricingListView {
+	items: CommerceContentPricingWindowView[];
+	pagination: CommercePricingPagination;
+}
+
+export interface CommercePlaylistPricingListView {
+	items: CommercePlaylistPricingWindowView[];
+	pagination: CommercePricingPagination;
+}
+
 export interface CommerceServiceBaseParams {
 	db: DbClient;
 	userId: string;
@@ -150,6 +239,27 @@ export class CommercePriceNotFoundError extends Error {
 	constructor() {
 		super("Active price not found");
 		this.name = "CommercePriceNotFoundError";
+	}
+}
+
+export class CommercePricingWindowNotFoundError extends Error {
+	constructor() {
+		super("Pricing window not found");
+		this.name = "CommercePricingWindowNotFoundError";
+	}
+}
+
+export class CommercePricingWindowOverlapError extends Error {
+	constructor(message = "Pricing window overlaps with an existing window") {
+		super(message);
+		this.name = "CommercePricingWindowOverlapError";
+	}
+}
+
+export class CommercePricingWindowValidationError extends Error {
+	constructor(message = "Invalid pricing window") {
+		super(message);
+		this.name = "CommercePricingWindowValidationError";
 	}
 }
 
