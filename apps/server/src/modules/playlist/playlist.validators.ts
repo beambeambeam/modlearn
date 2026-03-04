@@ -11,6 +11,14 @@ export const playlistListInputSchema = z.object({
 	isSeries: z.boolean().optional(),
 });
 
+export const playlistAdminListInputSchema = playlistListInputSchema.extend({
+	onlyPublished: z.boolean().default(false),
+});
+
+export const playlistAdminByIdInputSchema = playlistByIdInputSchema.extend({
+	onlyPublished: z.boolean().default(false),
+});
+
 export const playlistListEpisodesInputSchema = z.object({
 	playlistId: z.uuid(),
 	seasonNumber: z.number().int().min(1).optional(),
@@ -35,6 +43,16 @@ export const playlistAdminUpdateInputSchema = z.object({
 
 export const playlistAdminDeleteInputSchema = z.object({
 	id: z.uuid(),
+});
+
+export const playlistAdminSetPublishStateInputSchema = z.object({
+	id: z.uuid(),
+	isPublished: z.boolean(),
+});
+
+export const playlistAdminSetAvailabilityInputSchema = z.object({
+	id: z.uuid(),
+	isAvailable: z.boolean(),
 });
 
 export const playlistAdminAddEpisodeInputSchema = z.object({
@@ -104,6 +122,9 @@ export const playlistSchema = z.object({
 	description: z.string().nullable(),
 	thumbnailImageId: z.string().nullable(),
 	isSeries: z.boolean(),
+	isPublished: z.boolean(),
+	publishedAt: z.date().nullable(),
+	isAvailable: z.boolean(),
 	createdAt: z.date(),
 	updatedAt: z.date(),
 });

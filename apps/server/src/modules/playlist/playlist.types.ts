@@ -5,6 +5,10 @@ export interface PlaylistGetByIdInput {
 	id: string;
 }
 
+export interface PlaylistAdminGetByIdInput extends PlaylistGetByIdInput {
+	onlyPublished?: boolean;
+}
+
 export interface PlaylistListEpisodesInput {
 	playlistId: string;
 	seasonNumber?: number;
@@ -15,6 +19,10 @@ export interface PlaylistListInput {
 	limit?: number;
 	search?: string;
 	isSeries?: boolean;
+}
+
+export interface PlaylistAdminListInput extends PlaylistListInput {
+	onlyPublished?: boolean;
 }
 
 export interface PlaylistAdminCreateInput {
@@ -36,6 +44,16 @@ export interface PlaylistAdminUpdateInput {
 
 export interface PlaylistAdminDeleteInput {
 	id: string;
+}
+
+export interface PlaylistAdminSetPublishStateInput {
+	id: string;
+	isPublished: boolean;
+}
+
+export interface PlaylistAdminSetAvailabilityInput {
+	id: string;
+	isAvailable: boolean;
 }
 
 export interface PlaylistAdminAddEpisodeInput {
@@ -69,12 +87,12 @@ export interface PlaylistAdminRemoveEpisodeInput {
 
 export interface GetPlaylistByIdWithEpisodesParams {
 	db: DbClient;
-	input: PlaylistGetByIdInput;
+	input: PlaylistAdminGetByIdInput;
 }
 
 export interface ListPlaylistsParams {
 	db: DbClient;
-	input: PlaylistListInput;
+	input: PlaylistAdminListInput;
 }
 
 export interface ListPlaylistEpisodesParams {
@@ -96,6 +114,16 @@ export interface UpdatePlaylistParams {
 export interface DeletePlaylistParams {
 	db: DbClient;
 	input: PlaylistAdminDeleteInput;
+}
+
+export interface SetPlaylistPublishStateParams {
+	db: DbClient;
+	input: PlaylistAdminSetPublishStateInput;
+}
+
+export interface SetPlaylistAvailabilityParams {
+	db: DbClient;
+	input: PlaylistAdminSetAvailabilityInput;
 }
 
 export interface AddEpisodeToPlaylistParams {
@@ -141,6 +169,9 @@ export interface PlaylistWithEpisodes {
 	description: string | null;
 	thumbnailImageId: string | null;
 	isSeries: boolean;
+	isPublished: boolean;
+	publishedAt: Date | null;
+	isAvailable: boolean;
 	createdAt: Date;
 	updatedAt: Date;
 	episodes: PlaylistEpisodeWithContent[];
