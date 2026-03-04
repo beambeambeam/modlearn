@@ -27,11 +27,15 @@ export const playlist = pgTable(
 			onDelete: "set null",
 		}),
 		isSeries: boolean("is_series").default(true).notNull(),
+		isPublished: boolean("is_published").default(false).notNull(),
+		publishedAt: timestamp("published_at", { withTimezone: true }),
+		isAvailable: boolean("is_available").default(true).notNull(),
 		...timestamps,
 	},
 	(table) => [
 		index("playlist_creatorId_idx").on(table.creatorId),
 		index("playlist_series_idx").on(table.isSeries),
+		index("playlist_published_idx").on(table.isPublished, table.publishedAt),
 	]
 );
 
