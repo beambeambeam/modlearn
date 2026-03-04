@@ -100,6 +100,13 @@ export const contentClassificationItemSchema = z.object({
 	description: z.string().nullable(),
 });
 
+export const activePricingSchema = z
+	.object({
+		price: z.string(),
+		currency: z.string(),
+	})
+	.nullable();
+
 export const contentSchema = z.object({
 	id: z.uuid(),
 	title: z.string(),
@@ -118,6 +125,7 @@ export const contentSchema = z.object({
 	updatedBy: z.string(),
 	createdAt: z.date(),
 	updatedAt: z.date(),
+	activePricing: activePricingSchema.default(null),
 });
 
 export const contentListOutputSchema = z.object({

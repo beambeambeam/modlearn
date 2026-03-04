@@ -5,17 +5,28 @@ import {
 	desc,
 	eq,
 	exists,
+	gt,
 	ilike,
 	inArray,
+	isNull,
+	lte,
+	or,
 	type SQL,
 	sql,
 } from "drizzle-orm";
 import type { DbClient } from "@/lib/db/orm";
-import { category, content, contentCategory } from "@/lib/db/schema";
+import {
+	category,
+	content,
+	contentCategory,
+	contentPricing,
+} from "@/lib/db/schema";
 import type {
+	ActivePricing,
 	BuildFiltersInput,
 	ContentClassificationResult,
 	ContentDetailResult,
+	ContentWithActivePricing,
 	CreateContentParams,
 	DeleteContentParams,
 	DeleteContentResult,
@@ -109,6 +120,41 @@ function buildContentFilters(
 	return and(...conditions);
 }
 
+async function resolveActivePricing(params: {
+	db: DbClient;
+	contentId: string;
+	now?: Date;
+}): Promise<ActivePricing | null> {
+	const { db, contentId, now = new Date() } = params;
+	const row = await db.query.contentPricing.findFirst({
+		where: and(
+			eq(contentPricing.contentId, contentId),
+			lte(contentPricing.effectiveFrom, now),
+			or(
+				isNull(contentPricing.effectiveTo),
+				gt(contentPricing.effectiveTo, now)
+			)
+		),
+		orderBy: [
+			desc(contentPricing.effectiveFrom),
+			desc(contentPricing.createdAt),
+		],
+		columns: {
+			price: true,
+			currency: true,
+		},
+	});
+
+	if (!row) {
+		return null;
+	}
+
+	return {
+		price: row.price,
+		currency: row.currency.toUpperCase(),
+	};
+}
+
 export async function listContent(
 	params: ListContentParams
 ): Promise<ListContentResult> {
@@ -144,9 +190,18 @@ export async function listContent(
 		.orderBy(...orderByClause)
 		.limit(limit)
 		.offset(offset);
+	const itemsWithPricing: ContentWithActivePricing[] = await Promise.all(
+		items.map(async (item) => ({
+			...item,
+			activePricing: await resolveActivePricing({
+				db,
+				contentId: item.id,
+			}),
+		}))
+	);
 
 	return {
-		items,
+		items: itemsWithPricing,
 		pagination: {
 			page,
 			limit,
@@ -177,28 +232,43 @@ export async function getContentById(
 		db,
 		contentId: row.id,
 	});
+	const activePricing = await resolveActivePricing({
+		db,
+		contentId: row.id,
+	});
 
 	return {
 		...row,
+		activePricing,
 		categories: classification.categories,
 	};
 }
 
-export function listPopularContent(
+export async function listPopularContent(
 	params: ListPopularContentParams
-): Promise<(typeof content.$inferSelect)[]> {
+): Promise<ContentWithActivePricing[]> {
 	const { db, input } = params;
 	const limit = input.limit ?? 10;
 	const filters = buildContentFilters(db, {
 		onlyPublished: true,
 	});
 
-	return db
+	const rows = await db
 		.select()
 		.from(content)
 		.where(filters)
 		.orderBy(desc(content.viewCount), desc(content.createdAt), desc(content.id))
 		.limit(limit);
+
+	return Promise.all(
+		rows.map(async (row) => ({
+			...row,
+			activePricing: await resolveActivePricing({
+				db,
+				contentId: row.id,
+			}),
+		}))
+	);
 }
 
 export async function createContent(

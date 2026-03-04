@@ -5,7 +5,12 @@ import {
 	resetTestDatabase,
 	type TestDatabase,
 } from "@/__tests__/helpers/test-db";
-import { adminAuditLog, category, content } from "@/lib/db/schema";
+import {
+	adminAuditLog,
+	category,
+	content,
+	contentPricing,
+} from "@/lib/db/schema";
 import {
 	createCaller,
 	makeAuthenticatedContext,
@@ -27,40 +32,84 @@ describe("content router", () => {
 		await testDb.cleanup();
 	});
 
-	it("allows public access to list/getById/listPopular", async () => {
+	it("allows public access to list/getById/listPopular with active pricing", async () => {
 		const admin = await createTestUser(testDb.client, {
 			email: "router-public-admin@example.com",
 			role: "admin",
 		});
 
-		const [created] = await testDb.db
+		const [pricedContent, noPriceContent] = await testDb.db
 			.insert(content)
-			.values({
-				title: "Public Content",
-				contentType: "MOVIE",
-				updatedBy: admin.id,
-				isPublished: true,
-				isAvailable: true,
-				publishedAt: new Date("2025-01-01T00:00:00.000Z"),
-			})
+			.values([
+				{
+					title: "Public Content",
+					contentType: "MOVIE",
+					updatedBy: admin.id,
+					isPublished: true,
+					isAvailable: true,
+					publishedAt: new Date("2025-01-01T00:00:00.000Z"),
+					viewCount: 200,
+				},
+				{
+					title: "No Price Content",
+					contentType: "MOVIE",
+					updatedBy: admin.id,
+					isPublished: true,
+					isAvailable: true,
+					publishedAt: new Date("2025-01-01T00:00:00.000Z"),
+				},
+			])
 			.returning();
 
-		if (!created) {
+		if (!(pricedContent && noPriceContent)) {
 			throw new Error("Failed to create content for public router test");
 		}
+
+		await testDb.db.insert(contentPricing).values({
+			contentId: pricedContent.id,
+			price: "12.50",
+			currency: "usd",
+			effectiveFrom: new Date("2025-01-01T00:00:00.000Z"),
+			createdBy: admin.id,
+		});
 
 		const caller = createCaller(makeTestContext({ db: testDb.db }));
 
 		const listResult = await caller.content.list({});
-		expect(listResult.items).toHaveLength(1);
+		expect(listResult.items).toHaveLength(2);
+		const pricedFromList = listResult.items.find(
+			(item) => item.id === pricedContent.id
+		);
+		const noPriceFromList = listResult.items.find(
+			(item) => item.id === noPriceContent.id
+		);
+		expect(pricedFromList?.activePricing).toEqual({
+			price: "12.50",
+			currency: "USD",
+		});
+		expect(noPriceFromList?.activePricing).toBeNull();
 
-		const detailResult = await caller.content.getById({ id: created.id });
-		expect(detailResult.id).toBe(created.id);
+		const detailResult = await caller.content.getById({ id: pricedContent.id });
+		expect(detailResult.id).toBe(pricedContent.id);
 		expect(detailResult.categories).toEqual([]);
 		expect("genres" in detailResult).toBe(false);
+		expect(detailResult.activePricing).toEqual({
+			price: "12.50",
+			currency: "USD",
+		});
+
+		const noPriceDetailResult = await caller.content.getById({
+			id: noPriceContent.id,
+		});
+		expect(noPriceDetailResult.activePricing).toBeNull();
 
 		const popularResult = await caller.content.listPopular({});
-		expect(popularResult).toHaveLength(1);
+		expect(popularResult).toHaveLength(2);
+		expect(popularResult[0]?.id).toBe(pricedContent.id);
+		expect(popularResult[0]?.activePricing).toEqual({
+			price: "12.50",
+			currency: "USD",
+		});
 	});
 
 	it("rejects invalid list/getById input", async () => {

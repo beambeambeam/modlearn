@@ -3,14 +3,24 @@ import {
 	count,
 	desc,
 	eq,
+	gte,
 	ilike,
 	inArray,
+	isNull,
+	lte,
+	or,
 	type SQL,
 	sql,
 } from "drizzle-orm";
 import type { DbClient } from "@/lib/db/orm";
-import { content, playlist, playlistEpisode } from "@/lib/db/schema";
+import {
+	content,
+	playlist,
+	playlistEpisode,
+	playlistPricing,
+} from "@/lib/db/schema";
 import type {
+	ActivePricing,
 	AddEpisodeToPlaylistParams,
 	CreatePlaylistParams,
 	DeletePlaylistParams,
@@ -46,6 +56,44 @@ function whereFromConditions(
 	}
 
 	return and(...conditions);
+}
+
+async function resolveActivePricing(params: {
+	db: DbClient;
+	playlistId: string;
+	now?: Date;
+}): Promise<ActivePricing | null> {
+	const { db, playlistId, now = new Date() } = params;
+	const todayDate = new Date(
+		Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())
+	);
+	const row = await db.query.playlistPricing.findFirst({
+		where: and(
+			eq(playlistPricing.playlistId, playlistId),
+			lte(playlistPricing.effectiveFrom, todayDate),
+			or(
+				isNull(playlistPricing.effectiveTo),
+				gte(playlistPricing.effectiveTo, todayDate)
+			)
+		),
+		orderBy: [
+			desc(playlistPricing.effectiveFrom),
+			desc(playlistPricing.createdAt),
+		],
+		columns: {
+			price: true,
+			currency: true,
+		},
+	});
+
+	if (!row) {
+		return null;
+	}
+
+	return {
+		price: row.price,
+		currency: row.currency.toUpperCase(),
+	};
 }
 
 async function assertPlaylistExists(
@@ -391,9 +439,18 @@ export async function listPlaylists(
 		.orderBy(desc(playlist.createdAt), desc(playlist.id))
 		.limit(limit)
 		.offset(offset);
+	const itemsWithPricing = await Promise.all(
+		items.map(async (item) => ({
+			...item,
+			activePricing: await resolveActivePricing({
+				db,
+				playlistId: item.id,
+			}),
+		}))
+	);
 
 	return {
-		items,
+		items: itemsWithPricing,
 		pagination: {
 			page,
 			limit,
@@ -424,9 +481,14 @@ export async function getPlaylistByIdWithEpisodes(
 		undefined,
 		input.onlyPublished ?? false
 	);
+	const activePricing = await resolveActivePricing({
+		db,
+		playlistId: playlistRow.id,
+	});
 
 	return {
 		...playlistRow,
+		activePricing,
 		episodes,
 	};
 }

@@ -115,6 +115,13 @@ export const playlistEpisodeRowSchema = playlistEpisodeSchema.omit({
 	content: true,
 });
 
+export const activePricingSchema = z
+	.object({
+		price: z.string(),
+		currency: z.string(),
+	})
+	.nullable();
+
 export const playlistSchema = z.object({
 	id: z.uuid(),
 	creatorId: z.string(),
@@ -127,6 +134,7 @@ export const playlistSchema = z.object({
 	isAvailable: z.boolean(),
 	createdAt: z.date(),
 	updatedAt: z.date(),
+	activePricing: activePricingSchema.default(null),
 });
 
 export const playlistWithEpisodesOutputSchema = playlistSchema.extend({

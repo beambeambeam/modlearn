@@ -10,6 +10,7 @@ import {
 	content,
 	playlist,
 	playlistEpisode,
+	playlistPricing,
 } from "@/lib/db/schema";
 import {
 	createCaller,
@@ -32,24 +33,40 @@ describe("playlist router", () => {
 		await testDb.cleanup();
 	});
 
-	it("allows public access to list, getByIdWithEpisodes and listEpisodes", async () => {
+	it("allows public access to list, getByIdWithEpisodes and listEpisodes with active pricing", async () => {
 		const admin = await createTestUser(testDb.client, {
 			email: "playlist-router-public@example.com",
 			role: "admin",
 		});
-		const [createdPlaylist] = await testDb.db
+		const [createdPlaylist, noPricePlaylist] = await testDb.db
 			.insert(playlist)
-			.values({
-				creatorId: admin.id,
-				title: "Router Playlist",
-				isPublished: true,
-				isAvailable: true,
-				publishedAt: new Date("2025-01-01T00:00:00.000Z"),
-			})
+			.values([
+				{
+					creatorId: admin.id,
+					title: "Router Playlist",
+					isPublished: true,
+					isAvailable: true,
+					publishedAt: new Date("2025-01-01T00:00:00.000Z"),
+				},
+				{
+					creatorId: admin.id,
+					title: "No Price Playlist",
+					isPublished: true,
+					isAvailable: true,
+					publishedAt: new Date("2025-01-01T00:00:00.000Z"),
+				},
+			])
 			.returning();
-		if (!createdPlaylist) {
+		if (!(createdPlaylist && noPricePlaylist)) {
 			throw new Error("Failed to create playlist fixture");
 		}
+		await testDb.db.insert(playlistPricing).values({
+			playlistId: createdPlaylist.id,
+			price: "42.00",
+			currency: "usd",
+			effectiveFrom: new Date("2025-01-01"),
+			createdBy: admin.id,
+		});
 
 		const [episodeContent] = await testDb.db
 			.insert(content)
@@ -76,13 +93,33 @@ describe("playlist router", () => {
 		const caller = createCaller(makeTestContext({ db: testDb.db }));
 
 		const listed = await caller.playlist.list({});
-		expect(listed.items.length).toBeGreaterThanOrEqual(1);
+		expect(listed.items.length).toBeGreaterThanOrEqual(2);
+		const pricedPlaylistFromList = listed.items.find(
+			(item) => item.id === createdPlaylist.id
+		);
+		const noPricePlaylistFromList = listed.items.find(
+			(item) => item.id === noPricePlaylist.id
+		);
+		expect(pricedPlaylistFromList?.activePricing).toEqual({
+			price: "42.00",
+			currency: "USD",
+		});
+		expect(noPricePlaylistFromList?.activePricing).toBeNull();
 
 		const detail = await caller.playlist.getByIdWithEpisodes({
 			id: createdPlaylist.id,
 		});
 		expect(detail.id).toBe(createdPlaylist.id);
 		expect(detail.episodes).toHaveLength(1);
+		expect(detail.activePricing).toEqual({
+			price: "42.00",
+			currency: "USD",
+		});
+
+		const noPriceDetail = await caller.playlist.getByIdWithEpisodes({
+			id: noPricePlaylist.id,
+		});
+		expect(noPriceDetail.activePricing).toBeNull();
 
 		const episodes = await caller.playlist.listEpisodes({
 			playlistId: createdPlaylist.id,

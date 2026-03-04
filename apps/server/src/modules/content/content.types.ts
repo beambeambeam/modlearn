@@ -136,8 +136,17 @@ export interface ContentPagination {
 	totalPages: number;
 }
 
+export interface ActivePricing {
+	price: string;
+	currency: string;
+}
+
+export type ContentWithActivePricing = typeof content.$inferSelect & {
+	activePricing: ActivePricing | null;
+};
+
 export interface ListContentResult {
-	items: (typeof content.$inferSelect)[];
+	items: ContentWithActivePricing[];
 	pagination: ContentPagination;
 }
 
@@ -155,6 +164,7 @@ export interface DeleteContentResult {
 type ContentRow = typeof content.$inferSelect;
 
 export type ContentDetailResult = ContentRow & {
+	activePricing: ActivePricing | null;
 	categories: ContentClassificationItem[];
 };
 

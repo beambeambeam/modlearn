@@ -162,6 +162,16 @@ export type PlaylistEpisodeWithContent = PlaylistEpisodeRow & {
 	content: PlaylistContentSummary;
 };
 
+export interface ActivePricing {
+	price: string;
+	currency: string;
+}
+
+type PlaylistRow = typeof playlist.$inferSelect;
+export type PlaylistWithActivePricing = PlaylistRow & {
+	activePricing: ActivePricing | null;
+};
+
 export interface PlaylistWithEpisodes {
 	id: string;
 	creatorId: string;
@@ -174,11 +184,12 @@ export interface PlaylistWithEpisodes {
 	isAvailable: boolean;
 	createdAt: Date;
 	updatedAt: Date;
+	activePricing: ActivePricing | null;
 	episodes: PlaylistEpisodeWithContent[];
 }
 
 export interface PlaylistListResult {
-	items: (typeof playlist.$inferSelect)[];
+	items: PlaylistWithActivePricing[];
 	pagination: {
 		page: number;
 		limit: number;
