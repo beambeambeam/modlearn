@@ -9,15 +9,21 @@ import {
 	listPlaylists,
 	removeEpisodeFromPlaylist,
 	reorderPlaylistEpisodes,
+	setPlaylistAvailability,
+	setPlaylistPublishState,
 	updatePlaylist,
 	updatePlaylistEpisode,
 } from "@/modules/playlist/playlist.service";
 import {
 	playlistAdminAddEpisodeInputSchema,
+	playlistAdminByIdInputSchema,
 	playlistAdminCreateInputSchema,
 	playlistAdminDeleteInputSchema,
+	playlistAdminListInputSchema,
 	playlistAdminRemoveEpisodeInputSchema,
 	playlistAdminReorderEpisodesInputSchema,
+	playlistAdminSetAvailabilityInputSchema,
+	playlistAdminSetPublishStateInputSchema,
 	playlistAdminUpdateEpisodeInputSchema,
 	playlistAdminUpdateInputSchema,
 	playlistByIdInputSchema,
@@ -39,14 +45,20 @@ export const playlistRouter = router({
 			method: "POST",
 			path: "/rpc/playlist/list",
 			tags: ["Playlist"],
-			summary: "List playlists",
+			summary: "List published and available playlists",
+			description:
+				"Public endpoint. Always returns only published and available playlists.",
 		})
 		.input(playlistListInputSchema.optional())
 		.output(playlistListOutputSchema)
 		.handler(({ context, input }) => {
+			const parsedInput = playlistListInputSchema.parse(input ?? {});
 			return listPlaylists({
 				db: context.db,
-				input: playlistListInputSchema.parse(input ?? {}),
+				input: {
+					...parsedInput,
+					onlyPublished: true,
+				},
 			});
 		}),
 	getByIdWithEpisodes: publicProcedure
@@ -54,14 +66,19 @@ export const playlistRouter = router({
 			method: "POST",
 			path: "/rpc/playlist/getByIdWithEpisodes",
 			tags: ["Playlist"],
-			summary: "Get playlist with episodes",
+			summary: "Get published and available playlist with episodes",
+			description:
+				"Public endpoint. Always returns only published and available playlists.",
 		})
 		.input(playlistByIdInputSchema)
 		.output(playlistWithEpisodesOutputSchema)
 		.handler(({ context, input }) => {
 			return getPlaylistByIdWithEpisodes({
 				db: context.db,
-				input,
+				input: {
+					...input,
+					onlyPublished: true,
+				},
 			});
 		}),
 	listEpisodes: publicProcedure
@@ -75,6 +92,40 @@ export const playlistRouter = router({
 		.output(z.array(playlistEpisodeSchema))
 		.handler(({ context, input }) => {
 			return listPlaylistEpisodes({
+				db: context.db,
+				input,
+			});
+		}),
+	adminList: adminProcedure
+		.route({
+			method: "POST",
+			path: "/rpc/playlist/adminList",
+			tags: ["Playlist"],
+			summary: "Admin list playlists",
+			description:
+				"Requires admin or superadmin role. Can include unpublished or unavailable playlists.",
+		})
+		.input(playlistAdminListInputSchema.optional())
+		.output(playlistListOutputSchema)
+		.handler(({ context, input }) => {
+			return listPlaylists({
+				db: context.db,
+				input: playlistAdminListInputSchema.parse(input ?? {}),
+			});
+		}),
+	adminGetByIdWithEpisodes: adminProcedure
+		.route({
+			method: "POST",
+			path: "/rpc/playlist/adminGetByIdWithEpisodes",
+			tags: ["Playlist"],
+			summary: "Admin get playlist with episodes",
+			description:
+				"Requires admin or superadmin role. Can include unpublished or unavailable playlists and episodes.",
+		})
+		.input(playlistAdminByIdInputSchema)
+		.output(playlistWithEpisodesOutputSchema)
+		.handler(({ context, input }) => {
+			return getPlaylistByIdWithEpisodes({
 				db: context.db,
 				input,
 			});
@@ -151,6 +202,58 @@ export const playlistRouter = router({
 				entityId: deleted.id,
 			});
 			return deleted;
+		}),
+	adminSetPublishState: adminProcedure
+		.route({
+			method: "POST",
+			path: "/rpc/playlist/adminSetPublishState",
+			tags: ["Playlist"],
+			summary: "Set playlist publish state",
+			description: "Requires admin or superadmin role.",
+		})
+		.input(playlistAdminSetPublishStateInputSchema)
+		.output(playlistSchema)
+		.handler(async ({ context, input }) => {
+			const updated = await setPlaylistPublishState({
+				db: context.db,
+				input,
+			});
+			await logAdminMutation({
+				context,
+				entityType: "PLAYLIST",
+				action: "SET_PUBLISH_STATE",
+				entityId: updated.id,
+				metadata: {
+					isPublished: input.isPublished,
+				},
+			});
+			return updated;
+		}),
+	adminSetAvailability: adminProcedure
+		.route({
+			method: "POST",
+			path: "/rpc/playlist/adminSetAvailability",
+			tags: ["Playlist"],
+			summary: "Set playlist availability",
+			description: "Requires admin or superadmin role.",
+		})
+		.input(playlistAdminSetAvailabilityInputSchema)
+		.output(playlistSchema)
+		.handler(async ({ context, input }) => {
+			const updated = await setPlaylistAvailability({
+				db: context.db,
+				input,
+			});
+			await logAdminMutation({
+				context,
+				entityType: "PLAYLIST",
+				action: "SET_AVAILABILITY",
+				entityId: updated.id,
+				metadata: {
+					isAvailable: input.isAvailable,
+				},
+			});
+			return updated;
 		}),
 	adminAddEpisode: adminProcedure
 		.route({

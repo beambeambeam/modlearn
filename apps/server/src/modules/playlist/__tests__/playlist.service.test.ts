@@ -16,6 +16,8 @@ import {
 	listPlaylists,
 	removeEpisodeFromPlaylist,
 	reorderPlaylistEpisodes,
+	setPlaylistAvailability,
+	setPlaylistPublishState,
 	updatePlaylist,
 	updatePlaylistEpisode,
 } from "@/modules/playlist/playlist.service";
@@ -108,6 +110,63 @@ describe("playlist service", () => {
 		expect(paged.pagination.totalPages).toBe(2);
 	});
 
+	it("playlist visibility filters public and admin results", async () => {
+		const admin = await createTestUser(testDb.client, {
+			email: "playlist-visibility-filters@example.com",
+		});
+
+		const [publicPlaylist, draftPlaylist, unavailablePlaylist] = await testDb.db
+			.insert(playlist)
+			.values([
+				{
+					creatorId: admin.id,
+					title: "Public Playlist",
+					isPublished: true,
+					publishedAt: new Date("2025-01-01T00:00:00.000Z"),
+					isAvailable: true,
+				},
+				{
+					creatorId: admin.id,
+					title: "Draft Playlist",
+					isPublished: false,
+					publishedAt: null,
+					isAvailable: true,
+				},
+				{
+					creatorId: admin.id,
+					title: "Unavailable Playlist",
+					isPublished: true,
+					publishedAt: new Date("2025-01-02T00:00:00.000Z"),
+					isAvailable: false,
+				},
+			])
+			.returning();
+
+		if (!(publicPlaylist && draftPlaylist && unavailablePlaylist)) {
+			throw new Error("Failed to create playlist visibility fixtures");
+		}
+
+		const publicResult = await listPlaylists({
+			db: testDb.db,
+			input: {
+				onlyPublished: true,
+			},
+		});
+		expect(publicResult.items.map((row) => row.id)).toEqual([
+			publicPlaylist.id,
+		]);
+
+		const adminResult = await listPlaylists({
+			db: testDb.db,
+			input: {
+				onlyPublished: false,
+			},
+		});
+		expect(adminResult.items.map((row) => row.id).sort()).toEqual(
+			[publicPlaylist.id, draftPlaylist.id, unavailablePlaylist.id].sort()
+		);
+	});
+
 	it("getPlaylistByIdWithEpisodes returns ordered visible episodes", async () => {
 		const admin = await createTestUser(testDb.client, {
 			email: "playlist-get@example.com",
@@ -120,6 +179,13 @@ describe("playlist service", () => {
 				title: "Series A",
 			},
 			creatorId: admin.id,
+		});
+		await setPlaylistPublishState({
+			db: testDb.db,
+			input: {
+				id: createdPlaylist.id,
+				isPublished: true,
+			},
 		});
 
 		const visibleA = await createContentRow(admin.id, {
@@ -162,7 +228,10 @@ describe("playlist service", () => {
 
 		const result = await getPlaylistByIdWithEpisodes({
 			db: testDb.db,
-			input: { id: createdPlaylist.id },
+			input: {
+				id: createdPlaylist.id,
+				onlyPublished: true,
+			},
 		});
 
 		expect(result.id).toBe(createdPlaylist.id);
@@ -177,9 +246,60 @@ describe("playlist service", () => {
 		await expect(
 			getPlaylistByIdWithEpisodes({
 				db: testDb.db,
-				input: { id: "00000000-0000-0000-0000-000000000000" },
+				input: {
+					id: "00000000-0000-0000-0000-000000000000",
+					onlyPublished: true,
+				},
 			})
 		).rejects.toThrow(PlaylistNotFoundError);
+	});
+
+	it("admin preview includes unpublished playlist and episodes when onlyPublished is false", async () => {
+		const admin = await createTestUser(testDb.client, {
+			email: "playlist-admin-preview@example.com",
+			role: "admin",
+		});
+		const createdPlaylist = await createPlaylist({
+			db: testDb.db,
+			input: {
+				title: "Admin Preview Playlist",
+			},
+			creatorId: admin.id,
+		});
+		const hiddenEpisode = await createContentRow(admin.id, {
+			title: "Hidden Episode",
+			isPublished: false,
+			isAvailable: true,
+			publishedAt: null,
+		});
+
+		await testDb.db.insert(playlistEpisode).values({
+			playlistId: createdPlaylist.id,
+			contentId: hiddenEpisode.id,
+			episodeOrder: 1,
+			seasonNumber: 1,
+		});
+
+		await expect(
+			getPlaylistByIdWithEpisodes({
+				db: testDb.db,
+				input: {
+					id: createdPlaylist.id,
+					onlyPublished: true,
+				},
+			})
+		).rejects.toThrow(PlaylistNotFoundError);
+
+		const preview = await getPlaylistByIdWithEpisodes({
+			db: testDb.db,
+			input: {
+				id: createdPlaylist.id,
+				onlyPublished: false,
+			},
+		});
+		expect(preview.id).toBe(createdPlaylist.id);
+		expect(preview.episodes).toHaveLength(1);
+		expect(preview.episodes[0]?.content.id).toBe(hiddenEpisode.id);
 	});
 
 	it("listPlaylistEpisodes filters by season and keeps order", async () => {
@@ -252,6 +372,51 @@ describe("playlist service", () => {
 		expect(created.title).toBe("New Playlist");
 		expect(created.creatorId).toBe(admin.id);
 		expect(created.isSeries).toBe(true);
+		expect(created.isPublished).toBe(false);
+		expect(created.isAvailable).toBe(true);
+		expect(created.publishedAt).toBeNull();
+	});
+
+	it("setPlaylistPublishState and setPlaylistAvailability update visibility state", async () => {
+		const admin = await createTestUser(testDb.client, {
+			email: "playlist-state-toggles@example.com",
+		});
+		const created = await createPlaylist({
+			db: testDb.db,
+			input: {
+				title: "Toggle Playlist",
+			},
+			creatorId: admin.id,
+		});
+
+		const published = await setPlaylistPublishState({
+			db: testDb.db,
+			input: {
+				id: created.id,
+				isPublished: true,
+			},
+		});
+		expect(published.isPublished).toBe(true);
+		expect(published.publishedAt).toBeInstanceOf(Date);
+
+		const unavailable = await setPlaylistAvailability({
+			db: testDb.db,
+			input: {
+				id: created.id,
+				isAvailable: false,
+			},
+		});
+		expect(unavailable.isAvailable).toBe(false);
+
+		const unpublished = await setPlaylistPublishState({
+			db: testDb.db,
+			input: {
+				id: created.id,
+				isPublished: false,
+			},
+		});
+		expect(unpublished.isPublished).toBe(false);
+		expect(unpublished.publishedAt).toBeNull();
 	});
 
 	it("updatePlaylist applies patch and throws when playlist is missing", async () => {

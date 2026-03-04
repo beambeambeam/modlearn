@@ -24,6 +24,8 @@ import type {
 	PlaylistWithEpisodes,
 	RemoveEpisodeFromPlaylistParams,
 	ReorderPlaylistEpisodesParams,
+	SetPlaylistAvailabilityParams,
+	SetPlaylistPublishStateParams,
 	UpdatePlaylistEpisodeParams,
 	UpdatePlaylistParams,
 } from "./playlist.types";
@@ -290,14 +292,19 @@ async function compactEpisodeBucketsAfterMove(params: {
 async function queryVisibleEpisodes(
 	db: DbClient,
 	playlistId: string,
-	seasonNumber?: number
+	seasonNumber?: number,
+	onlyPublished = true
 ): Promise<PlaylistEpisodeWithContent[]> {
 	const conditions: SQL<unknown>[] = [
 		eq(playlistEpisode.playlistId, playlistId),
 		eq(content.isDeleted, false),
-		eq(content.isPublished, true),
-		eq(content.isAvailable, true),
 	];
+	if (onlyPublished) {
+		conditions.push(
+			eq(content.isPublished, true),
+			eq(content.isAvailable, true)
+		);
+	}
 
 	if (seasonNumber !== undefined) {
 		conditions.push(eq(playlistEpisode.seasonNumber, seasonNumber));
@@ -331,6 +338,32 @@ async function queryVisibleEpisodes(
 	return rows;
 }
 
+function buildPlaylistFilters(input: {
+	id?: string;
+	search?: string;
+	isSeries?: boolean;
+	onlyPublished?: boolean;
+}): SQL<unknown> | undefined {
+	const conditions: SQL<unknown>[] = [];
+	if (input.id) {
+		conditions.push(eq(playlist.id, input.id));
+	}
+	if (input.search) {
+		conditions.push(ilike(playlist.title, `%${input.search}%`));
+	}
+	if (input.isSeries !== undefined) {
+		conditions.push(eq(playlist.isSeries, input.isSeries));
+	}
+	if (input.onlyPublished ?? false) {
+		conditions.push(
+			eq(playlist.isPublished, true),
+			eq(playlist.isAvailable, true)
+		);
+	}
+
+	return whereFromConditions(conditions);
+}
+
 export async function listPlaylists(
 	params: ListPlaylistsParams
 ): Promise<PlaylistListResult> {
@@ -338,16 +371,11 @@ export async function listPlaylists(
 	const page = input.page ?? 1;
 	const limit = input.limit ?? 20;
 	const offset = (page - 1) * limit;
-
-	const conditions: SQL<unknown>[] = [];
-	if (input.search) {
-		conditions.push(ilike(playlist.title, `%${input.search}%`));
-	}
-	if (input.isSeries !== undefined) {
-		conditions.push(eq(playlist.isSeries, input.isSeries));
-	}
-
-	const filters = whereFromConditions(conditions);
+	const filters = buildPlaylistFilters({
+		search: input.search,
+		isSeries: input.isSeries,
+		onlyPublished: input.onlyPublished ?? false,
+	});
 	const countRows = await db
 		.select({
 			total: count(),
@@ -380,14 +408,22 @@ export async function getPlaylistByIdWithEpisodes(
 ): Promise<PlaylistWithEpisodes> {
 	const { db, input } = params;
 	const playlistRow = await db.query.playlist.findFirst({
-		where: eq(playlist.id, input.id),
+		where: buildPlaylistFilters({
+			id: input.id,
+			onlyPublished: input.onlyPublished ?? false,
+		}),
 	});
 
 	if (!playlistRow) {
 		throw new PlaylistNotFoundError();
 	}
 
-	const episodes = await queryVisibleEpisodes(db, input.id);
+	const episodes = await queryVisibleEpisodes(
+		db,
+		input.id,
+		undefined,
+		input.onlyPublished ?? false
+	);
 
 	return {
 		...playlistRow,
@@ -416,6 +452,9 @@ export async function createPlaylist(
 			description: input.description ?? null,
 			thumbnailImageId: input.thumbnailImageId ?? null,
 			isSeries: input.isSeries ?? true,
+			isPublished: false,
+			publishedAt: null,
+			isAvailable: true,
 		})
 		.returning();
 
@@ -466,6 +505,52 @@ export async function deletePlaylist(
 		id: deleted.id,
 		deleted: true,
 	};
+}
+
+export async function setPlaylistPublishState(
+	params: SetPlaylistPublishStateParams
+): Promise<typeof playlist.$inferSelect> {
+	const { db, input } = params;
+	const existing = await db.query.playlist.findFirst({
+		where: eq(playlist.id, input.id),
+	});
+	if (!existing) {
+		throw new PlaylistNotFoundError();
+	}
+
+	const [updated] = await db
+		.update(playlist)
+		.set({
+			isPublished: input.isPublished,
+			publishedAt: input.isPublished
+				? (existing.publishedAt ?? new Date())
+				: null,
+		})
+		.where(eq(playlist.id, input.id))
+		.returning();
+	if (!updated) {
+		throw new PlaylistNotFoundError();
+	}
+
+	return updated;
+}
+
+export async function setPlaylistAvailability(
+	params: SetPlaylistAvailabilityParams
+): Promise<typeof playlist.$inferSelect> {
+	const { db, input } = params;
+	const [updated] = await db
+		.update(playlist)
+		.set({
+			isAvailable: input.isAvailable,
+		})
+		.where(eq(playlist.id, input.id))
+		.returning();
+	if (!updated) {
+		throw new PlaylistNotFoundError();
+	}
+
+	return updated;
 }
 
 export function addEpisodeToPlaylist(
