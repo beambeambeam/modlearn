@@ -133,6 +133,13 @@ describe("playback router", () => {
 				duration: 10,
 			})
 		).rejects.toThrow(expect.objectContaining({ code: "UNAUTHORIZED" }));
+
+		await expect(
+			caller.playback.refreshSession({
+				sessionId: "00000000-0000-0000-0000-000000000000",
+				playbackToken: "x".repeat(16),
+			})
+		).rejects.toThrow(expect.objectContaining({ code: "UNAUTHORIZED" }));
 	});
 
 	it("rejects invalid input", async () => {
@@ -155,6 +162,13 @@ describe("playback router", () => {
 				playbackToken: "x".repeat(16),
 				position: 0,
 				duration: 0,
+			})
+		).rejects.toThrow(expect.objectContaining({ code: "BAD_REQUEST" }));
+
+		await expect(
+			caller.playback.refreshSession({
+				sessionId: "bad-id",
+				playbackToken: "x".repeat(16),
 			})
 		).rejects.toThrow(expect.objectContaining({ code: "BAD_REQUEST" }));
 	});
@@ -195,6 +209,15 @@ describe("playback router", () => {
 			`https://cdn.example.com/modlearn-media/files/${movie.fileId}.mp4`
 		);
 		expect(created.streamUrlExpiresAt).toBeNull();
+		const refreshed = await caller.playback.refreshSession({
+			sessionId: created.sessionId,
+			playbackToken: created.playbackToken,
+		});
+		expect(refreshed.sessionId).toBe(created.sessionId);
+		expect(refreshed.playbackToken).toBe(created.playbackToken);
+		expect(refreshed.tokenExpiresAt.getTime()).toBeGreaterThan(
+			created.tokenExpiresAt.getTime()
+		);
 
 		const played = await caller.playback.play({
 			sessionId: created.sessionId,

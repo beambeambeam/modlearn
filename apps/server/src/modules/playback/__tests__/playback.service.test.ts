@@ -35,10 +35,12 @@ import {
 	recordPlaybackResume,
 	recordPlaybackSeek,
 	recordPlaybackStop,
+	refreshPlaybackSession,
 } from "@/modules/playback/playback.service";
 import {
 	PlaybackAccessDeniedError,
 	PlaybackSessionExpiredError,
+	PlaybackStateTransitionError,
 	PlaybackTokenInvalidError,
 } from "@/modules/playback/playback.types";
 
@@ -472,5 +474,183 @@ describe("playback service", () => {
 			.from(playbackSession)
 			.where(eq(playbackSession.id, created.sessionId));
 		expect(expiredSession?.status).toBe("EXPIRED");
+	});
+
+	it("refreshPlaybackSession extends expiry and keeps playback token", async () => {
+		const user = await createTestUser(testDb.client, {
+			email: "playback-refresh@example.com",
+		});
+		const seeded = await seedOwnedPlayableContent({
+			testDb,
+			userId: user.id,
+		});
+
+		const created = await createPlaybackSession({
+			db: testDb.db,
+			input: {
+				userId: user.id,
+				contentId: seeded.content.id,
+			},
+		});
+
+		const beforeRefresh = new Date();
+		const refreshed = await refreshPlaybackSession({
+			db: testDb.db,
+			input: {
+				userId: user.id,
+				sessionId: created.sessionId,
+				playbackToken: created.playbackToken,
+			},
+		});
+
+		expect(refreshed.sessionId).toBe(created.sessionId);
+		expect(refreshed.playbackToken).toBe(created.playbackToken);
+		expect(refreshed.tokenExpiresAt.getTime()).toBeGreaterThan(
+			created.tokenExpiresAt.getTime()
+		);
+		expect(refreshed.tokenExpiresAt.getTime()).toBeGreaterThan(
+			beforeRefresh.getTime()
+		);
+	});
+
+	it("refreshPlaybackSession rejects invalid token", async () => {
+		const user = await createTestUser(testDb.client, {
+			email: "playback-refresh-token@example.com",
+		});
+		const seeded = await seedOwnedPlayableContent({
+			testDb,
+			userId: user.id,
+		});
+
+		const created = await createPlaybackSession({
+			db: testDb.db,
+			input: {
+				userId: user.id,
+				contentId: seeded.content.id,
+			},
+		});
+
+		await expect(
+			refreshPlaybackSession({
+				db: testDb.db,
+				input: {
+					userId: user.id,
+					sessionId: created.sessionId,
+					playbackToken: "invalid-token",
+				},
+			})
+		).rejects.toThrow(PlaybackTokenInvalidError);
+	});
+
+	it("refreshPlaybackSession rejects expired session and marks status expired", async () => {
+		const user = await createTestUser(testDb.client, {
+			email: "playback-refresh-expired@example.com",
+		});
+		const seeded = await seedOwnedPlayableContent({
+			testDb,
+			userId: user.id,
+		});
+
+		const created = await createPlaybackSession({
+			db: testDb.db,
+			input: {
+				userId: user.id,
+				contentId: seeded.content.id,
+			},
+		});
+
+		await testDb.db
+			.update(playbackSession)
+			.set({ expiresAt: new Date(Date.now() - 1000) })
+			.where(eq(playbackSession.id, created.sessionId));
+
+		await expect(
+			refreshPlaybackSession({
+				db: testDb.db,
+				input: {
+					userId: user.id,
+					sessionId: created.sessionId,
+					playbackToken: created.playbackToken,
+				},
+			})
+		).rejects.toThrow(PlaybackSessionExpiredError);
+
+		const [expiredSession] = await testDb.db
+			.select({ status: playbackSession.status })
+			.from(playbackSession)
+			.where(eq(playbackSession.id, created.sessionId));
+		expect(expiredSession?.status).toBe("EXPIRED");
+	});
+
+	it("refreshPlaybackSession rejects stopped session", async () => {
+		const user = await createTestUser(testDb.client, {
+			email: "playback-refresh-stopped@example.com",
+		});
+		const seeded = await seedOwnedPlayableContent({
+			testDb,
+			userId: user.id,
+		});
+
+		const created = await createPlaybackSession({
+			db: testDb.db,
+			input: {
+				userId: user.id,
+				contentId: seeded.content.id,
+			},
+		});
+
+		await recordPlaybackStop({
+			db: testDb.db,
+			input: {
+				userId: user.id,
+				sessionId: created.sessionId,
+				playbackToken: created.playbackToken,
+				position: 50,
+				duration: 100,
+			},
+		});
+
+		await expect(
+			refreshPlaybackSession({
+				db: testDb.db,
+				input: {
+					userId: user.id,
+					sessionId: created.sessionId,
+					playbackToken: created.playbackToken,
+				},
+			})
+		).rejects.toThrow(PlaybackStateTransitionError);
+	});
+
+	it("refreshPlaybackSession rejects wrong user", async () => {
+		const owner = await createTestUser(testDb.client, {
+			email: "playback-refresh-owner@example.com",
+		});
+		const stranger = await createTestUser(testDb.client, {
+			email: "playback-refresh-stranger@example.com",
+		});
+		const seeded = await seedOwnedPlayableContent({
+			testDb,
+			userId: owner.id,
+		});
+
+		const created = await createPlaybackSession({
+			db: testDb.db,
+			input: {
+				userId: owner.id,
+				contentId: seeded.content.id,
+			},
+		});
+
+		await expect(
+			refreshPlaybackSession({
+				db: testDb.db,
+				input: {
+					userId: stranger.id,
+					sessionId: created.sessionId,
+					playbackToken: created.playbackToken,
+				},
+			})
+		).rejects.toThrow(PlaybackAccessDeniedError);
 	});
 });

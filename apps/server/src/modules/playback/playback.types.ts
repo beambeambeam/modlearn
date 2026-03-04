@@ -27,6 +27,12 @@ export interface PlaybackGetSessionInput {
 	playbackToken: string;
 }
 
+export interface PlaybackRefreshSessionInput {
+	userId: string;
+	sessionId: string;
+	playbackToken: string;
+}
+
 export interface CreatePlaybackSessionParams {
 	db: DbClient;
 	input: PlaybackCreateSessionInput;
@@ -62,6 +68,11 @@ export interface GetPlaybackSessionParams {
 	input: PlaybackGetSessionInput;
 }
 
+export interface RefreshPlaybackSessionParams {
+	db: DbClient;
+	input: PlaybackRefreshSessionInput;
+}
+
 export interface PlaybackSessionState {
 	session: typeof playbackSession.$inferSelect;
 	progressPercent: number;
@@ -81,6 +92,12 @@ export interface PlaybackCreateSessionResult {
 	tokenExpiresAt: Date;
 	resumePosition: number;
 	content: PlaybackContentSummary;
+}
+
+export interface PlaybackRefreshSessionResult {
+	sessionId: string;
+	playbackToken: string;
+	tokenExpiresAt: Date;
 }
 
 export interface PlaybackEventEnvelope {

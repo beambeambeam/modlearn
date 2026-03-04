@@ -6,6 +6,7 @@ import {
 	recordPlaybackResume,
 	recordPlaybackSeek,
 	recordPlaybackStop,
+	refreshPlaybackSession,
 } from "@/modules/playback/playback.service";
 import {
 	playbackCreateSessionInputSchema,
@@ -14,6 +15,8 @@ import {
 	playbackLifecycleOutputSchema,
 	playbackPauseInputSchema,
 	playbackPlayInputSchema,
+	playbackRefreshSessionInputSchema,
+	playbackRefreshSessionOutputSchema,
 	playbackResumeInputSchema,
 	playbackSeekInputSchema,
 	playbackSessionStateOutputSchema,
@@ -149,6 +152,25 @@ export const playbackRouter = router({
 		.output(playbackSessionStateOutputSchema)
 		.handler(({ context, input }) => {
 			return getPlaybackSession({
+				db: context.db,
+				input: {
+					userId: context.session.user.id,
+					...input,
+				},
+			});
+		}),
+	refreshSession: protectedProcedure
+		.route({
+			method: "POST",
+			path: "/rpc/playback/refreshSession",
+			tags: ["Playback"],
+			summary: "Refresh playback session token TTL",
+			description: "Requires authentication.",
+		})
+		.input(playbackRefreshSessionInputSchema)
+		.output(playbackRefreshSessionOutputSchema)
+		.handler(({ context, input }) => {
+			return refreshPlaybackSession({
 				db: context.db,
 				input: {
 					userId: context.session.user.id,

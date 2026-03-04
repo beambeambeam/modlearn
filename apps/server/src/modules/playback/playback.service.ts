@@ -23,12 +23,14 @@ import type {
 	PlaybackCreateSessionResult,
 	PlaybackEventEnvelope,
 	PlaybackLifecycleResult,
+	PlaybackRefreshSessionResult,
 	PlaybackSessionState,
 	RecordPlaybackPauseParams,
 	RecordPlaybackPlayParams,
 	RecordPlaybackResumeParams,
 	RecordPlaybackSeekParams,
 	RecordPlaybackStopParams,
+	RefreshPlaybackSessionParams,
 } from "./playback.types";
 import {
 	PlaybackAccessDeniedError,
@@ -731,6 +733,54 @@ export function recordPlaybackStop(
 		input: params.input,
 		eventType: "STOP",
 	});
+}
+
+export async function refreshPlaybackSession(
+	params: RefreshPlaybackSessionParams
+): Promise<PlaybackRefreshSessionResult> {
+	const { db, input } = params;
+	const now = new Date();
+	const session = await loadSessionForLifecycle({
+		db,
+		sessionId: input.sessionId,
+		playbackToken: input.playbackToken,
+		userId: input.userId,
+		now,
+	});
+
+	if (session.status === "STOPPED" || session.status === "ENDED") {
+		throw new PlaybackStateTransitionError(
+			"Cannot refresh a stopped/ended session"
+		);
+	}
+
+	if (session.status !== "ACTIVE" && session.status !== "PAUSED") {
+		throw new PlaybackStateTransitionError(
+			"Refresh requires an active or paused session"
+		);
+	}
+
+	const tokenExpiresAt = new Date(now.getTime() + TOKEN_TTL_MS);
+
+	const [updatedSession] = await db
+		.update(playbackSession)
+		.set({
+			expiresAt: tokenExpiresAt,
+			lastEventAt: now,
+			updatedAt: now,
+		})
+		.where(eq(playbackSession.id, session.id))
+		.returning();
+
+	if (!updatedSession) {
+		throw new PlaybackSessionNotFoundError();
+	}
+
+	return {
+		sessionId: updatedSession.id,
+		playbackToken: updatedSession.playbackToken,
+		tokenExpiresAt: updatedSession.expiresAt,
+	};
 }
 
 export async function getPlaybackSession(

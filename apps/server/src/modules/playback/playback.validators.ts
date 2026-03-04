@@ -48,6 +48,7 @@ export const playbackSeekInputSchema = playbackLifecycleBaseInputSchema.extend({
 export const playbackStopInputSchema = playbackLifecycleBaseInputSchema;
 
 export const playbackGetSessionInputSchema = playbackSessionAuthInputSchema;
+export const playbackRefreshSessionInputSchema = playbackSessionAuthInputSchema;
 
 export const playbackSessionSchema = z.object({
 	id: z.uuid(),
@@ -104,4 +105,10 @@ export const playbackLifecycleOutputSchema = z.object({
 	session: playbackSessionSchema,
 	progressPercent: z.number(),
 	isCompleted: z.boolean(),
+});
+
+export const playbackRefreshSessionOutputSchema = z.object({
+	sessionId: z.uuid(),
+	playbackToken: z.string(),
+	tokenExpiresAt: z.date(),
 });
