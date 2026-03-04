@@ -17,7 +17,6 @@ export const contentListInputSchema = z
 		sortBy: z
 			.enum(["RECENTLY_ADDED", "RECENTLY_PUBLISHED"])
 			.default("RECENTLY_ADDED"),
-		onlyPublished: z.boolean().default(true),
 	})
 	.superRefine((value, ctx) => {
 		if (value.categoryIds && hasDuplicates(value.categoryIds)) {
@@ -31,7 +30,14 @@ export const contentListInputSchema = z
 
 export const contentByIdInputSchema = z.object({
 	id: z.uuid(),
-	onlyPublished: z.boolean().default(true),
+});
+
+export const contentAdminListInputSchema = contentListInputSchema.extend({
+	onlyPublished: z.boolean().default(false),
+});
+
+export const contentAdminByIdInputSchema = contentByIdInputSchema.extend({
+	onlyPublished: z.boolean().default(false),
 });
 
 export const contentListPopularInputSchema = z.object({
