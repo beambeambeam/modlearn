@@ -42,6 +42,9 @@ describe("playlist router", () => {
 			.values({
 				creatorId: admin.id,
 				title: "Router Playlist",
+				isPublished: true,
+				isAvailable: true,
+				publishedAt: new Date("2025-01-01T00:00:00.000Z"),
 			})
 			.returning();
 		if (!createdPlaylist) {
@@ -85,6 +88,48 @@ describe("playlist router", () => {
 			playlistId: createdPlaylist.id,
 		});
 		expect(episodes).toHaveLength(1);
+	});
+
+	it("enforces playlist visibility on public list/getByIdWithEpisodes", async () => {
+		const admin = await createTestUser(testDb.client, {
+			email: "playlist-router-public-visibility@example.com",
+			role: "admin",
+		});
+		const [publishedPlaylist, draftPlaylist] = await testDb.db
+			.insert(playlist)
+			.values([
+				{
+					creatorId: admin.id,
+					title: "Published Playlist",
+					isPublished: true,
+					isAvailable: true,
+					publishedAt: new Date("2025-01-01T00:00:00.000Z"),
+				},
+				{
+					creatorId: admin.id,
+					title: "Draft Playlist",
+					isPublished: false,
+					isAvailable: true,
+					publishedAt: null,
+				},
+			])
+			.returning();
+		if (!(publishedPlaylist && draftPlaylist)) {
+			throw new Error("Failed to create playlist visibility fixtures");
+		}
+
+		const caller = createCaller(makeTestContext({ db: testDb.db }));
+		const listed = await caller.playlist.list({
+			onlyPublished: false,
+		} as unknown as Parameters<typeof caller.playlist.list>[0]);
+		expect(listed.items.map((row) => row.id)).toEqual([publishedPlaylist.id]);
+
+		await expect(
+			caller.playlist.getByIdWithEpisodes({
+				id: draftPlaylist.id,
+				onlyPublished: false,
+			} as unknown as Parameters<typeof caller.playlist.getByIdWithEpisodes>[0])
+		).rejects.toThrow(expect.objectContaining({ code: "NOT_FOUND" }));
 	});
 
 	it("rejects invalid public input", async () => {
@@ -133,6 +178,12 @@ describe("playlist router", () => {
 				code: "UNAUTHORIZED",
 			})
 		);
+
+		await expect(caller.playlist.adminList({})).rejects.toThrow(
+			expect.objectContaining({
+				code: "UNAUTHORIZED",
+			})
+		);
 	});
 
 	it("rejects admin mutations for non-admin users", async () => {
@@ -154,6 +205,50 @@ describe("playlist router", () => {
 				code: "FORBIDDEN",
 			})
 		);
+
+		await expect(
+			caller.playlist.adminGetByIdWithEpisodes({
+				id: "00000000-0000-0000-0000-000000000000",
+			})
+		).rejects.toThrow(
+			expect.objectContaining({
+				code: "FORBIDDEN",
+			})
+		);
+	});
+
+	it("allows admin read preview endpoints to include draft playlists", async () => {
+		const admin = await createTestUser(testDb.client, {
+			email: "playlist-router-admin-preview@example.com",
+			role: "admin",
+		});
+		const [draftPlaylist] = await testDb.db
+			.insert(playlist)
+			.values({
+				creatorId: admin.id,
+				title: "Draft Preview Playlist",
+				isPublished: false,
+				isAvailable: true,
+				publishedAt: null,
+			})
+			.returning();
+		if (!draftPlaylist) {
+			throw new Error("Failed to create draft playlist fixture");
+		}
+
+		const adminCaller = createCaller(
+			makeAuthenticatedContext(admin.id, "admin", { db: testDb.db })
+		);
+		const listed = await adminCaller.playlist.adminList({
+			onlyPublished: false,
+		});
+		expect(listed.items.some((row) => row.id === draftPlaylist.id)).toBe(true);
+
+		const detail = await adminCaller.playlist.adminGetByIdWithEpisodes({
+			id: draftPlaylist.id,
+			onlyPublished: false,
+		});
+		expect(detail.id).toBe(draftPlaylist.id);
 	});
 
 	it("allows admin and superadmin to perform admin mutations and writes audits", async () => {
@@ -207,6 +302,8 @@ describe("playlist router", () => {
 			title: "Admin Playlist",
 		});
 		expect(created.title).toBe("Admin Playlist");
+		expect(created.isPublished).toBe(false);
+		expect(created.isAvailable).toBe(true);
 
 		const updated = await adminCaller.playlist.adminUpdate({
 			id: created.id,
@@ -241,6 +338,18 @@ describe("playlist router", () => {
 		expect(reordered[0]?.id).toBe(added.id);
 		expect(reordered[0]?.episodeOrder).toBe(1);
 
+		const published = await adminCaller.playlist.adminSetPublishState({
+			id: created.id,
+			isPublished: true,
+		});
+		expect(published.isPublished).toBe(true);
+
+		const unavailable = await adminCaller.playlist.adminSetAvailability({
+			id: created.id,
+			isAvailable: false,
+		});
+		expect(unavailable.isAvailable).toBe(false);
+
 		const removed = await adminCaller.playlist.adminRemoveEpisode({
 			id: added.id,
 		});
@@ -259,6 +368,22 @@ describe("playlist router", () => {
 		});
 
 		const auditRows = await testDb.db.select().from(adminAuditLog);
+		expect(
+			auditRows.some(
+				(row) =>
+					row.entityType === "PLAYLIST" &&
+					row.action === "SET_PUBLISH_STATE" &&
+					row.entityId === created.id
+			)
+		).toBe(true);
+		expect(
+			auditRows.some(
+				(row) =>
+					row.entityType === "PLAYLIST" &&
+					row.action === "SET_AVAILABILITY" &&
+					row.entityId === created.id
+			)
+		).toBe(true);
 		expect(
 			auditRows.some(
 				(row) =>
@@ -315,6 +440,32 @@ describe("playlist router", () => {
 					row.entityId === created.id
 			)
 		).toBe(true);
+	});
+
+	it("allows admin publish/availability state mutations", async () => {
+		const admin = await createTestUser(testDb.client, {
+			email: "playlist-router-state-toggles@example.com",
+			role: "admin",
+		});
+		const caller = createCaller(
+			makeAuthenticatedContext(admin.id, "admin", { db: testDb.db })
+		);
+		const created = await caller.playlist.adminCreate({
+			title: "State Playlist",
+		});
+
+		const published = await caller.playlist.adminSetPublishState({
+			id: created.id,
+			isPublished: true,
+		});
+		expect(published.isPublished).toBe(true);
+		expect(published.publishedAt).toBeInstanceOf(Date);
+
+		const unavailable = await caller.playlist.adminSetAvailability({
+			id: created.id,
+			isAvailable: false,
+		});
+		expect(unavailable.isAvailable).toBe(false);
 	});
 
 	it("maps duplicate episode content to CONFLICT", async () => {
