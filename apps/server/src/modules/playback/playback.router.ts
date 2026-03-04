@@ -29,10 +29,10 @@ export const playbackRouter = router({
 		.route({
 			method: "POST",
 			path: "/rpc/playback/createSession",
-			tags: ["Playback"],
-			summary: "Create playback session",
+			tags: ["Playback User"],
+			summary: "Create Playback Session",
 			description:
-				"Requires authentication and ownership entitlement for the requested content.",
+				"Requires authentication. Creates a playback session when the user has entitlement for the requested content.",
 		})
 		.input(playbackCreateSessionInputSchema)
 		.output(playbackCreateSessionOutputSchema)
@@ -49,9 +49,10 @@ export const playbackRouter = router({
 		.route({
 			method: "POST",
 			path: "/rpc/playback/play",
-			tags: ["Playback"],
-			summary: "Record play event",
-			description: "Requires authentication.",
+			tags: ["Playback User"],
+			summary: "Record Playback Play Event",
+			description:
+				"Requires authentication. Records a play lifecycle event for the current user session.",
 		})
 		.input(playbackPlayInputSchema)
 		.output(playbackLifecycleOutputSchema)
@@ -68,9 +69,10 @@ export const playbackRouter = router({
 		.route({
 			method: "POST",
 			path: "/rpc/playback/pause",
-			tags: ["Playback"],
-			summary: "Record pause event",
-			description: "Requires authentication.",
+			tags: ["Playback User"],
+			summary: "Record Playback Pause Event",
+			description:
+				"Requires authentication. Records a pause lifecycle event for the current user session.",
 		})
 		.input(playbackPauseInputSchema)
 		.output(playbackLifecycleOutputSchema)
@@ -87,9 +89,10 @@ export const playbackRouter = router({
 		.route({
 			method: "POST",
 			path: "/rpc/playback/resume",
-			tags: ["Playback"],
-			summary: "Record resume event",
-			description: "Requires authentication.",
+			tags: ["Playback User"],
+			summary: "Record Playback Resume Event",
+			description:
+				"Requires authentication. Records a resume lifecycle event for the current user session.",
 		})
 		.input(playbackResumeInputSchema)
 		.output(playbackLifecycleOutputSchema)
@@ -106,9 +109,10 @@ export const playbackRouter = router({
 		.route({
 			method: "POST",
 			path: "/rpc/playback/seek",
-			tags: ["Playback"],
-			summary: "Record seek event",
-			description: "Requires authentication.",
+			tags: ["Playback User"],
+			summary: "Record Playback Seek Event",
+			description:
+				"Requires authentication. Records a seek lifecycle event for the current user session.",
 		})
 		.input(playbackSeekInputSchema)
 		.output(playbackLifecycleOutputSchema)
@@ -125,9 +129,10 @@ export const playbackRouter = router({
 		.route({
 			method: "POST",
 			path: "/rpc/playback/stop",
-			tags: ["Playback"],
-			summary: "Record stop event",
-			description: "Requires authentication.",
+			tags: ["Playback User"],
+			summary: "Record Playback Stop Event",
+			description:
+				"Requires authentication. Records a stop lifecycle event for the current user session.",
 		})
 		.input(playbackStopInputSchema)
 		.output(playbackLifecycleOutputSchema)
@@ -144,9 +149,10 @@ export const playbackRouter = router({
 		.route({
 			method: "POST",
 			path: "/rpc/playback/getSession",
-			tags: ["Playback"],
-			summary: "Get playback session state",
-			description: "Requires authentication.",
+			tags: ["Playback User"],
+			summary: "Retrieve Playback Session State",
+			description:
+				"Requires authentication. Returns playback session state for the signed-in user.",
 		})
 		.input(playbackGetSessionInputSchema)
 		.output(playbackSessionStateOutputSchema)
@@ -163,9 +169,10 @@ export const playbackRouter = router({
 		.route({
 			method: "POST",
 			path: "/rpc/playback/refreshSession",
-			tags: ["Playback"],
-			summary: "Refresh playback session token TTL",
-			description: "Requires authentication.",
+			tags: ["Playback User"],
+			summary: "Refresh Playback Session Token TTL",
+			description:
+				"Requires authentication. Extends playback session token TTL for an active session.",
 		})
 		.input(playbackRefreshSessionInputSchema)
 		.output(playbackRefreshSessionOutputSchema)

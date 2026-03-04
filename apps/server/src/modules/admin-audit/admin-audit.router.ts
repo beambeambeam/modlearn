@@ -10,9 +10,10 @@ export const adminAuditRouter = router({
 		.route({
 			method: "POST",
 			path: "/rpc/adminAudit/list",
-			tags: ["Admin Audit"],
-			summary: "List admin audit logs",
-			description: "Requires admin or superadmin role.",
+			tags: ["Admin Audit Admin"],
+			summary: "List Admin Audit Log Entries",
+			description:
+				"Requires admin or superadmin role. Returns paginated admin mutation audit logs.",
 		})
 		.input(adminAuditListInputSchema.optional())
 		.output(adminAuditListOutputSchema)

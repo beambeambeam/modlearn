@@ -44,10 +44,10 @@ export const playlistRouter = router({
 		.route({
 			method: "POST",
 			path: "/rpc/playlist/list",
-			tags: ["Playlist"],
-			summary: "List published and available playlists",
+			tags: ["Playlist Public"],
+			summary: "List Available Public Playlists",
 			description:
-				"Public endpoint. Always returns only published and available playlists.",
+				"Public endpoint. Returns only playlists that are both published and available.",
 		})
 		.input(playlistListInputSchema.optional())
 		.output(playlistListOutputSchema)
@@ -65,10 +65,10 @@ export const playlistRouter = router({
 		.route({
 			method: "POST",
 			path: "/rpc/playlist/getByIdWithEpisodes",
-			tags: ["Playlist"],
-			summary: "Get published and available playlist with episodes",
+			tags: ["Playlist Public"],
+			summary: "Retrieve Available Public Playlist With Episodes",
 			description:
-				"Public endpoint. Always returns only published and available playlists.",
+				"Public endpoint. Returns a published and available playlist with its visible episodes.",
 		})
 		.input(playlistByIdInputSchema)
 		.output(playlistWithEpisodesOutputSchema)
@@ -85,8 +85,10 @@ export const playlistRouter = router({
 		.route({
 			method: "POST",
 			path: "/rpc/playlist/listEpisodes",
-			tags: ["Playlist"],
-			summary: "List playlist episodes",
+			tags: ["Playlist Public"],
+			summary: "List Public Playlist Episodes",
+			description:
+				"Public endpoint. Returns playlist episodes visible to public consumers.",
 		})
 		.input(playlistListEpisodesInputSchema)
 		.output(z.array(playlistEpisodeSchema))
@@ -100,10 +102,10 @@ export const playlistRouter = router({
 		.route({
 			method: "POST",
 			path: "/rpc/playlist/adminList",
-			tags: ["Playlist"],
-			summary: "Admin list playlists",
+			tags: ["Playlist Admin"],
+			summary: "List Admin Playlists",
 			description:
-				"Requires admin or superadmin role. Can include unpublished or unavailable playlists.",
+				"Requires admin or superadmin role. Can return published, unpublished, available, or unavailable playlists.",
 		})
 		.input(playlistAdminListInputSchema.optional())
 		.output(playlistListOutputSchema)
@@ -117,8 +119,8 @@ export const playlistRouter = router({
 		.route({
 			method: "POST",
 			path: "/rpc/playlist/adminGetByIdWithEpisodes",
-			tags: ["Playlist"],
-			summary: "Admin get playlist with episodes",
+			tags: ["Playlist Admin"],
+			summary: "Retrieve Admin Playlist Details With Episodes",
 			description:
 				"Requires admin or superadmin role. Can include unpublished or unavailable playlists and episodes.",
 		})
@@ -134,9 +136,9 @@ export const playlistRouter = router({
 		.route({
 			method: "POST",
 			path: "/rpc/playlist/adminCreate",
-			tags: ["Playlist"],
-			summary: "Create playlist",
-			description: "Requires admin or superadmin role.",
+			tags: ["Playlist Admin"],
+			summary: "Create Playlist",
+			description: "Requires admin or superadmin role. Creates a new playlist.",
 		})
 		.input(playlistAdminCreateInputSchema)
 		.output(playlistSchema)
@@ -158,9 +160,10 @@ export const playlistRouter = router({
 		.route({
 			method: "POST",
 			path: "/rpc/playlist/adminUpdate",
-			tags: ["Playlist"],
-			summary: "Update playlist",
-			description: "Requires admin or superadmin role.",
+			tags: ["Playlist Admin"],
+			summary: "Update Playlist",
+			description:
+				"Requires admin or superadmin role. Updates mutable playlist fields.",
 		})
 		.input(playlistAdminUpdateInputSchema)
 		.output(playlistSchema)
@@ -184,9 +187,10 @@ export const playlistRouter = router({
 		.route({
 			method: "POST",
 			path: "/rpc/playlist/adminDelete",
-			tags: ["Playlist"],
-			summary: "Delete playlist",
-			description: "Requires admin or superadmin role.",
+			tags: ["Playlist Admin"],
+			summary: "Delete Playlist",
+			description:
+				"Requires admin or superadmin role. Deletes a playlist and returns deletion metadata.",
 		})
 		.input(playlistAdminDeleteInputSchema)
 		.output(playlistDeleteOutputSchema)
@@ -207,9 +211,10 @@ export const playlistRouter = router({
 		.route({
 			method: "POST",
 			path: "/rpc/playlist/adminSetPublishState",
-			tags: ["Playlist"],
-			summary: "Set playlist publish state",
-			description: "Requires admin or superadmin role.",
+			tags: ["Playlist Admin"],
+			summary: "Set Playlist Publish State",
+			description:
+				"Requires admin or superadmin role. Sets whether a playlist is published.",
 		})
 		.input(playlistAdminSetPublishStateInputSchema)
 		.output(playlistSchema)
@@ -233,9 +238,10 @@ export const playlistRouter = router({
 		.route({
 			method: "POST",
 			path: "/rpc/playlist/adminSetAvailability",
-			tags: ["Playlist"],
-			summary: "Set playlist availability",
-			description: "Requires admin or superadmin role.",
+			tags: ["Playlist Admin"],
+			summary: "Set Playlist Availability State",
+			description:
+				"Requires admin or superadmin role. Sets whether a playlist is available.",
 		})
 		.input(playlistAdminSetAvailabilityInputSchema)
 		.output(playlistSchema)
@@ -259,9 +265,10 @@ export const playlistRouter = router({
 		.route({
 			method: "POST",
 			path: "/rpc/playlist/adminAddEpisode",
-			tags: ["Playlist"],
-			summary: "Add episode to playlist",
-			description: "Requires admin or superadmin role.",
+			tags: ["Playlist Admin"],
+			summary: "Add Episode To Playlist",
+			description:
+				"Requires admin or superadmin role. Adds a content episode to a playlist.",
 		})
 		.input(playlistAdminAddEpisodeInputSchema)
 		.output(playlistEpisodeRowSchema)
@@ -286,9 +293,10 @@ export const playlistRouter = router({
 		.route({
 			method: "POST",
 			path: "/rpc/playlist/adminUpdateEpisode",
-			tags: ["Playlist"],
-			summary: "Update playlist episode",
-			description: "Requires admin or superadmin role.",
+			tags: ["Playlist Admin"],
+			summary: "Update Playlist Episode",
+			description:
+				"Requires admin or superadmin role. Updates mutable playlist episode fields.",
 		})
 		.input(playlistAdminUpdateEpisodeInputSchema)
 		.output(playlistEpisodeRowSchema)
@@ -313,9 +321,10 @@ export const playlistRouter = router({
 		.route({
 			method: "POST",
 			path: "/rpc/playlist/adminRemoveEpisode",
-			tags: ["Playlist"],
-			summary: "Remove playlist episode",
-			description: "Requires admin or superadmin role.",
+			tags: ["Playlist Admin"],
+			summary: "Remove Episode From Playlist",
+			description:
+				"Requires admin or superadmin role. Removes an episode from a playlist.",
 		})
 		.input(playlistAdminRemoveEpisodeInputSchema)
 		.output(playlistEpisodeDeleteOutputSchema)
@@ -339,9 +348,10 @@ export const playlistRouter = router({
 		.route({
 			method: "POST",
 			path: "/rpc/playlist/adminReorderEpisodes",
-			tags: ["Playlist"],
-			summary: "Reorder playlist episodes",
-			description: "Requires admin or superadmin role.",
+			tags: ["Playlist Admin"],
+			summary: "Reorder Playlist Episodes",
+			description:
+				"Requires admin or superadmin role. Reorders episodes within a playlist.",
 		})
 		.input(playlistAdminReorderEpisodesInputSchema)
 		.output(z.array(playlistEpisodeRowSchema))

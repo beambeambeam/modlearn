@@ -26,9 +26,10 @@ export const watchProgressRouter = router({
 		.route({
 			method: "POST",
 			path: "/rpc/watchProgress/save",
-			tags: ["Watch Progress"],
-			summary: "Save watch progress",
-			description: "Requires authentication.",
+			tags: ["Watch Progress User"],
+			summary: "Save Watch Progress",
+			description:
+				"Requires authentication. Upserts watch progress for the signed-in user.",
 		})
 		.input(watchProgressSaveInputSchema)
 		.output(watchProgressEnvelopeSchema)
@@ -45,9 +46,10 @@ export const watchProgressRouter = router({
 		.route({
 			method: "POST",
 			path: "/rpc/watchProgress/markCompleted",
-			tags: ["Watch Progress"],
-			summary: "Mark progress completed",
-			description: "Requires authentication.",
+			tags: ["Watch Progress User"],
+			summary: "Mark Watch Progress As Completed",
+			description:
+				"Requires authentication. Marks watch progress as completed for the specified item.",
 		})
 		.input(watchProgressMarkCompletedInputSchema)
 		.output(watchProgressEnvelopeSchema)
@@ -64,9 +66,10 @@ export const watchProgressRouter = router({
 		.route({
 			method: "POST",
 			path: "/rpc/watchProgress/getResume",
-			tags: ["Watch Progress"],
-			summary: "Get resume position",
-			description: "Requires authentication.",
+			tags: ["Watch Progress User"],
+			summary: "Retrieve Watch Resume Position",
+			description:
+				"Requires authentication. Returns resume position for the specified content.",
 		})
 		.input(watchProgressGetResumeInputSchema)
 		.output(watchProgressResumeOutputSchema)
@@ -83,9 +86,10 @@ export const watchProgressRouter = router({
 		.route({
 			method: "POST",
 			path: "/rpc/watchProgress/getPlaylistResume",
-			tags: ["Watch Progress"],
-			summary: "Get playlist resume target",
-			description: "Requires authentication.",
+			tags: ["Watch Progress User"],
+			summary: "Retrieve Playlist Resume Target",
+			description:
+				"Requires authentication. Returns the next resume target within a playlist.",
 		})
 		.input(watchProgressGetPlaylistResumeInputSchema)
 		.output(playlistWatchProgressResumeOutputSchema)
@@ -102,9 +106,10 @@ export const watchProgressRouter = router({
 		.route({
 			method: "POST",
 			path: "/rpc/watchProgress/getPlaylistAutoPlayNext",
-			tags: ["Watch Progress"],
-			summary: "Get playlist auto-play next episode",
-			description: "Requires authentication.",
+			tags: ["Watch Progress User"],
+			summary: "Retrieve Playlist Auto-Play Next Episode",
+			description:
+				"Requires authentication. Returns the next episode candidate for playlist auto-play.",
 		})
 		.input(watchProgressGetPlaylistAutoPlayNextInputSchema)
 		.output(playlistAutoPlayNextOutputSchema)
@@ -121,9 +126,10 @@ export const watchProgressRouter = router({
 		.route({
 			method: "POST",
 			path: "/rpc/watchProgress/continueWatching",
-			tags: ["Watch Progress"],
-			summary: "List continue watching",
-			description: "Requires authentication.",
+			tags: ["Watch Progress User"],
+			summary: "List Continue Watching Items",
+			description:
+				"Requires authentication. Returns continue-watching rows for the signed-in user.",
 		})
 		.input(watchProgressContinueWatchingInputSchema.optional())
 		.output(continueWatchingOutputSchema)

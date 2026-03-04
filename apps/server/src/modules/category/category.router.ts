@@ -23,8 +23,10 @@ export const categoryRouter = router({
 		.route({
 			method: "POST",
 			path: "/rpc/category/list",
-			tags: ["Category"],
-			summary: "List categories",
+			tags: ["Category Public"],
+			summary: "List Public Categories",
+			description:
+				"Public endpoint. Returns categories available for public browsing.",
 		})
 		.input(categoryListInputSchema.partial().optional())
 		.output(categoryListOutputSchema)
@@ -38,8 +40,10 @@ export const categoryRouter = router({
 		.route({
 			method: "POST",
 			path: "/rpc/category/getById",
-			tags: ["Category"],
-			summary: "Get category by ID",
+			tags: ["Category Public"],
+			summary: "Retrieve Public Category By ID",
+			description:
+				"Public endpoint. Returns a category by ID when available for public browsing.",
 		})
 		.input(categoryByIdInputSchema)
 		.output(categorySchema)
@@ -53,9 +57,10 @@ export const categoryRouter = router({
 		.route({
 			method: "POST",
 			path: "/rpc/category/adminCreate",
-			tags: ["Category"],
-			summary: "Create category",
-			description: "Requires admin or superadmin role.",
+			tags: ["Category Admin"],
+			summary: "Create Category",
+			description:
+				"Requires admin or superadmin role. Creates a new category record.",
 		})
 		.input(categoryAdminCreateInputSchema)
 		.output(categorySchema)
@@ -76,9 +81,10 @@ export const categoryRouter = router({
 		.route({
 			method: "POST",
 			path: "/rpc/category/adminUpdate",
-			tags: ["Category"],
-			summary: "Update category",
-			description: "Requires admin or superadmin role.",
+			tags: ["Category Admin"],
+			summary: "Update Category",
+			description:
+				"Requires admin or superadmin role. Updates mutable category fields.",
 		})
 		.input(categoryAdminUpdateInputSchema)
 		.output(categorySchema)
@@ -102,9 +108,10 @@ export const categoryRouter = router({
 		.route({
 			method: "POST",
 			path: "/rpc/category/adminDelete",
-			tags: ["Category"],
-			summary: "Delete category",
-			description: "Requires admin or superadmin role.",
+			tags: ["Category Admin"],
+			summary: "Delete Category",
+			description:
+				"Requires admin or superadmin role. Deletes a category and returns deletion metadata.",
 		})
 		.input(categoryAdminDeleteInputSchema)
 		.output(categoryDeleteOutputSchema)

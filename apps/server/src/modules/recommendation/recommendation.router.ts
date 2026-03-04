@@ -18,9 +18,10 @@ export const recommendationRouter = router({
 		.route({
 			method: "POST",
 			path: "/rpc/recommendation/listForMe",
-			tags: ["Recommendation"],
-			summary: "List personalized recommendations",
-			description: "Requires authentication.",
+			tags: ["Recommendation User"],
+			summary: "List Personalized Recommendations",
+			description:
+				"Requires authentication. Returns personalized recommendations for the signed-in user.",
 		})
 		.input(recommendationListForMeInputSchema.optional())
 		.output(recommendationListForMeOutputSchema)
@@ -37,9 +38,10 @@ export const recommendationRouter = router({
 		.route({
 			method: "POST",
 			path: "/rpc/recommendation/listPopular",
-			tags: ["Recommendation"],
-			summary: "List popular recommendations",
-			description: "Requires authentication.",
+			tags: ["Recommendation User"],
+			summary: "List Popular Recommendations",
+			description:
+				"Requires authentication. Returns currently popular recommendation candidates for the signed-in user.",
 		})
 		.input(recommendationListPopularInputSchema.optional())
 		.output(recommendationListPopularOutputSchema)
@@ -53,9 +55,10 @@ export const recommendationRouter = router({
 		.route({
 			method: "POST",
 			path: "/rpc/recommendation/listRecentlyAdded",
-			tags: ["Recommendation"],
-			summary: "List recently added recommendations",
-			description: "Requires authentication.",
+			tags: ["Recommendation User"],
+			summary: "List Recently Added Recommendations",
+			description:
+				"Requires authentication. Returns newly added recommendation candidates for the signed-in user.",
 		})
 		.input(recommendationListRecentlyAddedInputSchema.optional())
 		.output(recommendationListRecentlyAddedOutputSchema)

@@ -18,9 +18,10 @@ export const fileRouter = router({
 		.route({
 			method: "POST",
 			path: "/rpc/file/adminCreateUploadRequest",
-			tags: ["File"],
-			summary: "Create upload request",
-			description: "Requires admin or superadmin role.",
+			tags: ["File Admin"],
+			summary: "Create File Upload Request",
+			description:
+				"Requires admin or superadmin role. Creates signed upload details and file metadata.",
 		})
 		.input(fileAdminCreateUploadRequestInputSchema)
 		.output(fileAdminCreateUploadRequestOutputSchema)
@@ -44,9 +45,10 @@ export const fileRouter = router({
 		.route({
 			method: "POST",
 			path: "/rpc/file/adminGetDownloadUrl",
-			tags: ["File"],
-			summary: "Get file download URL",
-			description: "Requires admin or superadmin role.",
+			tags: ["File Admin"],
+			summary: "Create File Download URL",
+			description:
+				"Requires admin or superadmin role. Returns a signed download URL for a file.",
 		})
 		.input(fileAdminByIdInputSchema)
 		.output(fileAdminGetDownloadUrlOutputSchema)
@@ -60,9 +62,10 @@ export const fileRouter = router({
 		.route({
 			method: "POST",
 			path: "/rpc/file/adminDelete",
-			tags: ["File"],
-			summary: "Delete file",
-			description: "Requires admin or superadmin role.",
+			tags: ["File Admin"],
+			summary: "Delete File",
+			description:
+				"Requires admin or superadmin role. Deletes file metadata and backing object reference.",
 		})
 		.input(fileAdminByIdInputSchema)
 		.output(fileAdminDeleteOutputSchema)

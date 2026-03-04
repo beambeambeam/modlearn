@@ -36,10 +36,10 @@ export const contentRouter = router({
 		.route({
 			method: "POST",
 			path: "/rpc/content/list",
-			tags: ["Content"],
-			summary: "List published and available content",
+			tags: ["Content Public"],
+			summary: "List Available Public Content",
 			description:
-				"Public endpoint. Always returns only published and available content.",
+				"Public endpoint. Returns only content that is both published and available.",
 		})
 		.input(contentListInputSchema.optional())
 		.output(contentListOutputSchema)
@@ -57,10 +57,10 @@ export const contentRouter = router({
 		.route({
 			method: "POST",
 			path: "/rpc/content/getById",
-			tags: ["Content"],
-			summary: "Get published and available content by ID",
+			tags: ["Content Public"],
+			summary: "Retrieve Available Public Content By ID",
 			description:
-				"Public endpoint. Always returns only published and available content.",
+				"Public endpoint. Returns content by ID only when it is both published and available.",
 		})
 		.input(contentByIdInputSchema)
 		.output(contentDetailOutputSchema)
@@ -77,8 +77,10 @@ export const contentRouter = router({
 		.route({
 			method: "POST",
 			path: "/rpc/content/listPopular",
-			tags: ["Content"],
-			summary: "List popular content",
+			tags: ["Content Public"],
+			summary: "List Popular Public Content",
+			description:
+				"Public endpoint. Returns popular content that is currently published and available.",
 		})
 		.input(contentListPopularInputSchema.optional())
 		.output(z.array(contentSchema))
@@ -92,10 +94,10 @@ export const contentRouter = router({
 		.route({
 			method: "POST",
 			path: "/rpc/content/adminList",
-			tags: ["Content"],
-			summary: "Admin list content",
+			tags: ["Content Admin"],
+			summary: "List Admin Content Catalog",
 			description:
-				"Requires admin or superadmin role. Can include unpublished or unavailable content.",
+				"Requires admin or superadmin role. Can return published, unpublished, available, or unavailable content.",
 		})
 		.input(contentAdminListInputSchema.optional())
 		.output(contentListOutputSchema)
@@ -109,10 +111,10 @@ export const contentRouter = router({
 		.route({
 			method: "POST",
 			path: "/rpc/content/adminGetById",
-			tags: ["Content"],
-			summary: "Admin get content by ID",
+			tags: ["Content Admin"],
+			summary: "Retrieve Admin Content Details By ID",
 			description:
-				"Requires admin or superadmin role. Can include unpublished or unavailable content.",
+				"Requires admin or superadmin role. Can return unpublished or unavailable content details.",
 		})
 		.input(contentAdminByIdInputSchema)
 		.output(contentDetailOutputSchema)
@@ -126,9 +128,10 @@ export const contentRouter = router({
 		.route({
 			method: "POST",
 			path: "/rpc/content/adminCreate",
-			tags: ["Content"],
-			summary: "Create content",
-			description: "Requires admin or superadmin role.",
+			tags: ["Content Admin"],
+			summary: "Create Content",
+			description:
+				"Requires admin or superadmin role. Creates a new content item.",
 		})
 		.input(contentAdminCreateInputSchema)
 		.output(contentSchema)
@@ -150,9 +153,10 @@ export const contentRouter = router({
 		.route({
 			method: "POST",
 			path: "/rpc/content/adminUpdate",
-			tags: ["Content"],
-			summary: "Update content",
-			description: "Requires admin or superadmin role.",
+			tags: ["Content Admin"],
+			summary: "Update Content",
+			description:
+				"Requires admin or superadmin role. Updates mutable content fields.",
 		})
 		.input(contentAdminUpdateInputSchema)
 		.output(contentSchema)
@@ -177,9 +181,10 @@ export const contentRouter = router({
 		.route({
 			method: "POST",
 			path: "/rpc/content/adminSetPublishState",
-			tags: ["Content"],
-			summary: "Set publish state",
-			description: "Requires admin or superadmin role.",
+			tags: ["Content Admin"],
+			summary: "Set Content Publish State",
+			description:
+				"Requires admin or superadmin role. Sets whether content is published.",
 		})
 		.input(contentAdminSetPublishStateInputSchema)
 		.output(contentSchema)
@@ -204,9 +209,10 @@ export const contentRouter = router({
 		.route({
 			method: "POST",
 			path: "/rpc/content/adminSetClassification",
-			tags: ["Content"],
-			summary: "Set classification",
-			description: "Requires admin or superadmin role.",
+			tags: ["Content Admin"],
+			summary: "Set Content Category Classification",
+			description:
+				"Requires admin or superadmin role. Updates category associations for a content item.",
 		})
 		.input(contentAdminSetClassificationInputSchema)
 		.output(contentClassificationOutputSchema)
@@ -230,9 +236,10 @@ export const contentRouter = router({
 		.route({
 			method: "POST",
 			path: "/rpc/content/adminDelete",
-			tags: ["Content"],
-			summary: "Delete content",
-			description: "Requires admin or superadmin role.",
+			tags: ["Content Admin"],
+			summary: "Delete Content",
+			description:
+				"Requires admin or superadmin role. Deletes a content item and returns deletion metadata.",
 		})
 		.input(contentAdminDeleteInputSchema)
 		.output(contentDeleteOutputSchema)
@@ -254,9 +261,10 @@ export const contentRouter = router({
 		.route({
 			method: "POST",
 			path: "/rpc/content/adminSetAvailability",
-			tags: ["Content"],
-			summary: "Set availability",
-			description: "Requires admin or superadmin role.",
+			tags: ["Content Admin"],
+			summary: "Set Content Availability State",
+			description:
+				"Requires admin or superadmin role. Sets whether content is available for access.",
 		})
 		.input(contentAdminSetAvailabilityInputSchema)
 		.output(contentSchema)

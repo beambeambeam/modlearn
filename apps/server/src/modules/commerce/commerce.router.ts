@@ -50,9 +50,10 @@ export const commerceRouter = router({
 			.route({
 				method: "POST",
 				path: "/rpc/commerce/cart/addItem",
-				tags: ["Commerce"],
-				summary: "Add item to cart",
-				description: "Requires authentication.",
+				tags: ["Commerce Cart User"],
+				summary: "Add Item To Current User Cart",
+				description:
+					"Requires authentication. Adds a purchasable content or playlist item to the signed-in user's cart.",
 			})
 			.input(commerceCartAddItemInputSchema)
 			.output(commerceCartOutputSchema)
@@ -67,9 +68,10 @@ export const commerceRouter = router({
 			.route({
 				method: "POST",
 				path: "/rpc/commerce/cart/removeItem",
-				tags: ["Commerce"],
-				summary: "Remove item from cart",
-				description: "Requires authentication.",
+				tags: ["Commerce Cart User"],
+				summary: "Remove Item From Current User Cart",
+				description:
+					"Requires authentication. Removes an item from the signed-in user's cart.",
 			})
 			.input(commerceCartRemoveItemInputSchema)
 			.output(commerceCartOutputSchema)
@@ -84,9 +86,10 @@ export const commerceRouter = router({
 			.route({
 				method: "POST",
 				path: "/rpc/commerce/cart/list",
-				tags: ["Commerce"],
-				summary: "List cart",
-				description: "Requires authentication.",
+				tags: ["Commerce Cart User"],
+				summary: "List Current User Cart Items",
+				description:
+					"Requires authentication. Returns all items currently in the signed-in user's cart.",
 			})
 			.input(z.object({}).optional())
 			.output(commerceCartOutputSchema)
@@ -102,9 +105,10 @@ export const commerceRouter = router({
 			.route({
 				method: "POST",
 				path: "/rpc/commerce/checkout/createOrder",
-				tags: ["Commerce"],
-				summary: "Create checkout order",
-				description: "Requires authentication.",
+				tags: ["Commerce Checkout User"],
+				summary: "Create Checkout Order",
+				description:
+					"Requires authentication. Creates a checkout order from the signed-in user's cart.",
 			})
 			.input(commerceCheckoutCreateOrderInputSchema)
 			.output(commerceCheckoutOrderOutputSchema)
@@ -121,9 +125,10 @@ export const commerceRouter = router({
 			.route({
 				method: "POST",
 				path: "/rpc/commerce/payment/markSuccess",
-				tags: ["Commerce"],
-				summary: "Mark payment success (mock)",
-				description: "Requires authentication.",
+				tags: ["Commerce Payment User"],
+				summary: "Mark Payment As Successful (Mock)",
+				description:
+					"Requires authentication. Mock endpoint to mark a payment order as successful.",
 			})
 			.input(commercePaymentMarkSuccessInputSchema)
 			.output(commercePaymentSuccessOutputSchema)
@@ -138,9 +143,10 @@ export const commerceRouter = router({
 			.route({
 				method: "POST",
 				path: "/rpc/commerce/payment/confirmWebhook",
-				tags: ["Commerce"],
-				summary: "Confirm payment webhook (mock)",
-				description: "Requires authentication.",
+				tags: ["Commerce Payment User"],
+				summary: "Confirm Payment Webhook (Mock)",
+				description:
+					"Requires authentication. Mock endpoint to process provider webhook confirmation for an order.",
 			})
 			.input(commercePaymentConfirmWebhookInputSchema)
 			.output(commercePaymentSuccessOutputSchema)
@@ -159,9 +165,10 @@ export const commerceRouter = router({
 			.route({
 				method: "POST",
 				path: "/rpc/commerce/payment/refund",
-				tags: ["Commerce"],
-				summary: "Refund payment (mock)",
-				description: "Requires authentication.",
+				tags: ["Commerce Payment User"],
+				summary: "Refund Payment (Mock)",
+				description:
+					"Requires authentication. Mock endpoint to refund a completed payment order.",
 			})
 			.input(commercePaymentRefundInputSchema)
 			.output(commercePaymentRefundOutputSchema)
@@ -178,9 +185,10 @@ export const commerceRouter = router({
 			.route({
 				method: "POST",
 				path: "/rpc/commerce/purchase/buyContent",
-				tags: ["Commerce"],
-				summary: "Buy single content",
-				description: "Requires authentication.",
+				tags: ["Commerce Purchase User"],
+				summary: "Purchase Single Content Item",
+				description:
+					"Requires authentication. Purchases one content item for the signed-in user.",
 			})
 			.input(commerceBuyContentInputSchema)
 			.output(commerceBuyOutputSchema)
@@ -195,9 +203,10 @@ export const commerceRouter = router({
 			.route({
 				method: "POST",
 				path: "/rpc/commerce/purchase/buyPlaylist",
-				tags: ["Commerce"],
-				summary: "Buy playlist",
-				description: "Requires authentication.",
+				tags: ["Commerce Purchase User"],
+				summary: "Purchase Playlist",
+				description:
+					"Requires authentication. Purchases one playlist for the signed-in user.",
 			})
 			.input(commerceBuyPlaylistInputSchema)
 			.output(commerceBuyOutputSchema)
@@ -215,9 +224,10 @@ export const commerceRouter = router({
 				.route({
 					method: "POST",
 					path: "/rpc/commerce/adminPricing/content/list",
-					tags: ["Commerce"],
-					summary: "Admin list content pricing windows",
-					description: "Requires admin or superadmin role.",
+					tags: ["Commerce Pricing Admin"],
+					summary: "List Content Pricing Windows",
+					description:
+						"Requires admin or superadmin role. Returns content pricing windows for admin management.",
 				})
 				.input(commerceAdminContentPricingListInputSchema)
 				.output(commerceAdminContentPricingListOutputSchema)
@@ -231,9 +241,10 @@ export const commerceRouter = router({
 				.route({
 					method: "POST",
 					path: "/rpc/commerce/adminPricing/content/create",
-					tags: ["Commerce"],
-					summary: "Admin create content pricing window",
-					description: "Requires admin or superadmin role.",
+					tags: ["Commerce Pricing Admin"],
+					summary: "Create Content Pricing Window",
+					description:
+						"Requires admin or superadmin role. Creates a pricing window for a content item.",
 				})
 				.input(commerceAdminContentPricingCreateInputSchema)
 				.output(commerceAdminContentPricingOutputSchema)
@@ -259,9 +270,10 @@ export const commerceRouter = router({
 				.route({
 					method: "POST",
 					path: "/rpc/commerce/adminPricing/content/update",
-					tags: ["Commerce"],
-					summary: "Admin update content pricing window",
-					description: "Requires admin or superadmin role.",
+					tags: ["Commerce Pricing Admin"],
+					summary: "Update Content Pricing Window",
+					description:
+						"Requires admin or superadmin role. Updates mutable fields of a content pricing window.",
 				})
 				.input(commerceAdminContentPricingUpdateInputSchema)
 				.output(commerceAdminContentPricingOutputSchema)
@@ -289,9 +301,10 @@ export const commerceRouter = router({
 				.route({
 					method: "POST",
 					path: "/rpc/commerce/adminPricing/playlist/list",
-					tags: ["Commerce"],
-					summary: "Admin list playlist pricing windows",
-					description: "Requires admin or superadmin role.",
+					tags: ["Commerce Pricing Admin"],
+					summary: "List Playlist Pricing Windows",
+					description:
+						"Requires admin or superadmin role. Returns playlist pricing windows for admin management.",
 				})
 				.input(commerceAdminPlaylistPricingListInputSchema)
 				.output(commerceAdminPlaylistPricingListOutputSchema)
@@ -305,9 +318,10 @@ export const commerceRouter = router({
 				.route({
 					method: "POST",
 					path: "/rpc/commerce/adminPricing/playlist/create",
-					tags: ["Commerce"],
-					summary: "Admin create playlist pricing window",
-					description: "Requires admin or superadmin role.",
+					tags: ["Commerce Pricing Admin"],
+					summary: "Create Playlist Pricing Window",
+					description:
+						"Requires admin or superadmin role. Creates a pricing window for a playlist.",
 				})
 				.input(commerceAdminPlaylistPricingCreateInputSchema)
 				.output(commerceAdminPlaylistPricingOutputSchema)
@@ -333,9 +347,10 @@ export const commerceRouter = router({
 				.route({
 					method: "POST",
 					path: "/rpc/commerce/adminPricing/playlist/update",
-					tags: ["Commerce"],
-					summary: "Admin update playlist pricing window",
-					description: "Requires admin or superadmin role.",
+					tags: ["Commerce Pricing Admin"],
+					summary: "Update Playlist Pricing Window",
+					description:
+						"Requires admin or superadmin role. Updates mutable fields of a playlist pricing window.",
 				})
 				.input(commerceAdminPlaylistPricingUpdateInputSchema)
 				.output(commerceAdminPlaylistPricingOutputSchema)

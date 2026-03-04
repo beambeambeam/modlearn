@@ -18,9 +18,10 @@ export const analyticsRouter = router({
 		.route({
 			method: "POST",
 			path: "/rpc/analytics/overview",
-			tags: ["Analytics"],
-			summary: "Get analytics overview",
-			description: "Requires admin or superadmin role.",
+			tags: ["Analytics Admin"],
+			summary: "Retrieve Analytics Overview Metrics",
+			description:
+				"Requires admin or superadmin role. Returns aggregated platform metrics for the requested window.",
 		})
 		.input(analyticsOverviewInputSchema.optional())
 		.output(analyticsOverviewOutputSchema)
@@ -34,9 +35,10 @@ export const analyticsRouter = router({
 		.route({
 			method: "POST",
 			path: "/rpc/analytics/contentViews",
-			tags: ["Analytics"],
-			summary: "List analytics by content",
-			description: "Requires admin or superadmin role.",
+			tags: ["Analytics Admin"],
+			summary: "List Content View Analytics",
+			description:
+				"Requires admin or superadmin role. Returns per-content view analytics for the requested window and filters.",
 		})
 		.input(analyticsContentViewsInputSchema.optional())
 		.output(analyticsContentViewsOutputSchema)
@@ -50,9 +52,10 @@ export const analyticsRouter = router({
 		.route({
 			method: "POST",
 			path: "/rpc/analytics/viewSessions",
-			tags: ["Analytics"],
-			summary: "List analytics view sessions",
-			description: "Requires admin or superadmin role.",
+			tags: ["Analytics Admin"],
+			summary: "List View Session Analytics",
+			description:
+				"Requires admin or superadmin role. Returns view session analytics for the requested window and filters.",
 		})
 		.input(analyticsViewSessionsInputSchema.optional())
 		.output(analyticsViewSessionsOutputSchema)

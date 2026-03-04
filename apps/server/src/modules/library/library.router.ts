@@ -18,9 +18,10 @@ export const libraryRouter = router({
 		.route({
 			method: "POST",
 			path: "/rpc/library/listMyItems",
-			tags: ["Library"],
-			summary: "List my library items",
-			description: "Requires authentication.",
+			tags: ["Library User"],
+			summary: "List Current User Library Items",
+			description:
+				"Requires authentication. Returns the signed-in user's owned or entitled library items.",
 		})
 		.input(libraryListMyItemsInputSchema.optional())
 		.output(libraryListMyItemsOutputSchema)
@@ -35,9 +36,10 @@ export const libraryRouter = router({
 		.route({
 			method: "POST",
 			path: "/rpc/library/getPlaylistCollection",
-			tags: ["Library"],
-			summary: "Get one purchased playlist collection",
-			description: "Requires authentication.",
+			tags: ["Library User"],
+			summary: "Retrieve Current User Playlist Collection",
+			description:
+				"Requires authentication. Returns one purchased playlist collection for the signed-in user.",
 		})
 		.input(libraryGetPlaylistCollectionInputSchema)
 		.output(libraryPlaylistCollectionSchema)
@@ -52,9 +54,10 @@ export const libraryRouter = router({
 		.route({
 			method: "POST",
 			path: "/rpc/library/hasAccess",
-			tags: ["Library"],
-			summary: "Check if user has content or playlist access",
-			description: "Requires authentication.",
+			tags: ["Library User"],
+			summary: "Check Current User Library Access",
+			description:
+				"Requires authentication. Checks whether the signed-in user can access the requested content or playlist.",
 		})
 		.input(libraryHasAccessInputSchema)
 		.output(libraryHasAccessOutputSchema)
