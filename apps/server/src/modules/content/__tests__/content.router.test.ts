@@ -88,6 +88,119 @@ describe("content router", () => {
 		).rejects.toThrow(expect.objectContaining({ code: "BAD_REQUEST" }));
 	});
 
+	it("enforces published-only visibility on public endpoints", async () => {
+		const admin = await createTestUser(testDb.client, {
+			email: "router-public-visibility-admin@example.com",
+			role: "admin",
+		});
+
+		const [published, draft] = await testDb.db
+			.insert(content)
+			.values([
+				{
+					title: "Published Public",
+					contentType: "MOVIE",
+					updatedBy: admin.id,
+					isPublished: true,
+					isAvailable: true,
+					publishedAt: new Date("2025-01-01T00:00:00.000Z"),
+				},
+				{
+					title: "Draft Private",
+					contentType: "MOVIE",
+					updatedBy: admin.id,
+					isPublished: false,
+					isAvailable: true,
+				},
+			])
+			.returning();
+
+		if (!(published && draft)) {
+			throw new Error("Failed to create public visibility fixtures");
+		}
+
+		const caller = createCaller(makeTestContext({ db: testDb.db }));
+		const listResult = await caller.content.list({
+			onlyPublished: false,
+		} as unknown as Parameters<typeof caller.content.list>[0]);
+
+		expect(listResult.items.map((row) => row.id)).toEqual([published.id]);
+		await expect(
+			caller.content.getById({
+				id: draft.id,
+				onlyPublished: false,
+			} as unknown as Parameters<typeof caller.content.getById>[0])
+		).rejects.toThrow(expect.objectContaining({ code: "NOT_FOUND" }));
+	});
+
+	it("allows admin read endpoints to preview unpublished content", async () => {
+		const admin = await createTestUser(testDb.client, {
+			email: "router-admin-read-preview@example.com",
+			role: "admin",
+		});
+
+		const [published, draft] = await testDb.db
+			.insert(content)
+			.values([
+				{
+					title: "Admin Published",
+					contentType: "MOVIE",
+					updatedBy: admin.id,
+					isPublished: true,
+					isAvailable: true,
+					publishedAt: new Date("2025-01-01T00:00:00.000Z"),
+				},
+				{
+					title: "Admin Draft",
+					contentType: "MOVIE",
+					updatedBy: admin.id,
+					isPublished: false,
+					isAvailable: true,
+				},
+			])
+			.returning();
+
+		if (!(published && draft)) {
+			throw new Error("Failed to create admin read fixtures");
+		}
+
+		const adminCaller = createCaller(
+			makeAuthenticatedContext(admin.id, "admin", { db: testDb.db })
+		);
+		const adminListResult = await adminCaller.content.adminList({
+			onlyPublished: false,
+		});
+		expect(adminListResult.items.map((row) => row.id).sort()).toEqual(
+			[published.id, draft.id].sort()
+		);
+
+		const adminDetail = await adminCaller.content.adminGetById({
+			id: draft.id,
+			onlyPublished: false,
+		});
+		expect(adminDetail.id).toBe(draft.id);
+	});
+
+	it("rejects admin read endpoints for unauthenticated and non-admin users", async () => {
+		const noSessionCaller = createCaller(makeTestContext({ db: testDb.db }));
+		await expect(noSessionCaller.content.adminList({})).rejects.toThrow(
+			expect.objectContaining({ code: "UNAUTHORIZED" })
+		);
+
+		const user = await createTestUser(testDb.client, {
+			email: "router-content-read-user@example.com",
+			role: "user",
+		});
+		const userCaller = createCaller(
+			makeAuthenticatedContext(user.id, "user", { db: testDb.db })
+		);
+		await expect(
+			userCaller.content.adminGetById({
+				id: "00000000-0000-0000-0000-000000000000",
+			})
+		).rejects.toThrow(expect.objectContaining({ code: "FORBIDDEN" }));
+	});
+
 	it("allows admin and superadmin to run admin mutations", async () => {
 		const admin = await createTestUser(testDb.client, {
 			email: "router-admin@example.com",

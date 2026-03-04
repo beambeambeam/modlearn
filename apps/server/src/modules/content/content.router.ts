@@ -12,8 +12,10 @@ import {
 	updateContent,
 } from "@/modules/content/content.service";
 import {
+	contentAdminByIdInputSchema,
 	contentAdminCreateInputSchema,
 	contentAdminDeleteInputSchema,
+	contentAdminListInputSchema,
 	contentAdminSetAvailabilityInputSchema,
 	contentAdminSetClassificationInputSchema,
 	contentAdminSetPublishStateInputSchema,
@@ -35,14 +37,20 @@ export const contentRouter = router({
 			method: "POST",
 			path: "/rpc/content/list",
 			tags: ["Content"],
-			summary: "List content",
+			summary: "List published and available content",
+			description:
+				"Public endpoint. Always returns only published and available content.",
 		})
 		.input(contentListInputSchema.optional())
 		.output(contentListOutputSchema)
 		.handler(({ context, input }) => {
+			const parsedInput = contentListInputSchema.parse(input ?? {});
 			return listContent({
 				db: context.db,
-				input: contentListInputSchema.parse(input ?? {}),
+				input: {
+					...parsedInput,
+					onlyPublished: true,
+				},
 			});
 		}),
 	getById: publicProcedure
@@ -50,14 +58,19 @@ export const contentRouter = router({
 			method: "POST",
 			path: "/rpc/content/getById",
 			tags: ["Content"],
-			summary: "Get content by ID",
+			summary: "Get published and available content by ID",
+			description:
+				"Public endpoint. Always returns only published and available content.",
 		})
 		.input(contentByIdInputSchema)
 		.output(contentDetailOutputSchema)
 		.handler(({ context, input }) => {
 			return getContentById({
 				db: context.db,
-				input,
+				input: {
+					...input,
+					onlyPublished: true,
+				},
 			});
 		}),
 	listPopular: publicProcedure
@@ -73,6 +86,40 @@ export const contentRouter = router({
 			return listPopularContent({
 				db: context.db,
 				input: contentListPopularInputSchema.parse(input ?? {}),
+			});
+		}),
+	adminList: adminProcedure
+		.route({
+			method: "POST",
+			path: "/rpc/content/adminList",
+			tags: ["Content"],
+			summary: "Admin list content",
+			description:
+				"Requires admin or superadmin role. Can include unpublished or unavailable content.",
+		})
+		.input(contentAdminListInputSchema.optional())
+		.output(contentListOutputSchema)
+		.handler(({ context, input }) => {
+			return listContent({
+				db: context.db,
+				input: contentAdminListInputSchema.parse(input ?? {}),
+			});
+		}),
+	adminGetById: adminProcedure
+		.route({
+			method: "POST",
+			path: "/rpc/content/adminGetById",
+			tags: ["Content"],
+			summary: "Admin get content by ID",
+			description:
+				"Requires admin or superadmin role. Can include unpublished or unavailable content.",
+		})
+		.input(contentAdminByIdInputSchema)
+		.output(contentDetailOutputSchema)
+		.handler(({ context, input }) => {
+			return getContentById({
+				db: context.db,
+				input,
 			});
 		}),
 	adminCreate: adminProcedure

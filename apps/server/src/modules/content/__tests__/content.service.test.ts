@@ -303,4 +303,94 @@ describe("content service", () => {
 			})
 		).rejects.toThrow(ContentNotFoundError);
 	});
+
+	it("listContent includes unpublished and unavailable content in admin mode", async () => {
+		const admin = await createTestUser(testDb.client, {
+			email: "admin-list-content-preview@example.com",
+		});
+		const [published, draft, unavailable] = await testDb.db
+			.insert(content)
+			.values([
+				{
+					title: "Published Content",
+					contentType: "MOVIE",
+					updatedBy: admin.id,
+					isPublished: true,
+					isAvailable: true,
+					publishedAt: new Date("2025-01-01T00:00:00.000Z"),
+				},
+				{
+					title: "Draft Content",
+					contentType: "MOVIE",
+					updatedBy: admin.id,
+					isPublished: false,
+					isAvailable: true,
+				},
+				{
+					title: "Unavailable Content",
+					contentType: "MOVIE",
+					updatedBy: admin.id,
+					isPublished: true,
+					isAvailable: false,
+					publishedAt: new Date("2025-01-02T00:00:00.000Z"),
+				},
+			])
+			.returning();
+
+		if (!(published && draft && unavailable)) {
+			throw new Error("Failed to create content visibility fixtures");
+		}
+
+		const publicResult = await listContent({
+			db: testDb.db,
+			input: {
+				onlyPublished: true,
+			},
+		});
+		expect(publicResult.items.map((row) => row.id)).toEqual([published.id]);
+
+		const adminResult = await listContent({
+			db: testDb.db,
+			input: {
+				onlyPublished: false,
+			},
+		});
+		expect(adminResult.items.map((row) => row.id).sort()).toEqual(
+			[published.id, draft.id, unavailable.id].sort()
+		);
+	});
+
+	it("getContentById returns draft content in admin mode", async () => {
+		const admin = await createTestUser(testDb.client, {
+			email: "admin-get-by-id-preview@example.com",
+		});
+
+		const created = await createContent({
+			db: testDb.db,
+			input: {
+				title: "Draft Preview Content",
+				contentType: "MOVIE",
+			},
+			updatedBy: admin.id,
+		});
+
+		await expect(
+			getContentById({
+				db: testDb.db,
+				input: {
+					id: created.id,
+					onlyPublished: true,
+				},
+			})
+		).rejects.toThrow(ContentNotFoundError);
+
+		const adminResult = await getContentById({
+			db: testDb.db,
+			input: {
+				id: created.id,
+				onlyPublished: false,
+			},
+		});
+		expect(adminResult.id).toBe(created.id);
+	});
 });

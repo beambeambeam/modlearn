@@ -11,12 +11,18 @@ export interface ContentListInput {
 	search?: string;
 	contentType?: ContentType;
 	sortBy?: ContentSortBy;
-	onlyPublished?: boolean;
 	categoryIds?: string[];
 }
 
 export interface ContentByIdInput {
 	id: string;
+}
+
+export interface ContentAdminListInput extends ContentListInput {
+	onlyPublished?: boolean;
+}
+
+export interface ContentAdminByIdInput extends ContentByIdInput {
 	onlyPublished?: boolean;
 }
 
@@ -67,12 +73,12 @@ export interface AdminSetClassificationInput {
 
 export interface ListContentParams {
 	db: DbClient;
-	input: ContentListInput;
+	input: ContentAdminListInput;
 }
 
 export interface GetContentByIdParams {
 	db: DbClient;
-	input: ContentByIdInput;
+	input: ContentAdminByIdInput;
 }
 
 export interface ListPopularContentParams {
