@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/select";
 import { useUsers, useSetUserRole, useBanUser, useUnbanUser } from "@/hooks/users/use-users";
 import { toast } from "sonner";
+import { useRouteContext } from "@tanstack/react-router";
 
 const ROLE_COLOR: Record<string, string> = {
   admin:      "bg-purple-100 text-purple-700",
@@ -19,6 +20,14 @@ const ROLE_COLOR: Record<string, string> = {
 const PAGE_SIZE = 10;
 
 export default function UserTable() {
+  const { session } = useRouteContext({ from: "/_admin-layout" });
+  const currentUserId = session.data?.user.id;
+  const currentRole   = session.data?.user.role as string;
+  
+  const allowedRoles = currentRole === "superadmin"
+    ? ["user", "admin", "superadmin"]
+    : ["user"];
+
   const [search, setSearch] = useState("");
   const [page, setPage]     = useState(1);
 
@@ -102,6 +111,9 @@ export default function UserTable() {
           <div className="py-16 text-center text-sm text-muted-foreground">No users found</div>
         ) : (
           users.map((user) => {
+            const isSelf    = user.id === currentUserId;
+            const isHigher  = user.role === "superadmin" && currentRole !== "superadmin";
+            const canEdit   = !isSelf && !isHigher;
             const isBanned = !!user.banned;
             const role     = (user.role as string) ?? "user";
 
@@ -123,16 +135,17 @@ export default function UserTable() {
 
                 {/* Role selector */}
                 <Select
-                    value={role}
-                    onValueChange={(v) => v && handleRoleChange(user.id, v)}
+                  value={role}
+                  disabled={!canEdit}
+                  onValueChange={(v) => v && handleRoleChange(user.id, v)}
                 >
                   <SelectTrigger className="h-8 text-xs">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="user">User</SelectItem>
-                    <SelectItem value="admin">Admin</SelectItem>
-                    <SelectItem value="superadmin">Superadmin</SelectItem>
+                    {allowedRoles.map((r) => (
+                      <SelectItem key={r} value={r}>{r}</SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
 

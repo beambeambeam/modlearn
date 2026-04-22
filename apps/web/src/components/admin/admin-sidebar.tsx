@@ -1,4 +1,4 @@
-import { Link, useRouteContext, useRouterState } from "@tanstack/react-router";
+import { Link, useRouteContext, useRouterState, useNavigate } from "@tanstack/react-router";
 import {
 	BookOpen,
 	ChartLine,
@@ -37,6 +37,7 @@ const navItems = [
 ];
 
 export default function AdminSidebar() {
+	const navigate = useNavigate();
 	const { session } = useRouteContext({ from: "/_admin-layout" });
 	const user = session.data?.user;
 
@@ -128,7 +129,17 @@ export default function AdminSidebar() {
 			<div className="mt-auto">
 				<button
 					className="flex w-full items-center gap-3 rounded-md px-3 py-2 text-muted-foreground text-sm transition-colors hover:bg-accent hover:text-foreground"
-					onClick={() => authClient.signOut()}
+					onClick={() => {
+						authClient.signOut({
+							fetchOptions: {
+								onSuccess: () => {
+									navigate({
+										to: "/",
+									});
+								},
+							},
+						});
+					}}
 					type="button"
 				>
 					<LogOut size={16} />

@@ -3,6 +3,7 @@ import { Bell, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNotifications } from "@/hooks/audit/use-notifications"
 import { useEffect, useRef } from "react";
+import { ModeToggle } from "../mode-toggle";
 
 const pageTitles: Record<string, string> = {
   "/admin/dashboard":  "Dashboard",
@@ -73,6 +74,7 @@ export default function AdminHeader() {
 
       {/* Notification Bell */}
       <div className="relative" ref={dropdownRef}>
+        <ModeToggle />
         <Button
           variant="ghost" size="icon"
           className="relative"
