@@ -5,7 +5,7 @@ import {
 	resetTestDatabase,
 	type TestDatabase,
 } from "@/__tests__/helpers/test-db";
-import { content, contentView, playbackSession } from "@/lib/db/schema";
+import { content, contentView } from "@/lib/db/schema";
 import {
 	getAnalyticsOverview,
 	listContentViewsAnalytics,
@@ -51,50 +51,16 @@ async function seedAnalyticsData(testDb: TestDatabase) {
 		throw new Error("Failed to create analytics content fixtures");
 	}
 
-	const now = new Date();
-	const activeLastEventAt = new Date(now.getTime() - 5 * 60 * 1000);
-	const inactiveLastEventAt = new Date(now.getTime() - 45 * 60 * 1000);
-	const expiresAt = new Date(now.getTime() + 30 * 60 * 1000);
-
-	const [sessionA] = await testDb.db
-		.insert(playbackSession)
-		.values({
-			userId: userA.id,
-			contentId: contentA.id,
-			playbackToken: `token-a-${Date.now()}`,
-			status: "ACTIVE",
-			lastEventAt: activeLastEventAt,
-			expiresAt,
-		})
-		.returning();
-	const [sessionB] = await testDb.db
-		.insert(playbackSession)
-		.values({
-			userId: userB.id,
-			contentId: contentB.id,
-			playbackToken: `token-b-${Date.now()}`,
-			status: "STOPPED",
-			lastEventAt: inactiveLastEventAt,
-			expiresAt,
-		})
-		.returning();
-
-	if (!(sessionA && sessionB)) {
-		throw new Error("Failed to create analytics session fixtures");
-	}
-
 	await testDb.db.insert(contentView).values([
 		{
 			contentId: contentA.id,
 			userId: userA.id,
-			playbackSessionId: sessionA.id,
 			watchDuration: 75,
 			deviceType: "web",
 		},
 		{
 			contentId: contentB.id,
 			userId: userB.id,
-			playbackSessionId: sessionB.id,
 			watchDuration: 40,
 			deviceType: "mobile",
 		},
@@ -118,17 +84,14 @@ describe("analytics service", () => {
 		await testDb.cleanup();
 	});
 
-	it("returns overview totals and rolling active users", async () => {
+	it("returns overview totals", async () => {
 		await seedAnalyticsData(testDb);
 
 		const overview = await getAnalyticsOverview({
 			db: testDb.db,
-			input: {
-				activeWindowMinutes: 15,
-			},
+			input: {},
 		});
 
-		expect(overview.activeUsers).toBe(1);
 		expect(overview.totalViews).toBe(2);
 		expect(overview.totalWatchDuration).toBe(115);
 		expect(overview.generatedAt).toBeInstanceOf(Date);

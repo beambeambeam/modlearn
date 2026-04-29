@@ -21,7 +21,7 @@ describe("openapi docs", () => {
 
 		expect(spec.openapi).toMatch(OPENAPI_VERSION_PATTERN);
 		expect(spec.paths["/rpc/content/list"]).toBeDefined();
-		expect(spec.paths["/rpc/playback/createSession"]).toBeDefined();
+		expect(spec.paths["/rpc/playback/createSession"]).toBeUndefined();
 		expect(spec.paths["/rpc/healthCheck"]).toBeDefined();
 		expect(spec.components?.securitySchemes?.BearerAuth).toBeDefined();
 	});
