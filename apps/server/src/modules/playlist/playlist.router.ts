@@ -1,5 +1,4 @@
 import { z } from "zod";
-import { logAdminMutation } from "@/modules/admin-audit/admin-audit.service";
 import {
 	addEpisodeToPlaylist,
 	createPlaylist,
@@ -142,19 +141,12 @@ export const playlistRouter = router({
 		})
 		.input(playlistAdminCreateInputSchema)
 		.output(playlistSchema)
-		.handler(async ({ context, input }) => {
-			const created = await createPlaylist({
+		.handler(({ context, input }) => {
+			return createPlaylist({
 				db: context.db,
 				input,
 				creatorId: context.session.user.id,
 			});
-			await logAdminMutation({
-				context,
-				entityType: "PLAYLIST",
-				action: "CREATE",
-				entityId: created.id,
-			});
-			return created;
 		}),
 	adminUpdate: adminProcedure
 		.route({
@@ -167,21 +159,11 @@ export const playlistRouter = router({
 		})
 		.input(playlistAdminUpdateInputSchema)
 		.output(playlistSchema)
-		.handler(async ({ context, input }) => {
-			const updated = await updatePlaylist({
+		.handler(({ context, input }) => {
+			return updatePlaylist({
 				db: context.db,
 				input,
 			});
-			await logAdminMutation({
-				context,
-				entityType: "PLAYLIST",
-				action: "UPDATE",
-				entityId: updated.id,
-				metadata: {
-					patchKeys: Object.keys(input.patch),
-				},
-			});
-			return updated;
 		}),
 	adminDelete: adminProcedure
 		.route({
@@ -194,18 +176,11 @@ export const playlistRouter = router({
 		})
 		.input(playlistAdminDeleteInputSchema)
 		.output(playlistDeleteOutputSchema)
-		.handler(async ({ context, input }) => {
-			const deleted = await deletePlaylist({
+		.handler(({ context, input }) => {
+			return deletePlaylist({
 				db: context.db,
 				input,
 			});
-			await logAdminMutation({
-				context,
-				entityType: "PLAYLIST",
-				action: "DELETE",
-				entityId: deleted.id,
-			});
-			return deleted;
 		}),
 	adminSetPublishState: adminProcedure
 		.route({
@@ -218,21 +193,11 @@ export const playlistRouter = router({
 		})
 		.input(playlistAdminSetPublishStateInputSchema)
 		.output(playlistSchema)
-		.handler(async ({ context, input }) => {
-			const updated = await setPlaylistPublishState({
+		.handler(({ context, input }) => {
+			return setPlaylistPublishState({
 				db: context.db,
 				input,
 			});
-			await logAdminMutation({
-				context,
-				entityType: "PLAYLIST",
-				action: "SET_PUBLISH_STATE",
-				entityId: updated.id,
-				metadata: {
-					isPublished: input.isPublished,
-				},
-			});
-			return updated;
 		}),
 	adminSetAvailability: adminProcedure
 		.route({
@@ -245,21 +210,11 @@ export const playlistRouter = router({
 		})
 		.input(playlistAdminSetAvailabilityInputSchema)
 		.output(playlistSchema)
-		.handler(async ({ context, input }) => {
-			const updated = await setPlaylistAvailability({
+		.handler(({ context, input }) => {
+			return setPlaylistAvailability({
 				db: context.db,
 				input,
 			});
-			await logAdminMutation({
-				context,
-				entityType: "PLAYLIST",
-				action: "SET_AVAILABILITY",
-				entityId: updated.id,
-				metadata: {
-					isAvailable: input.isAvailable,
-				},
-			});
-			return updated;
 		}),
 	adminAddEpisode: adminProcedure
 		.route({
@@ -272,22 +227,11 @@ export const playlistRouter = router({
 		})
 		.input(playlistAdminAddEpisodeInputSchema)
 		.output(playlistEpisodeRowSchema)
-		.handler(async ({ context, input }) => {
-			const added = await addEpisodeToPlaylist({
+		.handler(({ context, input }) => {
+			return addEpisodeToPlaylist({
 				db: context.db,
 				input,
 			});
-			await logAdminMutation({
-				context,
-				entityType: "PLAYLIST_EPISODE",
-				action: "ADD_EPISODE",
-				entityId: added.id,
-				metadata: {
-					playlistId: added.playlistId,
-					contentId: added.contentId,
-				},
-			});
-			return added;
 		}),
 	adminUpdateEpisode: adminProcedure
 		.route({
@@ -300,22 +244,11 @@ export const playlistRouter = router({
 		})
 		.input(playlistAdminUpdateEpisodeInputSchema)
 		.output(playlistEpisodeRowSchema)
-		.handler(async ({ context, input }) => {
-			const updated = await updatePlaylistEpisode({
+		.handler(({ context, input }) => {
+			return updatePlaylistEpisode({
 				db: context.db,
 				input,
 			});
-			await logAdminMutation({
-				context,
-				entityType: "PLAYLIST_EPISODE",
-				action: "UPDATE_EPISODE",
-				entityId: updated.id,
-				metadata: {
-					playlistId: updated.playlistId,
-					patchKeys: Object.keys(input.patch),
-				},
-			});
-			return updated;
 		}),
 	adminRemoveEpisode: adminProcedure
 		.route({
@@ -328,21 +261,11 @@ export const playlistRouter = router({
 		})
 		.input(playlistAdminRemoveEpisodeInputSchema)
 		.output(playlistEpisodeDeleteOutputSchema)
-		.handler(async ({ context, input }) => {
-			const deleted = await removeEpisodeFromPlaylist({
+		.handler(({ context, input }) => {
+			return removeEpisodeFromPlaylist({
 				db: context.db,
 				input,
 			});
-			await logAdminMutation({
-				context,
-				entityType: "PLAYLIST_EPISODE",
-				action: "REMOVE_EPISODE",
-				entityId: deleted.id,
-				metadata: {
-					playlistId: deleted.playlistId,
-				},
-			});
-			return deleted;
 		}),
 	adminReorderEpisodes: adminProcedure
 		.route({
@@ -355,20 +278,10 @@ export const playlistRouter = router({
 		})
 		.input(playlistAdminReorderEpisodesInputSchema)
 		.output(z.array(playlistEpisodeRowSchema))
-		.handler(async ({ context, input }) => {
-			const reordered = await reorderPlaylistEpisodes({
+		.handler(({ context, input }) => {
+			return reorderPlaylistEpisodes({
 				db: context.db,
 				input,
 			});
-			await logAdminMutation({
-				context,
-				entityType: "PLAYLIST",
-				action: "REORDER_EPISODES",
-				entityId: input.playlistId,
-				metadata: {
-					episodeCount: reordered.length,
-				},
-			});
-			return reordered;
 		}),
 });
