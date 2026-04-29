@@ -35,18 +35,6 @@ import {
 	LibraryPlaylistNotFoundError,
 } from "@/modules/library/library.types";
 import {
-	PlaybackAccessDeniedError,
-	PlaybackContentNotFoundError,
-	PlaybackContentUnavailableError,
-	PlaybackFileNotReadyError,
-	PlaybackPlaylistNotFoundError,
-	PlaybackSessionExpiredError,
-	PlaybackSessionNotFoundError,
-	PlaybackStateTransitionError,
-	PlaybackTokenInvalidError,
-	PlaybackValidationError,
-} from "@/modules/playback/playback.types";
-import {
 	ContentNotFoundError as PlaylistContentNotFoundError,
 	PlaylistEpisodeDuplicateContentError,
 	PlaylistEpisodeNotFoundError,
@@ -169,11 +157,6 @@ export function mapDomainErrorToOrpc(
 		});
 	}
 
-	const playbackError = mapPlaybackDomainErrorToOrpc(error);
-	if (playbackError) {
-		return playbackError;
-	}
-
 	return null;
 }
 
@@ -209,46 +192,6 @@ function mapCommerceDomainErrorToOrpc(
 		error instanceof CommercePlaylistEmptyError ||
 		error instanceof CommerceInvalidCartItemError ||
 		error instanceof CommercePricingWindowValidationError
-	) {
-		return new ORPCError("BAD_REQUEST", {
-			message: error.message,
-		});
-	}
-
-	return null;
-}
-
-function mapPlaybackDomainErrorToOrpc(
-	error: unknown
-): ORPCError<string, unknown> | null {
-	if (
-		error instanceof PlaybackContentNotFoundError ||
-		error instanceof PlaybackPlaylistNotFoundError ||
-		error instanceof PlaybackSessionNotFoundError
-	) {
-		return new ORPCError("NOT_FOUND", {
-			message: error.message,
-		});
-	}
-
-	if (error instanceof PlaybackAccessDeniedError) {
-		return new ORPCError("FORBIDDEN", {
-			message: error.message,
-		});
-	}
-
-	if (error instanceof PlaybackStateTransitionError) {
-		return new ORPCError("CONFLICT", {
-			message: error.message,
-		});
-	}
-
-	if (
-		error instanceof PlaybackContentUnavailableError ||
-		error instanceof PlaybackFileNotReadyError ||
-		error instanceof PlaybackTokenInvalidError ||
-		error instanceof PlaybackSessionExpiredError ||
-		error instanceof PlaybackValidationError
 	) {
 		return new ORPCError("BAD_REQUEST", {
 			message: error.message,

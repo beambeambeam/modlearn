@@ -30,24 +30,17 @@
 
 - Content visibility and status:
   - Content can be published or unpublished  
-  - Content availability is checked before playback  
+  - Content availability is enforced before users can access it  
 
 - Content classification:
   - Categories  
 
 ---
 
-## 3. Video Playback
+## 3. Content Access
 
-- Users can stream video content  
-- Playback controls:
-  - Play  
-  - Pause  
-  - Resume  
-  - Seek forward and backward  
-
-- Playback features:
-  - Auto-resume from last watched position  
+- Users can access available content they are entitled to view  
+- Progress continuity is handled through watch progress rather than playback sessions  
 
 ---
 
@@ -124,7 +117,6 @@
 
 - Track total views per content  
 - Track user viewing sessions  
-- Track active users  
 
 ---
 
@@ -135,10 +127,9 @@
 - Display episodes in an ordered list  
 - Each episode includes basic metadata  
 
-### Playlist Playback
+### Playlist Access
 - Users can:
-  - Play episodes directly from a playlist  
-  - Auto-play the next episode  
+  - Open episodes directly from a playlist  
   - Resume a playlist from the last watched episode  
 
 - Track playlist watch progress:
