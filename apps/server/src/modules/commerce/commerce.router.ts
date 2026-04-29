@@ -1,18 +1,13 @@
-import { z } from "zod";
 import {
-	addCartItem,
 	buyContent,
 	buyPlaylist,
 	confirmPaymentWebhook,
-	createCheckoutOrder,
 	createContentPricingWindow,
 	createPlaylistPricingWindow,
-	listCart,
 	listContentPricingWindows,
 	listPlaylistPricingWindows,
 	markPaymentSuccess,
 	refundPayment,
-	removeCartItem,
 	updateContentPricingWindow,
 	updatePlaylistPricingWindow,
 } from "@/modules/commerce/commerce.service";
@@ -30,11 +25,6 @@ import {
 	commerceBuyContentInputSchema,
 	commerceBuyOutputSchema,
 	commerceBuyPlaylistInputSchema,
-	commerceCartAddItemInputSchema,
-	commerceCartOutputSchema,
-	commerceCartRemoveItemInputSchema,
-	commerceCheckoutCreateOrderInputSchema,
-	commerceCheckoutOrderOutputSchema,
 	commercePaymentConfirmWebhookInputSchema,
 	commercePaymentMarkSuccessInputSchema,
 	commercePaymentRefundInputSchema,
@@ -44,81 +34,6 @@ import {
 import { adminProcedure, protectedProcedure, router } from "@/orpc";
 
 export const commerceRouter = router({
-	cart: router({
-		addItem: protectedProcedure
-			.route({
-				method: "POST",
-				path: "/rpc/commerce/cart/addItem",
-				tags: ["Commerce Cart User"],
-				summary: "Add Item To Current User Cart",
-				description:
-					"Requires authentication. Adds a purchasable content or playlist item to the signed-in user's cart.",
-			})
-			.input(commerceCartAddItemInputSchema)
-			.output(commerceCartOutputSchema)
-			.handler(({ context, input }) => {
-				return addCartItem({
-					db: context.db,
-					userId: context.session.user.id,
-					input,
-				});
-			}),
-		removeItem: protectedProcedure
-			.route({
-				method: "POST",
-				path: "/rpc/commerce/cart/removeItem",
-				tags: ["Commerce Cart User"],
-				summary: "Remove Item From Current User Cart",
-				description:
-					"Requires authentication. Removes an item from the signed-in user's cart.",
-			})
-			.input(commerceCartRemoveItemInputSchema)
-			.output(commerceCartOutputSchema)
-			.handler(({ context, input }) => {
-				return removeCartItem({
-					db: context.db,
-					userId: context.session.user.id,
-					input,
-				});
-			}),
-		list: protectedProcedure
-			.route({
-				method: "POST",
-				path: "/rpc/commerce/cart/list",
-				tags: ["Commerce Cart User"],
-				summary: "List Current User Cart Items",
-				description:
-					"Requires authentication. Returns all items currently in the signed-in user's cart.",
-			})
-			.input(z.object({}).optional())
-			.output(commerceCartOutputSchema)
-			.handler(({ context }) => {
-				return listCart({
-					db: context.db,
-					userId: context.session.user.id,
-				});
-			}),
-	}),
-	checkout: router({
-		createOrder: protectedProcedure
-			.route({
-				method: "POST",
-				path: "/rpc/commerce/checkout/createOrder",
-				tags: ["Commerce Checkout User"],
-				summary: "Create Checkout Order",
-				description:
-					"Requires authentication. Creates a checkout order from the signed-in user's cart.",
-			})
-			.input(commerceCheckoutCreateOrderInputSchema)
-			.output(commerceCheckoutOrderOutputSchema)
-			.handler(({ context, input }) => {
-				return createCheckoutOrder({
-					db: context.db,
-					userId: context.session.user.id,
-					input,
-				});
-			}),
-	}),
 	payment: router({
 		markSuccess: protectedProcedure
 			.route({

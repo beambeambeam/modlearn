@@ -6,8 +6,7 @@ import {
 import {
 	CommerceContentNotFoundError,
 	CommerceCurrencyMismatchError,
-	CommerceDuplicateCartItemError,
-	CommerceInvalidCartItemError,
+	CommerceInvalidOrderItemError,
 	CommerceItemAlreadyOwnedError,
 	CommerceOrderNotFoundError,
 	CommerceOrderStateError,
@@ -176,7 +175,6 @@ function mapCommerceDomainErrorToOrpc(
 
 	if (
 		error instanceof CommerceItemAlreadyOwnedError ||
-		error instanceof CommerceDuplicateCartItemError ||
 		error instanceof CommercePaymentConflictError ||
 		error instanceof CommercePricingWindowOverlapError
 	) {
@@ -190,7 +188,7 @@ function mapCommerceDomainErrorToOrpc(
 		error instanceof CommerceCurrencyMismatchError ||
 		error instanceof CommerceOrderStateError ||
 		error instanceof CommercePlaylistEmptyError ||
-		error instanceof CommerceInvalidCartItemError ||
+		error instanceof CommerceInvalidOrderItemError ||
 		error instanceof CommercePricingWindowValidationError
 	) {
 		return new ORPCError("BAD_REQUEST", {

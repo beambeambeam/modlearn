@@ -29,6 +29,9 @@ async function createOrderForUser(
 			userId,
 			totalAmount,
 			currency: "USD",
+			itemType: "CONTENT",
+			contentId: null,
+			playlistId: null,
 			status: "PAID",
 		})
 		.returning();

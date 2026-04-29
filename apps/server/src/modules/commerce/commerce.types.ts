@@ -11,20 +11,6 @@ export interface CommercePriceSnapshot {
 	currency: CommerceCurrency;
 }
 
-export interface CommerceCartAddItemInput {
-	itemType: CommerceItemType;
-	contentId?: string;
-	playlistId?: string;
-}
-
-export interface CommerceCartRemoveItemInput {
-	cartItemId: string;
-}
-
-export interface CommerceCheckoutCreateOrderInput {
-	source?: "CART";
-}
-
 export interface CommercePaymentMarkSuccessInput {
 	orderId: string;
 	providerTransactionId: string;
@@ -44,30 +30,6 @@ export interface CommerceBuyContentInput {
 export interface CommerceBuyPlaylistInput {
 	playlistId: string;
 	providerTransactionId?: string;
-}
-
-export interface CommerceCartItemView {
-	id: string;
-	itemType: CommerceItemType;
-	contentId: string | null;
-	playlistId: string | null;
-	price: string;
-	currency: CommerceCurrency;
-	addedAt: Date;
-}
-
-export interface CommerceCartView {
-	items: CommerceCartItemView[];
-	totalAmount: string;
-	currency: CommerceCurrency | null;
-}
-
-export interface CommerceCheckoutOrderView {
-	orderId: string;
-	status: "PENDING" | "PAID" | "FAILED" | "REFUNDED";
-	totalAmount: string;
-	currency: string;
-	items: CommercePriceSnapshot[];
 }
 
 export interface CommercePaymentSuccessView {
@@ -228,13 +190,6 @@ export class CommerceItemAlreadyOwnedError extends Error {
 	}
 }
 
-export class CommerceDuplicateCartItemError extends Error {
-	constructor() {
-		super("Item is already in cart");
-		this.name = "CommerceDuplicateCartItemError";
-	}
-}
-
 export class CommercePriceNotFoundError extends Error {
 	constructor() {
 		super("Active price not found");
@@ -291,9 +246,9 @@ export class CommercePaymentConflictError extends Error {
 	}
 }
 
-export class CommerceInvalidCartItemError extends Error {
-	constructor(message = "Invalid cart item payload") {
+export class CommerceInvalidOrderItemError extends Error {
+	constructor(message = "Invalid order item payload") {
 		super(message);
-		this.name = "CommerceInvalidCartItemError";
+		this.name = "CommerceInvalidOrderItemError";
 	}
 }

@@ -88,7 +88,12 @@ describe("commerce router", () => {
 	it("requires authentication for commerce procedures", async () => {
 		const caller = createCaller(makeTestContext({ db: testDb.db }));
 
-		await expect(caller.commerce.cart.list({})).rejects.toThrow(
+		await expect(
+			caller.commerce.payment.markSuccess({
+				orderId: "00000000-0000-0000-0000-000000000000",
+				providerTransactionId: "unauthorized-check",
+			})
+		).rejects.toThrow(
 			expect.objectContaining({ code: "UNAUTHORIZED" })
 		);
 	});
@@ -102,14 +107,13 @@ describe("commerce router", () => {
 		);
 
 		await expect(
-			caller.commerce.cart.addItem({
-				itemType: "CONTENT",
+			caller.commerce.purchase.buyContent({
 				contentId: "not-uuid",
 			})
 		).rejects.toThrow(expect.objectContaining({ code: "BAD_REQUEST" }));
 	});
 
-	it("supports cart + checkout + payment + purchase flow", async () => {
+	it("supports direct purchase flow", async () => {
 		const user = await createTestUser(testDb.client, {
 			email: "commerce-router-user@example.com",
 		});
@@ -124,24 +128,12 @@ describe("commerce router", () => {
 			makeAuthenticatedContext(user.id, "user", { db: testDb.db })
 		);
 
-		const cartAfterAdd = await caller.commerce.cart.addItem({
-			itemType: "CONTENT",
+		const purchased = await caller.commerce.purchase.buyContent({
 			contentId: movie.id,
 		});
-		expect(cartAfterAdd.items).toHaveLength(1);
-
-		const checkout = await caller.commerce.checkout.createOrder({
-			source: "CART",
-		});
-		expect(checkout.status).toBe("PENDING");
-
-		const paid = await caller.commerce.payment.markSuccess({
-			orderId: checkout.orderId,
-			provider: "mock",
-			providerTransactionId: "router-txn-001",
-		});
-		expect(paid.status).toBe("PAID");
-		expect(paid.grantsCreated).toBe(1);
+		expect(purchased.status).toBe("PAID");
+		expect(purchased.alreadyOwned).toBe(false);
+		expect(purchased.grantedContentCount).toBe(1);
 
 		const libraryRows = await testDb.db
 			.select()
@@ -164,17 +156,15 @@ describe("commerce router", () => {
 			makeAuthenticatedContext(user.id, "user", { db: testDb.db })
 		);
 
-		await caller.commerce.cart.addItem({
-			itemType: "CONTENT",
+		await caller.commerce.purchase.buyContent({
 			contentId: movie.id,
 		});
 
-		await expect(
-			caller.commerce.cart.addItem({
-				itemType: "CONTENT",
-				contentId: movie.id,
-			})
-		).rejects.toThrow(expect.objectContaining({ code: "CONFLICT" }));
+		const existing = await caller.commerce.purchase.buyContent({
+			contentId: movie.id,
+		});
+		expect(existing.alreadyOwned).toBe(true);
+		expect(existing.grantedContentCount).toBe(0);
 
 		await expect(
 			caller.commerce.payment.markSuccess({

@@ -1,6 +1,4 @@
 import { z } from "zod";
-
-const commerceItemTypeSchema = z.enum(["CONTENT", "PLAYLIST"]);
 const priceStringSchema = z
 	.string()
 	.trim()
@@ -9,73 +7,6 @@ const priceStringSchema = z
 const pricingPaginationInputSchema = z.object({
 	page: z.number().int().min(1).default(1),
 	limit: z.number().int().min(1).max(100).default(20),
-});
-
-export const commerceCartAddItemInputSchema = z
-	.object({
-		itemType: commerceItemTypeSchema,
-		contentId: z.uuid().optional(),
-		playlistId: z.uuid().optional(),
-	})
-	.superRefine((value, ctx) => {
-		if (value.itemType === "CONTENT") {
-			if (!value.contentId || value.playlistId) {
-				ctx.addIssue({
-					code: "custom",
-					path: ["contentId"],
-					message: "CONTENT item requires contentId only",
-				});
-			}
-			return;
-		}
-
-		if (!value.playlistId || value.contentId) {
-			ctx.addIssue({
-				code: "custom",
-				path: ["playlistId"],
-				message: "PLAYLIST item requires playlistId only",
-			});
-		}
-	});
-
-export const commerceCartRemoveItemInputSchema = z.object({
-	cartItemId: z.uuid(),
-});
-
-export const commerceCartItemOutputSchema = z.object({
-	id: z.uuid(),
-	itemType: commerceItemTypeSchema,
-	contentId: z.uuid().nullable(),
-	playlistId: z.uuid().nullable(),
-	price: z.string(),
-	currency: z.string(),
-	addedAt: z.date(),
-});
-
-export const commerceCartOutputSchema = z.object({
-	items: z.array(commerceCartItemOutputSchema),
-	totalAmount: z.string(),
-	currency: z.string().nullable(),
-});
-
-export const commerceCheckoutCreateOrderInputSchema = z.object({
-	source: z.literal("CART").default("CART"),
-});
-
-export const commerceOrderItemOutputSchema = z.object({
-	itemType: commerceItemTypeSchema,
-	contentId: z.uuid().nullable(),
-	playlistId: z.uuid().nullable(),
-	price: z.string(),
-	currency: z.string(),
-});
-
-export const commerceCheckoutOrderOutputSchema = z.object({
-	orderId: z.uuid(),
-	status: z.enum(["PENDING", "PAID", "FAILED", "REFUNDED"]),
-	totalAmount: z.string(),
-	currency: z.string(),
-	items: z.array(commerceOrderItemOutputSchema),
 });
 
 export const commercePaymentMarkSuccessInputSchema = z.object({

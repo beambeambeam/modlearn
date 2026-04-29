@@ -32,44 +32,6 @@ export const paymentStatusEnum = pgEnum("payment_status", [
 	"FAILED",
 ]);
 
-export const cart = pgTable(
-	"cart",
-	{
-		id: uuid("id").primaryKey().defaultRandom(),
-		userId: text("user_id")
-			.notNull()
-			.references(() => user.id, { onDelete: "cascade" }),
-		...timestamps,
-	},
-	(table) => [index("cart_userId_idx").on(table.userId)]
-);
-
-export const cartItem = pgTable(
-	"cart_item",
-	{
-		id: uuid("id").primaryKey().defaultRandom(),
-		cartId: uuid("cart_id")
-			.notNull()
-			.references(() => cart.id, { onDelete: "cascade" }),
-		contentId: uuid("content_id").references(() => content.id, {
-			onDelete: "cascade",
-		}),
-		playlistId: uuid("playlist_id").references(() => playlist.id, {
-			onDelete: "cascade",
-		}),
-		itemType: cartItemTypeEnum("item_type").notNull(),
-		price: decimal("price", { precision: 10, scale: 2 }).notNull(),
-		addedAt: timestamp("added_at", { withTimezone: true })
-			.defaultNow()
-			.notNull(),
-	},
-	(table) => [
-		index("cartItem_cartId_idx").on(table.cartId),
-		index("cartItem_contentId_idx").on(table.contentId),
-		index("cartItem_playlistId_idx").on(table.playlistId),
-	]
-);
-
 export const order = pgTable(
 	"order",
 	{
@@ -82,36 +44,22 @@ export const order = pgTable(
 			scale: 2,
 		}).notNull(),
 		currency: text("currency").notNull(),
-		status: orderStatusEnum("status").notNull(),
-		...timestamps,
-	},
-	(table) => [
-		index("order_userId_idx").on(table.userId),
-		index("order_status_idx").on(table.status),
-		index("order_createdAt_idx").on(table.createdAt),
-	]
-);
-
-export const orderItem = pgTable(
-	"order_item",
-	{
-		id: uuid("id").primaryKey().defaultRandom(),
-		orderId: uuid("order_id")
-			.notNull()
-			.references(() => order.id, { onDelete: "cascade" }),
+		itemType: cartItemTypeEnum("item_type").notNull(),
 		contentId: uuid("content_id").references(() => content.id, {
 			onDelete: "set null",
 		}),
 		playlistId: uuid("playlist_id").references(() => playlist.id, {
 			onDelete: "set null",
 		}),
-		itemType: cartItemTypeEnum("item_type").notNull(),
-		price: decimal("price", { precision: 10, scale: 2 }).notNull(),
+		status: orderStatusEnum("status").notNull(),
+		...timestamps,
 	},
 	(table) => [
-		index("orderItem_orderId_idx").on(table.orderId),
-		index("orderItem_contentId_idx").on(table.contentId),
-		index("orderItem_playlistId_idx").on(table.playlistId),
+		index("order_userId_idx").on(table.userId),
+		index("order_status_idx").on(table.status),
+		index("order_contentId_idx").on(table.contentId),
+		index("order_playlistId_idx").on(table.playlistId),
+		index("order_createdAt_idx").on(table.createdAt),
 	]
 );
 
@@ -198,53 +146,22 @@ export const userLibrary = pgTable(
 	]
 );
 
-export const cartRelations = relations(cart, ({ one, many }) => ({
-	user: one(user, {
-		fields: [cart.userId],
-		references: [user.id],
-	}),
-	cartItems: many(cartItem),
-}));
-
-export const cartItemRelations = relations(cartItem, ({ one }) => ({
-	cart: one(cart, {
-		fields: [cartItem.cartId],
-		references: [cart.id],
-	}),
-	content: one(content, {
-		fields: [cartItem.contentId],
-		references: [content.id],
-	}),
-	playlist: one(playlist, {
-		fields: [cartItem.playlistId],
-		references: [playlist.id],
-	}),
-}));
-
 export const orderRelations = relations(order, ({ one, many }) => ({
 	user: one(user, {
 		fields: [order.userId],
 		references: [user.id],
 	}),
-	orderItems: many(orderItem),
-	payments: many(payment),
-	contentPurchases: many(contentPurchase),
-	userLibraries: many(userLibrary),
-}));
-
-export const orderItemRelations = relations(orderItem, ({ one }) => ({
-	order: one(order, {
-		fields: [orderItem.orderId],
-		references: [order.id],
-	}),
 	content: one(content, {
-		fields: [orderItem.contentId],
+		fields: [order.contentId],
 		references: [content.id],
 	}),
 	playlist: one(playlist, {
-		fields: [orderItem.playlistId],
+		fields: [order.playlistId],
 		references: [playlist.id],
 	}),
+	payments: many(payment),
+	contentPurchases: many(contentPurchase),
+	userLibraries: many(userLibrary),
 }));
 
 export const paymentRelations = relations(payment, ({ one }) => ({

@@ -7,13 +7,10 @@ import {
 	type TestDatabase,
 } from "@/__tests__/helpers/test-db";
 import {
-	cart,
-	cartItem,
 	content,
 	contentPricing,
 	contentPurchase,
 	order,
-	orderItem,
 	payment,
 	playlist,
 	playlistEpisode,
@@ -21,32 +18,22 @@ import {
 	userLibrary,
 } from "@/lib/db/schema";
 import {
-	addCartItem,
 	assertNotAlreadyOwned,
-	assertSingleCurrency,
 	buyContent,
 	buyPlaylist,
-	computeCartTotal,
-	createCheckoutOrder,
 	createContentPricingWindow,
 	createPlaylistPricingWindow,
 	hasFullPlaylistOwnership,
-	listCart,
 	listContentPricingWindows,
 	listPlaylistPricingWindows,
 	markPaymentSuccess,
 	refundPayment,
-	removeCartItem,
 	resolveActiveContentPrice,
 	resolveActivePlaylistPrice,
 	updateContentPricingWindow,
 	updatePlaylistPricingWindow,
-	validateCartAddItemInput,
 } from "@/modules/commerce/commerce.service";
 import {
-	CommerceCurrencyMismatchError,
-	CommerceDuplicateCartItemError,
-	CommerceInvalidCartItemError,
 	CommerceItemAlreadyOwnedError,
 	CommerceOrderStateError,
 	CommercePriceNotFoundError,
@@ -55,13 +42,21 @@ import {
 	CommercePricingWindowValidationError,
 } from "@/modules/commerce/commerce.types";
 
-async function createPaidOrderFixture(testDb: TestDatabase, userId: string) {
+async function createPaidOrderFixture(params: {
+	testDb: TestDatabase;
+	userId: string;
+	contentId: string;
+}) {
+	const { testDb, userId, contentId } = params;
 	const [created] = await testDb.db
 		.insert(order)
 		.values({
 			userId,
 			totalAmount: "10.00",
 			currency: "USD",
+			itemType: "CONTENT",
+			contentId,
+			playlistId: null,
 			status: "PAID",
 		})
 		.returning();
@@ -168,34 +163,6 @@ describe("commerce service", () => {
 		await testDb.cleanup();
 	});
 
-	it("computes cart totals and validates single currency", () => {
-		expect(computeCartTotal(["10.20", "9.80"])).toBe("20.00");
-		expect(assertSingleCurrency(["usd", "USD"]))?.toBe("USD");
-		expect(assertSingleCurrency([])).toBeNull();
-		expect(() => assertSingleCurrency(["USD", "THB"])).toThrow(
-			CommerceCurrencyMismatchError
-		);
-	});
-
-	it("validates cart item payload", () => {
-		expect(
-			validateCartAddItemInput({
-				itemType: "CONTENT",
-				contentId: "00000000-0000-0000-0000-000000000001",
-			})
-		).toEqual({
-			itemType: "CONTENT",
-			contentId: "00000000-0000-0000-0000-000000000001",
-		});
-
-		expect(() =>
-			validateCartAddItemInput({
-				itemType: "CONTENT",
-				playlistId: "00000000-0000-0000-0000-000000000001",
-			})
-		).toThrow(CommerceInvalidCartItemError);
-	});
-
 	it("resolves active content and playlist prices using effective windows", async () => {
 		const admin = await createTestUser(testDb.client, {
 			email: "commerce-foundation-admin@example.com",
@@ -293,7 +260,11 @@ describe("commerce service", () => {
 			price: "8.00",
 			episodeContentIds: [ep1.id, ep2.id],
 		});
-		const paidOrder = await createPaidOrderFixture(testDb, user.id);
+		const paidOrder = await createPaidOrderFixture({
+			testDb,
+			userId: user.id,
+			contentId: ep1.id,
+		});
 
 		await testDb.db.insert(userLibrary).values([
 			{
@@ -513,96 +484,6 @@ describe("commerce service", () => {
 		).rejects.toThrow(CommercePricingWindowValidationError);
 	});
 
-	it("supports cart add/list/remove and duplicate prevention", async () => {
-		const user = await createTestUser(testDb.client, {
-			email: "commerce-cart-user@example.com",
-		});
-		const movie = await createContentWithPricing({
-			testDb,
-			adminId: user.id,
-			title: "Cart Movie",
-			price: "9.99",
-		});
-
-		const added = await addCartItem({
-			db: testDb.db,
-			userId: user.id,
-			input: { itemType: "CONTENT", contentId: movie.id },
-		});
-		expect(added.items).toHaveLength(1);
-
-		await expect(
-			addCartItem({
-				db: testDb.db,
-				userId: user.id,
-				input: { itemType: "CONTENT", contentId: movie.id },
-			})
-		).rejects.toThrow(CommerceDuplicateCartItemError);
-
-		const listed = await listCart({ db: testDb.db, userId: user.id });
-		expect(listed.totalAmount).toBe("9.99");
-
-		const cartItemId = listed.items[0]?.id;
-		if (!cartItemId) {
-			throw new Error("Expected cart item id");
-		}
-
-		const removed = await removeCartItem({
-			db: testDb.db,
-			userId: user.id,
-			input: { cartItemId },
-		});
-		expect(removed.items).toHaveLength(0);
-	});
-
-	it("creates checkout order from cart and clears cart", async () => {
-		const user = await createTestUser(testDb.client, {
-			email: "commerce-checkout-user@example.com",
-		});
-		const movieA = await createContentWithPricing({
-			testDb,
-			adminId: user.id,
-			title: "Checkout A",
-			price: "10.00",
-		});
-		const movieB = await createContentWithPricing({
-			testDb,
-			adminId: user.id,
-			title: "Checkout B",
-			price: "15.50",
-		});
-
-		await addCartItem({
-			db: testDb.db,
-			userId: user.id,
-			input: { itemType: "CONTENT", contentId: movieA.id },
-		});
-		await addCartItem({
-			db: testDb.db,
-			userId: user.id,
-			input: { itemType: "CONTENT", contentId: movieB.id },
-		});
-
-		const checkout = await createCheckoutOrder({
-			db: testDb.db,
-			userId: user.id,
-			input: { source: "CART" },
-		});
-
-		expect(checkout.status).toBe("PENDING");
-		expect(checkout.totalAmount).toBe("25.50");
-		expect(checkout.items).toHaveLength(2);
-
-		const orderItems = await testDb.db
-			.select()
-			.from(orderItem)
-			.where(eq(orderItem.orderId, checkout.orderId));
-		expect(orderItems).toHaveLength(2);
-
-		const cartView = await listCart({ db: testDb.db, userId: user.id });
-		expect(cartView.items).toHaveLength(0);
-	});
-
 	it("marks payment success idempotently and grants user library access", async () => {
 		const user = await createTestUser(testDb.client, {
 			email: "commerce-pay-user@example.com",
@@ -613,85 +494,62 @@ describe("commerce service", () => {
 			title: "Paid Movie",
 			price: "20.00",
 		});
-		const ep1 = await createContentWithPricing({
-			testDb,
-			adminId: user.id,
-			title: "Paid Episode 1",
-			price: "4.00",
-		});
-		const ep2 = await createContentWithPricing({
-			testDb,
-			adminId: user.id,
-			title: "Paid Episode 2",
-			price: "5.00",
-		});
-		const series = await createPlaylistWithPricing({
-			testDb,
-			adminId: user.id,
-			title: "Paid Playlist",
-			price: "30.00",
-			episodeContentIds: [ep1.id, ep2.id],
-		});
-
-		await addCartItem({
+		const orderResult = await buyContent({
 			db: testDb.db,
 			userId: user.id,
-			input: { itemType: "CONTENT", contentId: movie.id },
+			input: {
+				contentId: movie.id,
+				providerTransactionId: "txn-001",
+			},
 		});
-		await addCartItem({
-			db: testDb.db,
-			userId: user.id,
-			input: { itemType: "PLAYLIST", playlistId: series.id },
-		});
-
-		const checkout = await createCheckoutOrder({
-			db: testDb.db,
-			userId: user.id,
-			input: { source: "CART" },
-		});
+		expect(orderResult.status).toBe("PAID");
+		expect(orderResult.grantedContentCount).toBe(1);
 
 		const paid = await markPaymentSuccess({
 			db: testDb.db,
 			userId: user.id,
 			input: {
-				orderId: checkout.orderId,
+				orderId: orderResult.orderId,
 				provider: "mock",
 				providerTransactionId: "txn-001",
 			},
 		});
 		expect(paid.status).toBe("PAID");
-		expect(paid.grantsCreated).toBe(3);
+		expect(paid.grantsCreated).toBe(1);
 
 		const paidAgain = await markPaymentSuccess({
 			db: testDb.db,
 			userId: user.id,
 			input: {
-				orderId: checkout.orderId,
+				orderId: orderResult.orderId,
 				provider: "mock",
 				providerTransactionId: "txn-001",
 			},
 		});
 		expect(paidAgain.paymentId).toBe(paid.paymentId);
-		expect(paidAgain.grantsCreated).toBe(3);
+		expect(paidAgain.grantsCreated).toBe(1);
 
 		const orderRows = await testDb.db
 			.select()
 			.from(order)
-			.where(eq(order.id, checkout.orderId));
+			.where(eq(order.id, orderResult.orderId));
 		expect(orderRows[0]?.status).toBe("PAID");
+		expect(orderRows[0]?.itemType).toBe("CONTENT");
+		expect(orderRows[0]?.contentId).toBe(movie.id);
+		expect(orderRows[0]?.playlistId).toBeNull();
 
 		const paymentRows = await testDb.db
 			.select()
 			.from(payment)
-			.where(eq(payment.orderId, checkout.orderId));
+			.where(eq(payment.orderId, orderResult.orderId));
 		expect(paymentRows).toHaveLength(1);
 		expect(paymentRows[0]?.status).toBe("SUCCESS");
 
 		const libraryRows = await testDb.db
 			.select()
 			.from(userLibrary)
-			.where(eq(userLibrary.orderId, checkout.orderId));
-		expect(libraryRows).toHaveLength(3);
+			.where(eq(userLibrary.orderId, orderResult.orderId));
+		expect(libraryRows).toHaveLength(1);
 	});
 
 	it("refund marks order refunded and revokes library access", async () => {
@@ -705,22 +563,11 @@ describe("commerce service", () => {
 			price: "12.00",
 		});
 
-		await addCartItem({
-			db: testDb.db,
-			userId: user.id,
-			input: { itemType: "CONTENT", contentId: movie.id },
-		});
-		const checkout = await createCheckoutOrder({
-			db: testDb.db,
-			userId: user.id,
-			input: { source: "CART" },
-		});
-		await markPaymentSuccess({
+		const purchased = await buyContent({
 			db: testDb.db,
 			userId: user.id,
 			input: {
-				orderId: checkout.orderId,
-				provider: "mock",
+				contentId: movie.id,
 				providerTransactionId: "txn-refund-001",
 			},
 		});
@@ -729,7 +576,7 @@ describe("commerce service", () => {
 			db: testDb.db,
 			userId: user.id,
 			input: {
-				orderId: checkout.orderId,
+				orderId: purchased.orderId,
 				reason: "user requested",
 			},
 		});
@@ -739,13 +586,13 @@ describe("commerce service", () => {
 		const libraryRows = await testDb.db
 			.select()
 			.from(userLibrary)
-			.where(eq(userLibrary.orderId, checkout.orderId));
+			.where(eq(userLibrary.orderId, purchased.orderId));
 		expect(libraryRows).toHaveLength(0);
 
 		const orderRows = await testDb.db
 			.select()
 			.from(order)
-			.where(eq(order.id, checkout.orderId));
+			.where(eq(order.id, purchased.orderId));
 		expect(orderRows[0]?.status).toBe("REFUNDED");
 	});
 
@@ -813,7 +660,11 @@ describe("commerce service", () => {
 			episodeContentIds: [ep1.id, ep2.id],
 		});
 
-		const priorOrder = await createPaidOrderFixture(testDb, user.id);
+		const priorOrder = await createPaidOrderFixture({
+			testDb,
+			userId: user.id,
+			contentId: ep1.id,
+		});
 		await testDb.db.insert(userLibrary).values({
 			userId: user.id,
 			contentId: ep1.id,
@@ -847,59 +698,7 @@ describe("commerce service", () => {
 		expect(purchasedContentIds).toEqual([ep1.id, ep2.id].sort());
 	});
 
-	it("rejects checkout when cart has mixed currencies", async () => {
-		const user = await createTestUser(testDb.client, {
-			email: "commerce-currency-mismatch@example.com",
-		});
-		const usdMovie = await createContentWithPricing({
-			testDb,
-			adminId: user.id,
-			title: "USD Movie",
-			price: "10.00",
-			currency: "USD",
-		});
-		const thbMovie = await createContentWithPricing({
-			testDb,
-			adminId: user.id,
-			title: "THB Movie",
-			price: "100.00",
-			currency: "THB",
-		});
-
-		const [userCart] = await testDb.db
-			.insert(cart)
-			.values({ userId: user.id })
-			.returning();
-
-		if (!userCart) {
-			throw new Error("Failed to create cart fixture");
-		}
-
-		await testDb.db.insert(cartItem).values([
-			{
-				cartId: userCart.id,
-				itemType: "CONTENT",
-				contentId: usdMovie.id,
-				price: "10.00",
-			},
-			{
-				cartId: userCart.id,
-				itemType: "CONTENT",
-				contentId: thbMovie.id,
-				price: "100.00",
-			},
-		]);
-
-		await expect(
-			createCheckoutOrder({
-				db: testDb.db,
-				userId: user.id,
-				input: { source: "CART" },
-			})
-		).rejects.toThrow(CommerceCurrencyMismatchError);
-	});
-
-	it("enforces active price windows for cart and direct buy", async () => {
+	it("enforces active price windows for direct buy", async () => {
 		const user = await createTestUser(testDb.client, {
 			email: "commerce-price-window@example.com",
 		});
@@ -923,14 +722,6 @@ describe("commerce service", () => {
 			effectiveFrom: new Date("2030-01-01T00:00:00.000Z"),
 			createdBy: user.id,
 		});
-
-		await expect(
-			addCartItem({
-				db: testDb.db,
-				userId: user.id,
-				input: { itemType: "CONTENT", contentId: futureMovie.id },
-			})
-		).rejects.toThrow(CommercePriceNotFoundError);
 
 		await expect(
 			buyContent({
@@ -957,6 +748,9 @@ describe("commerce service", () => {
 				userId: user.id,
 				totalAmount: "8.00",
 				currency: "USD",
+				itemType: "CONTENT",
+				contentId: movie.id,
+				playlistId: null,
 				status: "FAILED",
 			})
 			.returning();
@@ -964,13 +758,6 @@ describe("commerce service", () => {
 		if (!failedOrder) {
 			throw new Error("Failed to create failed order");
 		}
-
-		await testDb.db.insert(orderItem).values({
-			orderId: failedOrder.id,
-			itemType: "CONTENT",
-			contentId: movie.id,
-			price: "8.00",
-		});
 
 		await expect(
 			markPaymentSuccess({

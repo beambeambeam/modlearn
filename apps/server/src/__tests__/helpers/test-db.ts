@@ -45,15 +45,12 @@ export async function createTestDatabase(): Promise<TestDatabase> {
 export async function resetTestDatabase(client: PGlite): Promise<void> {
 	const tables = [
 		"account",
-		"cart_item",
-		"cart",
 		"content_category",
 		"content_pricing",
 		"content_purchase",
 		"content_view",
 		"content",
 		"file",
-		"order_item",
 		"payment",
 		"playlist_content",
 		"playlist_episode",

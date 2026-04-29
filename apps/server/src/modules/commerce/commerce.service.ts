@@ -15,13 +15,10 @@ import {
 } from "drizzle-orm";
 import type { DbClient } from "@/lib/db/orm";
 import {
-	cart,
-	cartItem,
 	content,
 	contentPricing,
 	contentPurchase,
 	order,
-	orderItem,
 	payment,
 	playlist,
 	playlistEpisode,
@@ -33,20 +30,13 @@ import {
 	type CommerceBuyContentInput,
 	type CommerceBuyPlaylistInput,
 	type CommerceBuyView,
-	type CommerceCartAddItemInput,
-	type CommerceCartRemoveItemInput,
-	type CommerceCartView,
-	type CommerceCheckoutCreateOrderInput,
-	type CommerceCheckoutOrderView,
 	CommerceContentNotFoundError,
 	type CommerceContentPricingCreateInput,
 	type CommerceContentPricingListInput,
 	type CommerceContentPricingListView,
 	type CommerceContentPricingUpdateInput,
 	type CommerceContentPricingWindowView,
-	CommerceCurrencyMismatchError,
-	CommerceDuplicateCartItemError,
-	CommerceInvalidCartItemError,
+	CommerceInvalidOrderItemError,
 	CommerceItemAlreadyOwnedError,
 	type CommerceItemType,
 	CommerceOrderNotFoundError,
@@ -71,68 +61,8 @@ import {
 	type CommerceRefundView,
 } from "./commerce.types";
 
-const CURRENCY_SCALE = 100;
-
-function toCents(amount: string): number {
-	const numeric = Number(amount);
-	if (!Number.isFinite(numeric)) {
-		throw new Error(`Invalid money amount: ${amount}`);
-	}
-	return Math.round(numeric * CURRENCY_SCALE);
-}
-
 function buildProviderTransactionId(seed?: string): string {
 	return seed ?? `mock-${randomUUID()}`;
-}
-
-function fromCents(cents: number): string {
-	return (cents / CURRENCY_SCALE).toFixed(2);
-}
-
-export function computeCartTotal(prices: string[]): string {
-	const cents = prices.reduce((sum, value) => sum + toCents(value), 0);
-	return fromCents(cents);
-}
-
-export function assertSingleCurrency(currencies: string[]): string | null {
-	if (currencies.length === 0) {
-		return null;
-	}
-
-	const normalized = currencies.map((currency) => currency.toUpperCase());
-	const first = normalized[0];
-	if (!first) {
-		throw new CommerceCurrencyMismatchError();
-	}
-
-	for (const currency of normalized) {
-		if (currency !== first) {
-			throw new CommerceCurrencyMismatchError();
-		}
-	}
-
-	return first;
-}
-
-export function validateCartAddItemInput(
-	input: CommerceCartAddItemInput
-): CommerceCartAddItemInput {
-	if (input.itemType === "CONTENT") {
-		if (!input.contentId || input.playlistId) {
-			throw new CommerceInvalidCartItemError(
-				"CONTENT item requires contentId only"
-			);
-		}
-		return input;
-	}
-
-	if (!input.playlistId || input.contentId) {
-		throw new CommerceInvalidCartItemError(
-			"PLAYLIST item requires playlistId only"
-		);
-	}
-
-	return input;
 }
 
 export async function assertContentExists(db: DbClient, contentId: string) {
@@ -180,7 +110,7 @@ export async function resolveActiveContentPrice(
 ): Promise<CommercePriceSnapshot> {
 	const { db, contentId, now = new Date() } = query;
 	if (!contentId) {
-		throw new CommerceInvalidCartItemError("contentId is required");
+		throw new CommerceInvalidOrderItemError("contentId is required");
 	}
 
 	const row = await db.query.contentPricing.findFirst({
@@ -216,7 +146,7 @@ export async function resolveActivePlaylistPrice(
 ): Promise<CommercePriceSnapshot> {
 	const { db, playlistId, now = new Date() } = query;
 	if (!playlistId) {
-		throw new CommerceInvalidCartItemError("playlistId is required");
+		throw new CommerceInvalidOrderItemError("playlistId is required");
 	}
 
 	const todayDate = new Date(
@@ -658,7 +588,7 @@ export async function hasActiveContentOwnership(
 ): Promise<boolean> {
 	const { db, userId, contentId, now = new Date() } = query;
 	if (!contentId) {
-		throw new CommerceInvalidCartItemError("contentId is required");
+		throw new CommerceInvalidOrderItemError("contentId is required");
 	}
 
 	const rows = await db
@@ -681,7 +611,7 @@ export async function hasFullPlaylistOwnership(
 ): Promise<boolean> {
 	const { db, userId, playlistId, now = new Date() } = query;
 	if (!playlistId) {
-		throw new CommerceInvalidCartItemError("playlistId is required");
+		throw new CommerceInvalidOrderItemError("playlistId is required");
 	}
 
 	const episodeContentIds = await listPlaylistEpisodeContentIds(db, playlistId);
@@ -738,198 +668,65 @@ export async function assertNotAlreadyOwned(params: {
 	}
 }
 
-async function getOrCreateCartId(
-	db: DbClient,
-	userId: string
-): Promise<string> {
-	const existing = await db.query.cart.findFirst({
-		where: eq(cart.userId, userId),
-		columns: { id: true },
-	});
-	if (existing) {
-		return existing.id;
-	}
-
-	const [created] = await db.insert(cart).values({ userId }).returning();
-	if (!created) {
-		throw new Error("Failed to create cart");
-	}
-
-	return created.id;
-}
-
-function listCartItems(db: DbClient, userId: string) {
-	return db
-		.select({
-			id: cartItem.id,
-			itemType: cartItem.itemType,
-			contentId: cartItem.contentId,
-			playlistId: cartItem.playlistId,
-			price: cartItem.price,
-			addedAt: cartItem.addedAt,
-		})
-		.from(cartItem)
-		.innerJoin(cart, eq(cartItem.cartId, cart.id))
-		.where(eq(cart.userId, userId))
-		.orderBy(desc(cartItem.addedAt), desc(cartItem.id));
-}
-
-async function resolveCartItemCurrency(params: {
-	db: DbClient;
+function assertValidOrderTarget(params: {
 	itemType: CommerceItemType;
 	contentId: string | null;
 	playlistId: string | null;
-	now?: Date;
-}): Promise<string> {
-	const { db, itemType, contentId, playlistId, now } = params;
+}) {
+	const { itemType, contentId, playlistId } = params;
 	if (itemType === "CONTENT") {
-		const price = await resolveActiveContentPrice({
-			db,
-			contentId: contentId ?? undefined,
-			now,
-		});
-		return price.currency;
+		if (!contentId || playlistId) {
+			throw new CommerceInvalidOrderItemError(
+				"CONTENT order requires contentId only"
+			);
+		}
+		return;
 	}
-	const price = await resolveActivePlaylistPrice({
-		db,
-		playlistId: playlistId ?? undefined,
-		now,
+
+	if (!playlistId || contentId) {
+		throw new CommerceInvalidOrderItemError(
+			"PLAYLIST order requires playlistId only"
+		);
+	}
+}
+
+async function expandOrderGrants(params: {
+	db: DbClient;
+	targetOrder: typeof order.$inferSelect;
+}) {
+	const { db, targetOrder } = params;
+	assertValidOrderTarget({
+		itemType: targetOrder.itemType,
+		contentId: targetOrder.contentId,
+		playlistId: targetOrder.playlistId,
 	});
-	return price.currency;
-}
-
-async function withCartItemCurrency(
-	db: DbClient,
-	rows: {
-		id: string;
-		itemType: CommerceItemType;
-		contentId: string | null;
-		playlistId: string | null;
-		price: string;
-		addedAt: Date;
-	}[]
-) {
-	const enriched: {
-		id: string;
-		itemType: CommerceItemType;
-		contentId: string | null;
-		playlistId: string | null;
-		price: string;
-		currency: string;
-		addedAt: Date;
-	}[] = [];
-
-	for (const row of rows) {
-		const currency = await resolveCartItemCurrency({
-			db,
-			itemType: row.itemType,
-			contentId: row.contentId,
-			playlistId: row.playlistId,
-		});
-		enriched.push({ ...row, currency });
-	}
-
-	return enriched;
-}
-
-function toCartView(
-	rows: {
-		id: string;
-		itemType: "CONTENT" | "PLAYLIST";
-		contentId: string | null;
-		playlistId: string | null;
-		price: string;
-		currency: string;
-		addedAt: Date;
-	}[]
-): CommerceCartView {
-	const currency = assertSingleCurrency(rows.map((item) => item.currency));
-
-	return {
-		items: rows.map((row) => ({
-			id: row.id,
-			itemType: row.itemType,
-			contentId: row.contentId,
-			playlistId: row.playlistId,
-			price: row.price,
-			currency: row.currency,
-			addedAt: row.addedAt,
-		})),
-		totalAmount: computeCartTotal(rows.map((item) => item.price)),
-		currency,
-	};
-}
-
-async function assertCartItemNotDuplicate(params: {
-	db: DbClient;
-	cartId: string;
-	itemType: CommerceItemType;
-	contentId?: string;
-	playlistId?: string;
-}) {
-	const { db, cartId, itemType, contentId, playlistId } = params;
-	let exists: { id: string } | undefined;
-	if (itemType === "CONTENT") {
-		if (!contentId) {
-			throw new CommerceInvalidCartItemError("contentId is required");
-		}
-		exists = await db.query.cartItem.findFirst({
-			where: and(
-				eq(cartItem.cartId, cartId),
-				eq(cartItem.contentId, contentId)
-			),
-			columns: { id: true },
-		});
-	} else {
-		if (!playlistId) {
-			throw new CommerceInvalidCartItemError("playlistId is required");
-		}
-		exists = await db.query.cartItem.findFirst({
-			where: and(
-				eq(cartItem.cartId, cartId),
-				eq(cartItem.playlistId, playlistId)
-			),
-			columns: { id: true },
-		});
-	}
-
-	if (exists) {
-		throw new CommerceDuplicateCartItemError();
-	}
-}
-
-async function expandOrderItemGrants(params: {
-	db: DbClient;
-	items: (typeof orderItem.$inferSelect)[];
-}) {
-	const { db, items } = params;
 	const grants: {
 		contentId: string;
 		playlistId: string | null;
 		price: string;
 	}[] = [];
-	for (const item of items) {
-		if (item.itemType === "CONTENT") {
-			if (!item.contentId) {
-				continue;
-			}
-			grants.push({
-				contentId: item.contentId,
-				playlistId: null,
-				price: item.price,
-			});
-			continue;
-		}
 
-		if (!item.playlistId) {
-			continue;
+	if (targetOrder.itemType === "CONTENT") {
+		const contentId = targetOrder.contentId;
+		if (!contentId) {
+			throw new CommerceInvalidOrderItemError("contentId is required");
 		}
-		const contentIds = await listPlaylistEpisodeContentIds(db, item.playlistId);
+		grants.push({
+			contentId,
+			playlistId: null,
+			price: targetOrder.totalAmount,
+		});
+	} else {
+		const playlistId = targetOrder.playlistId;
+		if (!playlistId) {
+			throw new CommerceInvalidOrderItemError("playlistId is required");
+		}
+		const contentIds = await listPlaylistEpisodeContentIds(db, playlistId);
 		for (const contentId of contentIds) {
 			grants.push({
 				contentId,
-				playlistId: item.playlistId,
-				price: item.price,
+				playlistId,
+				price: targetOrder.totalAmount,
 			});
 		}
 	}
@@ -1038,12 +835,9 @@ function finalizePaidOrder(params: {
 			})
 			.where(eq(order.id, targetOrder.id));
 
-		const orderItems = await tx.query.orderItem.findMany({
-			where: eq(orderItem.orderId, targetOrder.id),
-		});
-		const expandedGrants = await expandOrderItemGrants({
+		const expandedGrants = await expandOrderGrants({
 			db: tx,
-			items: orderItems,
+			targetOrder,
 		});
 		const owned = await listOwnedContentIds({
 			db: tx,
@@ -1093,186 +887,6 @@ function finalizePaidOrder(params: {
 			paymentId: savedPayment.id,
 			status: "PAID",
 			grantsCreated: grantsToInsert.length,
-		};
-	});
-}
-
-export async function listCart(params: {
-	db: DbClient;
-	userId: string;
-}): Promise<CommerceCartView> {
-	const rows = await listCartItems(params.db, params.userId);
-	const enrichedRows = await withCartItemCurrency(params.db, rows);
-	return toCartView(enrichedRows);
-}
-
-export async function listCartForCheckout(params: {
-	db: DbClient;
-	userId: string;
-}): Promise<
-	{
-		id: string;
-		itemType: CommerceItemType;
-		contentId: string | null;
-		playlistId: string | null;
-		price: string;
-		currency: string;
-		addedAt: Date;
-	}[]
-> {
-	const rows = await listCartItems(params.db, params.userId);
-	return withCartItemCurrency(params.db, rows);
-}
-
-export async function addCartItem(params: {
-	db: DbClient;
-	userId: string;
-	input: CommerceCartAddItemInput;
-}): Promise<CommerceCartView> {
-	const { db, userId, input } = params;
-	const validated = validateCartAddItemInput(input);
-	const contentId = validated.contentId;
-	const playlistId = validated.playlistId;
-	if (validated.itemType === "CONTENT") {
-		if (!contentId) {
-			throw new CommerceInvalidCartItemError("contentId is required");
-		}
-		await assertContentExists(db, contentId);
-	} else {
-		if (!playlistId) {
-			throw new CommerceInvalidCartItemError("playlistId is required");
-		}
-		await assertPlaylistExists(db, playlistId);
-	}
-	await assertNotAlreadyOwned({
-		db,
-		userId,
-		itemType: validated.itemType,
-		contentId,
-		playlistId,
-	});
-
-	const price = await resolveActivePrice({
-		db,
-		itemType: validated.itemType,
-		contentId,
-		playlistId,
-	});
-	const cartId = await getOrCreateCartId(db, userId);
-	await assertCartItemNotDuplicate({
-		db,
-		cartId,
-		itemType: validated.itemType,
-		contentId,
-		playlistId,
-	});
-
-	await db.insert(cartItem).values({
-		cartId,
-		itemType: validated.itemType,
-		contentId: contentId ?? null,
-		playlistId: playlistId ?? null,
-		price: price.price,
-	});
-
-	return listCart({ db, userId });
-}
-
-export async function removeCartItem(params: {
-	db: DbClient;
-	userId: string;
-	input: CommerceCartRemoveItemInput;
-}): Promise<CommerceCartView> {
-	const { db, userId, input } = params;
-	const userCart = await db.query.cart.findFirst({
-		where: eq(cart.userId, userId),
-		columns: { id: true },
-	});
-	if (!userCart) {
-		return {
-			items: [],
-			totalAmount: "0.00",
-			currency: null,
-		};
-	}
-
-	await db
-		.delete(cartItem)
-		.where(
-			and(eq(cartItem.cartId, userCart.id), eq(cartItem.id, input.cartItemId))
-		);
-
-	return listCart({ db, userId });
-}
-
-export async function createCheckoutOrder(params: {
-	db: DbClient;
-	userId: string;
-	input: CommerceCheckoutCreateOrderInput;
-}): Promise<CommerceCheckoutOrderView> {
-	const { db, userId, input } = params;
-	if ((input.source ?? "CART") !== "CART") {
-		throw new CommerceInvalidCartItemError("Unsupported checkout source");
-	}
-
-	const userCart = await db.query.cart.findFirst({
-		where: eq(cart.userId, userId),
-		columns: { id: true },
-	});
-	if (!userCart) {
-		throw new CommerceInvalidCartItemError("Cart is empty");
-	}
-
-	const items = await listCartForCheckout({ db, userId });
-	if (items.length === 0) {
-		throw new CommerceInvalidCartItemError("Cart is empty");
-	}
-
-	const currencies = items.map((item) => item.currency);
-	const currency = assertSingleCurrency(currencies);
-	if (!currency) {
-		throw new CommerceCurrencyMismatchError();
-	}
-	const totalAmount = computeCartTotal(items.map((item) => item.price));
-
-	return db.transaction(async (tx) => {
-		const [createdOrder] = await tx
-			.insert(order)
-			.values({
-				userId,
-				totalAmount,
-				currency,
-				status: "PENDING",
-			})
-			.returning();
-		if (!createdOrder) {
-			throw new Error("Failed to create order");
-		}
-
-		await tx.insert(orderItem).values(
-			items.map((item) => ({
-				orderId: createdOrder.id,
-				itemType: item.itemType,
-				contentId: item.contentId,
-				playlistId: item.playlistId,
-				price: item.price,
-			}))
-		);
-
-		await tx.delete(cartItem).where(eq(cartItem.cartId, userCart.id));
-
-		return {
-			orderId: createdOrder.id,
-			status: createdOrder.status,
-			totalAmount: createdOrder.totalAmount,
-			currency: createdOrder.currency,
-			items: items.map((item) => ({
-				itemType: item.itemType,
-				contentId: item.contentId,
-				playlistId: item.playlistId,
-				price: item.price,
-				currency: item.currency,
-			})),
 		};
 	});
 }
@@ -1403,6 +1017,11 @@ async function createDirectOrder(params: {
 	playlistId?: string;
 }): Promise<{ orderId: string; currency: string; price: string }> {
 	const { db, userId, itemType, contentId, playlistId } = params;
+	assertValidOrderTarget({
+		itemType,
+		contentId: contentId ?? null,
+		playlistId: playlistId ?? null,
+	});
 	const price = await resolveActivePrice({
 		db,
 		itemType,
@@ -1416,20 +1035,15 @@ async function createDirectOrder(params: {
 			userId,
 			totalAmount: price.price,
 			currency: price.currency,
+			itemType,
+			contentId: contentId ?? null,
+			playlistId: playlistId ?? null,
 			status: "PENDING",
 		})
 		.returning();
 	if (!createdOrder) {
 		throw new Error("Failed to create direct order");
 	}
-
-	await db.insert(orderItem).values({
-		orderId: createdOrder.id,
-		itemType,
-		contentId: contentId ?? null,
-		playlistId: playlistId ?? null,
-		price: price.price,
-	});
 
 	return {
 		orderId: createdOrder.id,
