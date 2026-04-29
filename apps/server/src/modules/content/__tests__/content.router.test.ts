@@ -5,12 +5,7 @@ import {
 	resetTestDatabase,
 	type TestDatabase,
 } from "@/__tests__/helpers/test-db";
-import {
-	adminAuditLog,
-	category,
-	content,
-	contentPricing,
-} from "@/lib/db/schema";
+import { category, content, contentPricing } from "@/lib/db/schema";
 import {
 	createCaller,
 	makeAuthenticatedContext,
@@ -303,18 +298,6 @@ describe("content router", () => {
 			isAvailable: false,
 		});
 		expect(setUnavailable.isAvailable).toBe(false);
-
-		const auditRows = await testDb.db.select().from(adminAuditLog);
-		const classificationAudit = auditRows.find(
-			(row) =>
-				row.entityType === "CONTENT" &&
-				row.action === "SET_CLASSIFICATION" &&
-				row.entityId === created.id
-		);
-		expect(classificationAudit).toBeDefined();
-		expect(classificationAudit?.metadata).toEqual({
-			categoryIds: [createdCategory.id],
-		});
 
 		const deleted = await superadminCaller.content.adminDelete({
 			id: created.id,

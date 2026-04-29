@@ -44,7 +44,6 @@ export async function createTestDatabase(): Promise<TestDatabase> {
 
 export async function resetTestDatabase(client: PGlite): Promise<void> {
 	const tables = [
-		"admin_audit_log",
 		"account",
 		"cart_item",
 		"cart",

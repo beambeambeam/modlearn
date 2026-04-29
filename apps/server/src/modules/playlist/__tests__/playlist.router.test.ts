@@ -6,7 +6,6 @@ import {
 	type TestDatabase,
 } from "@/__tests__/helpers/test-db";
 import {
-	adminAuditLog,
 	content,
 	playlist,
 	playlistEpisode,
@@ -288,7 +287,7 @@ describe("playlist router", () => {
 		expect(detail.id).toBe(draftPlaylist.id);
 	});
 
-	it("allows admin and superadmin to perform admin mutations and writes audits", async () => {
+	it("allows admin and superadmin to perform admin mutations", async () => {
 		const admin = await createTestUser(testDb.client, {
 			email: "playlist-router-admin@example.com",
 			role: "admin",
@@ -403,80 +402,6 @@ describe("playlist router", () => {
 			id: created.id,
 			deleted: true,
 		});
-
-		const auditRows = await testDb.db.select().from(adminAuditLog);
-		expect(
-			auditRows.some(
-				(row) =>
-					row.entityType === "PLAYLIST" &&
-					row.action === "SET_PUBLISH_STATE" &&
-					row.entityId === created.id
-			)
-		).toBe(true);
-		expect(
-			auditRows.some(
-				(row) =>
-					row.entityType === "PLAYLIST" &&
-					row.action === "SET_AVAILABILITY" &&
-					row.entityId === created.id
-			)
-		).toBe(true);
-		expect(
-			auditRows.some(
-				(row) =>
-					row.entityType === "PLAYLIST" &&
-					row.action === "CREATE" &&
-					row.entityId === created.id
-			)
-		).toBe(true);
-		expect(
-			auditRows.some(
-				(row) =>
-					row.entityType === "PLAYLIST" &&
-					row.action === "UPDATE" &&
-					row.entityId === created.id
-			)
-		).toBe(true);
-		expect(
-			auditRows.some(
-				(row) =>
-					row.entityType === "PLAYLIST_EPISODE" &&
-					row.action === "ADD_EPISODE" &&
-					row.entityId === added.id
-			)
-		).toBe(true);
-		expect(
-			auditRows.some(
-				(row) =>
-					row.entityType === "PLAYLIST_EPISODE" &&
-					row.action === "UPDATE_EPISODE" &&
-					row.entityId === added.id
-			)
-		).toBe(true);
-		expect(
-			auditRows.some(
-				(row) =>
-					row.entityType === "PLAYLIST" &&
-					row.action === "REORDER_EPISODES" &&
-					row.entityId === created.id
-			)
-		).toBe(true);
-		expect(
-			auditRows.some(
-				(row) =>
-					row.entityType === "PLAYLIST_EPISODE" &&
-					row.action === "REMOVE_EPISODE" &&
-					row.entityId === added.id
-			)
-		).toBe(true);
-		expect(
-			auditRows.some(
-				(row) =>
-					row.entityType === "PLAYLIST" &&
-					row.action === "DELETE" &&
-					row.entityId === created.id
-			)
-		).toBe(true);
 	});
 
 	it("allows admin publish/availability state mutations", async () => {

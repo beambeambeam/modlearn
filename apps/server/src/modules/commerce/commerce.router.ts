@@ -1,5 +1,4 @@
 import { z } from "zod";
-import { logAdminMutation } from "@/modules/admin-audit/admin-audit.service";
 import {
 	addCartItem,
 	buyContent,
@@ -248,23 +247,12 @@ export const commerceRouter = router({
 				})
 				.input(commerceAdminContentPricingCreateInputSchema)
 				.output(commerceAdminContentPricingOutputSchema)
-				.handler(async ({ context, input }) => {
-					const created = await createContentPricingWindow({
+				.handler(({ context, input }) => {
+					return createContentPricingWindow({
 						db: context.db,
 						createdBy: context.session.user.id,
 						input,
 					});
-					await logAdminMutation({
-						context,
-						entityType: "CONTENT",
-						action: "UPDATE",
-						entityId: created.contentId,
-						metadata: {
-							operation: "CREATE_PRICING",
-							pricingId: created.id,
-						},
-					});
-					return created;
 				}),
 			update: adminProcedure
 				.route({
@@ -277,23 +265,11 @@ export const commerceRouter = router({
 				})
 				.input(commerceAdminContentPricingUpdateInputSchema)
 				.output(commerceAdminContentPricingOutputSchema)
-				.handler(async ({ context, input }) => {
-					const updated = await updateContentPricingWindow({
+				.handler(({ context, input }) => {
+					return updateContentPricingWindow({
 						db: context.db,
 						input,
 					});
-					await logAdminMutation({
-						context,
-						entityType: "CONTENT",
-						action: "UPDATE",
-						entityId: updated.contentId,
-						metadata: {
-							operation: "UPDATE_PRICING",
-							pricingId: updated.id,
-							patchKeys: Object.keys(input.patch),
-						},
-					});
-					return updated;
 				}),
 		}),
 		playlist: router({
@@ -325,23 +301,12 @@ export const commerceRouter = router({
 				})
 				.input(commerceAdminPlaylistPricingCreateInputSchema)
 				.output(commerceAdminPlaylistPricingOutputSchema)
-				.handler(async ({ context, input }) => {
-					const created = await createPlaylistPricingWindow({
+				.handler(({ context, input }) => {
+					return createPlaylistPricingWindow({
 						db: context.db,
 						createdBy: context.session.user.id,
 						input,
 					});
-					await logAdminMutation({
-						context,
-						entityType: "PLAYLIST",
-						action: "UPDATE",
-						entityId: created.playlistId,
-						metadata: {
-							operation: "CREATE_PRICING",
-							pricingId: created.id,
-						},
-					});
-					return created;
 				}),
 			update: adminProcedure
 				.route({
@@ -354,23 +319,11 @@ export const commerceRouter = router({
 				})
 				.input(commerceAdminPlaylistPricingUpdateInputSchema)
 				.output(commerceAdminPlaylistPricingOutputSchema)
-				.handler(async ({ context, input }) => {
-					const updated = await updatePlaylistPricingWindow({
+				.handler(({ context, input }) => {
+					return updatePlaylistPricingWindow({
 						db: context.db,
 						input,
 					});
-					await logAdminMutation({
-						context,
-						entityType: "PLAYLIST",
-						action: "UPDATE",
-						entityId: updated.playlistId,
-						metadata: {
-							operation: "UPDATE_PRICING",
-							pricingId: updated.id,
-							patchKeys: Object.keys(input.patch),
-						},
-					});
-					return updated;
 				}),
 		}),
 	}),

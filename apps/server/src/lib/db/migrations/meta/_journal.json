@@ -57,6 +57,13 @@
       "when": 1772596900829,
       "tag": "0007_light_the_phantom",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1777472366813,
+      "tag": "0008_sticky_bloodscream",
+      "breakpoints": true
     }
   ]
 }

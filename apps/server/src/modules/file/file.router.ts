@@ -1,4 +1,3 @@
-import { logAdminMutation } from "@/modules/admin-audit/admin-audit.service";
 import {
 	createFileDownloadUrl,
 	createFileUploadRequest,
@@ -25,21 +24,14 @@ export const fileRouter = router({
 		})
 		.input(fileAdminCreateUploadRequestInputSchema)
 		.output(fileAdminCreateUploadRequestOutputSchema)
-		.handler(async ({ context, input }) => {
-			const created = await createFileUploadRequest({
+		.handler(({ context, input }) => {
+			return createFileUploadRequest({
 				db: context.db,
 				input: {
 					...input,
 					uploaderId: context.session.user.id,
 				},
 			});
-			await logAdminMutation({
-				context,
-				entityType: "FILE",
-				action: "CREATE",
-				entityId: created.fileId,
-			});
-			return created;
 		}),
 	adminGetDownloadUrl: adminProcedure
 		.route({
@@ -69,17 +61,10 @@ export const fileRouter = router({
 		})
 		.input(fileAdminByIdInputSchema)
 		.output(fileAdminDeleteOutputSchema)
-		.handler(async ({ context, input }) => {
-			const deleted = await deleteFile({
+		.handler(({ context, input }) => {
+			return deleteFile({
 				db: context.db,
 				fileId: input.fileId,
 			});
-			await logAdminMutation({
-				context,
-				entityType: "FILE",
-				action: "DELETE",
-				entityId: deleted.fileId,
-			});
-			return deleted;
 		}),
 });

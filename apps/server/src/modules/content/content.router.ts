@@ -1,5 +1,4 @@
 import { z } from "zod";
-import { logAdminMutation } from "@/modules/admin-audit/admin-audit.service";
 import {
 	createContent,
 	deleteContent,
@@ -135,19 +134,12 @@ export const contentRouter = router({
 		})
 		.input(contentAdminCreateInputSchema)
 		.output(contentSchema)
-		.handler(async ({ context, input }) => {
-			const created = await createContent({
+		.handler(({ context, input }) => {
+			return createContent({
 				db: context.db,
 				input,
 				updatedBy: context.session.user.id,
 			});
-			await logAdminMutation({
-				context,
-				entityType: "CONTENT",
-				action: "CREATE",
-				entityId: created.id,
-			});
-			return created;
 		}),
 	adminUpdate: adminProcedure
 		.route({
@@ -160,22 +152,12 @@ export const contentRouter = router({
 		})
 		.input(contentAdminUpdateInputSchema)
 		.output(contentSchema)
-		.handler(async ({ context, input }) => {
-			const updated = await updateContent({
+		.handler(({ context, input }) => {
+			return updateContent({
 				db: context.db,
 				input,
 				updatedBy: context.session.user.id,
 			});
-			await logAdminMutation({
-				context,
-				entityType: "CONTENT",
-				action: "UPDATE",
-				entityId: updated.id,
-				metadata: {
-					patchKeys: Object.keys(input.patch),
-				},
-			});
-			return updated;
 		}),
 	adminSetPublishState: adminProcedure
 		.route({
@@ -188,22 +170,12 @@ export const contentRouter = router({
 		})
 		.input(contentAdminSetPublishStateInputSchema)
 		.output(contentSchema)
-		.handler(async ({ context, input }) => {
-			const updated = await setContentPublishState({
+		.handler(({ context, input }) => {
+			return setContentPublishState({
 				db: context.db,
 				input,
 				updatedBy: context.session.user.id,
 			});
-			await logAdminMutation({
-				context,
-				entityType: "CONTENT",
-				action: "SET_PUBLISH_STATE",
-				entityId: updated.id,
-				metadata: {
-					isPublished: input.isPublished,
-				},
-			});
-			return updated;
 		}),
 	adminSetClassification: adminProcedure
 		.route({
@@ -216,21 +188,11 @@ export const contentRouter = router({
 		})
 		.input(contentAdminSetClassificationInputSchema)
 		.output(contentClassificationOutputSchema)
-		.handler(async ({ context, input }) => {
-			const updated = await setContentClassification({
+		.handler(({ context, input }) => {
+			return setContentClassification({
 				db: context.db,
 				input,
 			});
-			await logAdminMutation({
-				context,
-				entityType: "CONTENT",
-				action: "SET_CLASSIFICATION",
-				entityId: updated.contentId,
-				metadata: {
-					categoryIds: input.categoryIds,
-				},
-			});
-			return updated;
 		}),
 	adminDelete: adminProcedure
 		.route({
@@ -243,19 +205,12 @@ export const contentRouter = router({
 		})
 		.input(contentAdminDeleteInputSchema)
 		.output(contentDeleteOutputSchema)
-		.handler(async ({ context, input }) => {
-			const deleted = await deleteContent({
+		.handler(({ context, input }) => {
+			return deleteContent({
 				db: context.db,
 				input,
 				updatedBy: context.session.user.id,
 			});
-			await logAdminMutation({
-				context,
-				entityType: "CONTENT",
-				action: "DELETE",
-				entityId: deleted.id,
-			});
-			return deleted;
 		}),
 	adminSetAvailability: adminProcedure
 		.route({
@@ -268,21 +223,11 @@ export const contentRouter = router({
 		})
 		.input(contentAdminSetAvailabilityInputSchema)
 		.output(contentSchema)
-		.handler(async ({ context, input }) => {
-			const updated = await setContentAvailability({
+		.handler(({ context, input }) => {
+			return setContentAvailability({
 				db: context.db,
 				input,
 				updatedBy: context.session.user.id,
 			});
-			await logAdminMutation({
-				context,
-				entityType: "CONTENT",
-				action: "SET_AVAILABILITY",
-				entityId: updated.id,
-				metadata: {
-					isAvailable: input.isAvailable,
-				},
-			});
-			return updated;
 		}),
 });
