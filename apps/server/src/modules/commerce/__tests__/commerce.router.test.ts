@@ -93,9 +93,7 @@ describe("commerce router", () => {
 				orderId: "00000000-0000-0000-0000-000000000000",
 				providerTransactionId: "unauthorized-check",
 			})
-		).rejects.toThrow(
-			expect.objectContaining({ code: "UNAUTHORIZED" })
-		);
+		).rejects.toThrow(expect.objectContaining({ code: "UNAUTHORIZED" }));
 	});
 
 	it("validates input payloads", async () => {

@@ -1,4 +1,5 @@
 import { z } from "zod";
+
 const priceStringSchema = z
 	.string()
 	.trim()
