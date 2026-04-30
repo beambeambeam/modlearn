@@ -3,7 +3,6 @@ import {
 	bigint,
 	boolean,
 	index,
-	pgEnum,
 	pgTable,
 	text,
 	timestamp,
@@ -13,22 +12,6 @@ import {
 import { session, user } from "./auth";
 import { content } from "./content";
 import { playlist } from "./playlist";
-
-export const playbackSessionStatusEnum = pgEnum("playback_session_status", [
-	"ACTIVE",
-	"PAUSED",
-	"STOPPED",
-	"ENDED",
-	"EXPIRED",
-]);
-
-export const playbackEventTypeEnum = pgEnum("playback_event_type", [
-	"PLAY",
-	"PAUSE",
-	"RESUME",
-	"SEEK",
-	"STOP",
-]);
 
 export const watchProgress = pgTable(
 	"watch_progress",
@@ -63,50 +46,6 @@ export const watchProgress = pgTable(
 	]
 );
 
-export const playbackSession = pgTable(
-	"playback_session",
-	{
-		id: uuid("id").primaryKey().defaultRandom(),
-		userId: text("user_id")
-			.notNull()
-			.references(() => user.id, { onDelete: "cascade" }),
-		contentId: uuid("content_id")
-			.notNull()
-			.references(() => content.id, { onDelete: "cascade" }),
-		playlistId: uuid("playlist_id").references(() => playlist.id, {
-			onDelete: "set null",
-		}),
-		playbackToken: text("playback_token").notNull().unique(),
-		status: playbackSessionStatusEnum("status").default("ACTIVE").notNull(),
-		startedAt: timestamp("started_at", { withTimezone: true })
-			.defaultNow()
-			.notNull(),
-		lastEventAt: timestamp("last_event_at", { withTimezone: true })
-			.defaultNow()
-			.notNull(),
-		endedAt: timestamp("ended_at", { withTimezone: true }),
-		lastPosition: bigint("last_position", { mode: "number" })
-			.default(0)
-			.notNull(),
-		duration: bigint("duration", { mode: "number" }).default(0).notNull(),
-		deviceType: text("device_type"),
-		expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
-		createdAt: timestamp("created_at", { withTimezone: true })
-			.defaultNow()
-			.notNull(),
-		updatedAt: timestamp("updated_at", { withTimezone: true })
-			.defaultNow()
-			.$onUpdate(() => new Date())
-			.notNull(),
-	},
-	(table) => [
-		index("playbackSession_userStatus_idx").on(table.userId, table.status),
-		index("playbackSession_contentId_idx").on(table.contentId),
-		index("playbackSession_token_idx").on(table.playbackToken),
-		index("playbackSession_expiresAt_idx").on(table.expiresAt),
-	]
-);
-
 export const contentView = pgTable(
 	"content_view",
 	{
@@ -120,12 +59,6 @@ export const contentView = pgTable(
 		sessionId: text("session_id").references(() => session.id, {
 			onDelete: "set null",
 		}),
-		playbackSessionId: uuid("playback_session_id").references(
-			() => playbackSession.id,
-			{
-				onDelete: "set null",
-			}
-		),
 		viewedAt: timestamp("viewed_at", { withTimezone: true })
 			.defaultNow()
 			.notNull(),
@@ -137,35 +70,6 @@ export const contentView = pgTable(
 		index("contentView_userId_idx").on(table.userId),
 		index("contentView_viewedAt_idx").on(table.viewedAt),
 		index("contentView_sessionId_idx").on(table.sessionId),
-		index("contentView_playbackSessionId_idx").on(table.playbackSessionId),
-		unique("contentView_playbackSessionId_unique").on(table.playbackSessionId),
-	]
-);
-
-export const playbackEvent = pgTable(
-	"playback_event",
-	{
-		id: uuid("id").primaryKey().defaultRandom(),
-		sessionId: uuid("session_id")
-			.notNull()
-			.references(() => playbackSession.id, { onDelete: "cascade" }),
-		eventType: playbackEventTypeEnum("event_type").notNull(),
-		position: bigint("position", { mode: "number" }).default(0).notNull(),
-		duration: bigint("duration", { mode: "number" }).default(0).notNull(),
-		deviceType: text("device_type"),
-		createdAt: timestamp("created_at", { withTimezone: true })
-			.defaultNow()
-			.notNull(),
-	},
-	(table) => [
-		index("playbackEvent_sessionCreatedAt_idx").on(
-			table.sessionId,
-			table.createdAt
-		),
-		index("playbackEvent_typeCreatedAt_idx").on(
-			table.eventType,
-			table.createdAt
-		),
 	]
 );
 
@@ -196,35 +100,5 @@ export const contentViewRelations = relations(contentView, ({ one }) => ({
 	session: one(session, {
 		fields: [contentView.sessionId],
 		references: [session.id],
-	}),
-	playbackSession: one(playbackSession, {
-		fields: [contentView.playbackSessionId],
-		references: [playbackSession.id],
-	}),
-}));
-
-export const playbackSessionRelations = relations(
-	playbackSession,
-	({ one, many }) => ({
-		user: one(user, {
-			fields: [playbackSession.userId],
-			references: [user.id],
-		}),
-		content: one(content, {
-			fields: [playbackSession.contentId],
-			references: [content.id],
-		}),
-		playlist: one(playlist, {
-			fields: [playbackSession.playlistId],
-			references: [playlist.id],
-		}),
-		events: many(playbackEvent),
-	})
-);
-
-export const playbackEventRelations = relations(playbackEvent, ({ one }) => ({
-	session: one(playbackSession, {
-		fields: [playbackEvent.sessionId],
-		references: [playbackSession.id],
 	}),
 }));

@@ -10,7 +10,7 @@ import {
 	lte,
 	sql,
 } from "drizzle-orm";
-import { content, contentView, playbackSession } from "@/lib/db/schema";
+import { content, contentView } from "@/lib/db/schema";
 import type {
 	AnalyticsContentViewsParams,
 	AnalyticsContentViewsResult,
@@ -56,19 +56,10 @@ export async function getAnalyticsOverview(
 ): Promise<AnalyticsOverviewResult> {
 	const { db, input } = params;
 	const now = new Date();
-	const activeWindowMinutes = input.activeWindowMinutes ?? 15;
-	const activeSince = new Date(now.getTime() - activeWindowMinutes * 60 * 1000);
 	const viewDateWhere = buildViewDateRangeWhere({
 		from: input.from,
 		to: input.to,
 	});
-
-	const [activeUsersRow] = await db
-		.select({
-			total: sql<number>`count(distinct ${playbackSession.userId})::int`,
-		})
-		.from(playbackSession)
-		.where(gte(playbackSession.lastEventAt, activeSince));
 
 	const [totalsRow] = await db
 		.select({
@@ -79,7 +70,6 @@ export async function getAnalyticsOverview(
 		.where(viewDateWhere);
 
 	return {
-		activeUsers: Number(activeUsersRow?.total ?? 0),
 		totalViews: Number(totalsRow?.totalViews ?? 0),
 		totalWatchDuration: Number(totalsRow?.totalWatchDuration ?? 0),
 		generatedAt: now,
@@ -215,7 +205,6 @@ export async function listViewSessionsAnalytics(
 			viewedAt: contentView.viewedAt,
 			watchDuration: contentView.watchDuration,
 			deviceType: contentView.deviceType,
-			playbackSessionId: contentView.playbackSessionId,
 		})
 		.from(contentView)
 		.where(where)

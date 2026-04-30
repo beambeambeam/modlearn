@@ -1,12 +1,10 @@
 import { z } from "zod";
-import { adminAuditRouter } from "@/modules/admin-audit/admin-audit.router";
 import { analyticsRouter } from "@/modules/analytics/analytics.router";
 import { categoryRouter } from "@/modules/category/category.router";
 import { commerceRouter } from "@/modules/commerce/commerce.router";
 import { contentRouter } from "@/modules/content/content.router";
 import { fileRouter } from "@/modules/file/file.router";
 import { libraryRouter } from "@/modules/library/library.router";
-import { playbackRouter } from "@/modules/playback/playback.router";
 import { playlistRouter } from "@/modules/playlist/playlist.router";
 import { recommendationRouter } from "@/modules/recommendation/recommendation.router";
 import { watchProgressRouter } from "@/modules/watch-progress/watch-progress.router";
@@ -78,14 +76,12 @@ export const appRouter = router({
 				user: context.session.user,
 			};
 		}),
-	adminAudit: adminAuditRouter,
 	analytics: analyticsRouter,
 	category: categoryRouter,
 	commerce: commerceRouter,
 	content: contentRouter,
 	file: fileRouter,
 	library: libraryRouter,
-	playback: playbackRouter,
 	playlist: playlistRouter,
 	recommendation: recommendationRouter,
 	watchProgress: watchProgressRouter,

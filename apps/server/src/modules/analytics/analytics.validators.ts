@@ -8,7 +8,6 @@ const paginationInputSchema = z.object({
 });
 
 export const analyticsOverviewInputSchema = z.object({
-	activeWindowMinutes: z.number().int().min(1).max(1440).default(15),
 	from: z.date().optional(),
 	to: z.date().optional(),
 });
@@ -35,7 +34,6 @@ export const analyticsPaginationSchema = z.object({
 });
 
 export const analyticsOverviewOutputSchema = z.object({
-	activeUsers: z.number().int(),
 	totalViews: z.number().int(),
 	totalWatchDuration: z.number().int(),
 	generatedAt: z.date(),
@@ -64,7 +62,6 @@ export const analyticsViewSessionsOutputSchema = z.object({
 			viewedAt: z.date(),
 			watchDuration: z.number().int().nullable(),
 			deviceType: z.string().nullable(),
-			playbackSessionId: z.uuid().nullable(),
 		})
 	),
 	pagination: analyticsPaginationSchema,

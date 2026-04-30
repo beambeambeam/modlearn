@@ -1,4 +1,3 @@
-import { logAdminMutation } from "@/modules/admin-audit/admin-audit.service";
 import {
 	createCategory,
 	deleteCategory,
@@ -64,18 +63,11 @@ export const categoryRouter = router({
 		})
 		.input(categoryAdminCreateInputSchema)
 		.output(categorySchema)
-		.handler(async ({ context, input }) => {
-			const created = await createCategory({
+		.handler(({ context, input }) => {
+			return createCategory({
 				db: context.db,
 				input,
 			});
-			await logAdminMutation({
-				context,
-				entityType: "CATEGORY",
-				action: "CREATE",
-				entityId: created.id,
-			});
-			return created;
 		}),
 	adminUpdate: adminProcedure
 		.route({
@@ -88,21 +80,11 @@ export const categoryRouter = router({
 		})
 		.input(categoryAdminUpdateInputSchema)
 		.output(categorySchema)
-		.handler(async ({ context, input }) => {
-			const updated = await updateCategory({
+		.handler(({ context, input }) => {
+			return updateCategory({
 				db: context.db,
 				input,
 			});
-			await logAdminMutation({
-				context,
-				entityType: "CATEGORY",
-				action: "UPDATE",
-				entityId: updated.id,
-				metadata: {
-					patchKeys: Object.keys(input.patch),
-				},
-			});
-			return updated;
 		}),
 	adminDelete: adminProcedure
 		.route({
@@ -115,17 +97,10 @@ export const categoryRouter = router({
 		})
 		.input(categoryAdminDeleteInputSchema)
 		.output(categoryDeleteOutputSchema)
-		.handler(async ({ context, input }) => {
-			const deleted = await deleteCategory({
+		.handler(({ context, input }) => {
+			return deleteCategory({
 				db: context.db,
 				input,
 			});
-			await logAdminMutation({
-				context,
-				entityType: "CATEGORY",
-				action: "DELETE",
-				entityId: deleted.id,
-			});
-			return deleted;
 		}),
 });

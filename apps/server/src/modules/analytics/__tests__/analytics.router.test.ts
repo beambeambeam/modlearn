@@ -5,7 +5,7 @@ import {
 	resetTestDatabase,
 	type TestDatabase,
 } from "@/__tests__/helpers/test-db";
-import { content, contentView, playbackSession } from "@/lib/db/schema";
+import { content, contentView } from "@/lib/db/schema";
 import {
 	createCaller,
 	makeAuthenticatedContext,
@@ -34,26 +34,9 @@ async function seedRouterAnalyticsData(params: {
 		throw new Error("Failed to create analytics router content fixture");
 	}
 
-	const [playback] = await testDb.db
-		.insert(playbackSession)
-		.values({
-			userId,
-			contentId: movie.id,
-			playbackToken: `router-token-${Date.now()}`,
-			status: "ACTIVE",
-			lastEventAt: new Date(),
-			expiresAt: new Date(Date.now() + 30 * 60 * 1000),
-		})
-		.returning();
-
-	if (!playback) {
-		throw new Error("Failed to create analytics router session fixture");
-	}
-
 	await testDb.db.insert(contentView).values({
 		contentId: movie.id,
 		userId,
-		playbackSessionId: playback.id,
 		watchDuration: 90,
 		deviceType: "web",
 	});
@@ -116,7 +99,6 @@ describe("analytics router", () => {
 		);
 
 		const overview = await caller.analytics.overview({});
-		expect(overview.activeUsers).toBe(1);
 		expect(overview.totalViews).toBe(1);
 
 		const contentViews = await caller.analytics.contentViews({
@@ -143,7 +125,7 @@ describe("analytics router", () => {
 
 		await expect(
 			caller.analytics.overview({
-				activeWindowMinutes: 0,
+				from: new Date("invalid"),
 			})
 		).rejects.toThrow(expect.objectContaining({ code: "BAD_REQUEST" }));
 

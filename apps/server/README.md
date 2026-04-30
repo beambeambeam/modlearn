@@ -1,6 +1,6 @@
 # ModLearn API Server
 
-High-performance backend API for the ModLearn educational video streaming platform.
+High-performance backend API for the ModLearn educational content platform.
 
 ## Overview
 

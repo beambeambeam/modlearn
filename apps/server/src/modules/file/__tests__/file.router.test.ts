@@ -13,7 +13,7 @@ import {
 	resetTestDatabase,
 	type TestDatabase,
 } from "@/__tests__/helpers/test-db";
-import { adminAuditLog, file, storage } from "@/lib/db/schema";
+import { file, storage } from "@/lib/db/schema";
 import {
 	createCaller,
 	makeAuthenticatedContext,
@@ -156,26 +156,12 @@ describe("file router", () => {
 		expect(upload.uploadUrl).toBeDefined();
 		expect(upload.expiresAt).toBeInstanceOf(Date);
 
-		const auditAfterCreate = await testDb.db.select().from(adminAuditLog);
-		const createAudit = auditAfterCreate.find(
-			(row) =>
-				row.entityType === "FILE" &&
-				row.action === "CREATE" &&
-				row.entityId === upload.fileId &&
-				row.adminId === admin.id
-		);
-		expect(createAudit).toBeDefined();
-		const auditCountBeforeDownload = auditAfterCreate.length;
-
 		const download = await adminCaller.file.adminGetDownloadUrl({
 			fileId: upload.fileId,
 		});
 		expect(download.storageKey).toBe(upload.storageKey);
 		expect(download.downloadUrl).toBeDefined();
 		expect(download.expiresAt).toBeNull();
-
-		const auditAfterDownload = await testDb.db.select().from(adminAuditLog);
-		expect(auditAfterDownload).toHaveLength(auditCountBeforeDownload);
 
 		const deleted = await superadminCaller.file.adminDelete({
 			fileId: upload.fileId,

@@ -4,7 +4,6 @@ import type { contentTypeEnum } from "@/lib/db/schema";
 export type AnalyticsContentType = (typeof contentTypeEnum.enumValues)[number];
 
 export interface AnalyticsOverviewInput {
-	activeWindowMinutes?: number;
 	from?: Date;
 	to?: Date;
 }
@@ -28,7 +27,6 @@ export interface AnalyticsViewSessionsInput {
 }
 
 export interface AnalyticsOverviewResult {
-	activeUsers: number;
 	totalViews: number;
 	totalWatchDuration: number;
 	generatedAt: Date;
@@ -50,7 +48,6 @@ export interface AnalyticsViewSessionItem {
 	viewedAt: Date;
 	watchDuration: number | null;
 	deviceType: string | null;
-	playbackSessionId: string | null;
 }
 
 export interface AnalyticsPagination {
