@@ -1,17 +1,19 @@
-import { Link, useRouteContext, useRouterState, useNavigate } from "@tanstack/react-router";
+import {
+	Link,
+	useNavigate,
+	useRouteContext,
+	useRouterState,
+} from "@tanstack/react-router";
 import {
 	BookOpen,
-	ChartLine,
 	ChartBar,
+	ChartLine,
 	ChevronRight,
-	DollarSign,
+	FolderOpen,
 	LogOut,
 	Music,
-	Settings,
-	Users,
-	FolderOpen,
 	Tag,
-	ClipboardList,
+	Users,
 } from "lucide-react";
 import { useState } from "react";
 import { authClient } from "@/lib/auth-client";
@@ -28,11 +30,11 @@ const navItems = [
 			{ label: "Add Playlist", to: "/admin/playlists/new" },
 		],
 	},
-	{ label: "Files",     icon: FolderOpen, to: "/admin/files" },
+	{ label: "Files", icon: FolderOpen, to: "/admin/files" },
 	{ label: "Categories", icon: Tag, to: "/admin/categories" },
 	// { label: "Revenue", icon: DollarSign, to: "/admin/revenue" },
 	{ label: "Analytics", icon: ChartBar, to: "/admin/analytics" },
-	{ label: "Audit Logs", icon: ClipboardList, to: "/admin/audit-logs" },
+	// { label: "Audit Logs", icon: ClipboardList, to: "/admin/audit-logs" },
 	// { label: "Settings", icon: Settings, to: "/admin/settings" },
 ];
 
@@ -77,9 +79,9 @@ export default function AdminSidebar() {
 						{/* Item with child */}
 						{item.children ? (
 							<button
-								className={`flex w-full text-muted-foreground items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors${
+								className={`flex w-full items-center gap-3 rounded-md px-3 py-2 text-muted-foreground text-sm transition-colors${
 									isGroupActive
-										? "font-medium bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground"
+										? "bg-primary font-medium text-primary-foreground hover:bg-primary hover:text-primary-foreground"
 										: "text-muted-foreground hover:bg-accent hover:text-foreground"
 								}`}
 								onClick={() => toggleExpand(item.label)}

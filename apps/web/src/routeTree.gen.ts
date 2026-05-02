@@ -20,7 +20,6 @@ import { Route as AdminLayoutAdminPlaylistsIndexRouteImport } from './routes/_ad
 import { Route as AdminLayoutAdminFilesIndexRouteImport } from './routes/_admin-layout/admin/files/index'
 import { Route as AdminLayoutAdminContentIndexRouteImport } from './routes/_admin-layout/admin/content/index'
 import { Route as AdminLayoutAdminCategoriesIndexRouteImport } from './routes/_admin-layout/admin/categories/index'
-import { Route as AdminLayoutAdminAuditLogsIndexRouteImport } from './routes/_admin-layout/admin/audit-logs/index'
 import { Route as AdminLayoutAdminAnalyticsIndexRouteImport } from './routes/_admin-layout/admin/analytics/index'
 import { Route as AdminLayoutAdminPlaylistsNewRouteImport } from './routes/_admin-layout/admin/playlists/new'
 import { Route as AdminLayoutAdminPlaylistsIdRouteImport } from './routes/_admin-layout/admin/playlists/$id'
@@ -90,12 +89,6 @@ const AdminLayoutAdminCategoriesIndexRoute =
   AdminLayoutAdminCategoriesIndexRouteImport.update({
     id: '/admin/categories/',
     path: '/admin/categories/',
-    getParentRoute: () => AdminLayoutRoute,
-  } as any)
-const AdminLayoutAdminAuditLogsIndexRoute =
-  AdminLayoutAdminAuditLogsIndexRouteImport.update({
-    id: '/admin/audit-logs/',
-    path: '/admin/audit-logs/',
     getParentRoute: () => AdminLayoutRoute,
   } as any)
 const AdminLayoutAdminAnalyticsIndexRoute =
@@ -170,7 +163,6 @@ export interface FileRoutesByFullPath {
   '/admin/playlists/$id': typeof AdminLayoutAdminPlaylistsIdRouteWithChildren
   '/admin/playlists/new': typeof AdminLayoutAdminPlaylistsNewRoute
   '/admin/analytics/': typeof AdminLayoutAdminAnalyticsIndexRoute
-  '/admin/audit-logs/': typeof AdminLayoutAdminAuditLogsIndexRoute
   '/admin/categories/': typeof AdminLayoutAdminCategoriesIndexRoute
   '/admin/content/': typeof AdminLayoutAdminContentIndexRoute
   '/admin/files/': typeof AdminLayoutAdminFilesIndexRoute
@@ -191,7 +183,6 @@ export interface FileRoutesByTo {
   '/admin/content/new': typeof AdminLayoutAdminContentNewRoute
   '/admin/playlists/new': typeof AdminLayoutAdminPlaylistsNewRoute
   '/admin/analytics': typeof AdminLayoutAdminAnalyticsIndexRoute
-  '/admin/audit-logs': typeof AdminLayoutAdminAuditLogsIndexRoute
   '/admin/categories': typeof AdminLayoutAdminCategoriesIndexRoute
   '/admin/content': typeof AdminLayoutAdminContentIndexRoute
   '/admin/files': typeof AdminLayoutAdminFilesIndexRoute
@@ -216,7 +207,6 @@ export interface FileRoutesById {
   '/_admin-layout/admin/playlists/$id': typeof AdminLayoutAdminPlaylistsIdRouteWithChildren
   '/_admin-layout/admin/playlists/new': typeof AdminLayoutAdminPlaylistsNewRoute
   '/_admin-layout/admin/analytics/': typeof AdminLayoutAdminAnalyticsIndexRoute
-  '/_admin-layout/admin/audit-logs/': typeof AdminLayoutAdminAuditLogsIndexRoute
   '/_admin-layout/admin/categories/': typeof AdminLayoutAdminCategoriesIndexRoute
   '/_admin-layout/admin/content/': typeof AdminLayoutAdminContentIndexRoute
   '/_admin-layout/admin/files/': typeof AdminLayoutAdminFilesIndexRoute
@@ -241,7 +231,6 @@ export interface FileRouteTypes {
     | '/admin/playlists/$id'
     | '/admin/playlists/new'
     | '/admin/analytics/'
-    | '/admin/audit-logs/'
     | '/admin/categories/'
     | '/admin/content/'
     | '/admin/files/'
@@ -262,7 +251,6 @@ export interface FileRouteTypes {
     | '/admin/content/new'
     | '/admin/playlists/new'
     | '/admin/analytics'
-    | '/admin/audit-logs'
     | '/admin/categories'
     | '/admin/content'
     | '/admin/files'
@@ -286,7 +274,6 @@ export interface FileRouteTypes {
     | '/_admin-layout/admin/playlists/$id'
     | '/_admin-layout/admin/playlists/new'
     | '/_admin-layout/admin/analytics/'
-    | '/_admin-layout/admin/audit-logs/'
     | '/_admin-layout/admin/categories/'
     | '/_admin-layout/admin/content/'
     | '/_admin-layout/admin/files/'
@@ -383,13 +370,6 @@ declare module '@tanstack/react-router' {
       path: '/admin/categories'
       fullPath: '/admin/categories/'
       preLoaderRoute: typeof AdminLayoutAdminCategoriesIndexRouteImport
-      parentRoute: typeof AdminLayoutRoute
-    }
-    '/_admin-layout/admin/audit-logs/': {
-      id: '/_admin-layout/admin/audit-logs/'
-      path: '/admin/audit-logs'
-      fullPath: '/admin/audit-logs/'
-      preLoaderRoute: typeof AdminLayoutAdminAuditLogsIndexRouteImport
       parentRoute: typeof AdminLayoutRoute
     }
     '/_admin-layout/admin/analytics/': {
@@ -511,7 +491,6 @@ interface AdminLayoutRouteChildren {
   AdminLayoutAdminPlaylistsIdRoute: typeof AdminLayoutAdminPlaylistsIdRouteWithChildren
   AdminLayoutAdminPlaylistsNewRoute: typeof AdminLayoutAdminPlaylistsNewRoute
   AdminLayoutAdminAnalyticsIndexRoute: typeof AdminLayoutAdminAnalyticsIndexRoute
-  AdminLayoutAdminAuditLogsIndexRoute: typeof AdminLayoutAdminAuditLogsIndexRoute
   AdminLayoutAdminCategoriesIndexRoute: typeof AdminLayoutAdminCategoriesIndexRoute
   AdminLayoutAdminContentIndexRoute: typeof AdminLayoutAdminContentIndexRoute
   AdminLayoutAdminFilesIndexRoute: typeof AdminLayoutAdminFilesIndexRoute
@@ -528,7 +507,6 @@ const AdminLayoutRouteChildren: AdminLayoutRouteChildren = {
     AdminLayoutAdminPlaylistsIdRouteWithChildren,
   AdminLayoutAdminPlaylistsNewRoute: AdminLayoutAdminPlaylistsNewRoute,
   AdminLayoutAdminAnalyticsIndexRoute: AdminLayoutAdminAnalyticsIndexRoute,
-  AdminLayoutAdminAuditLogsIndexRoute: AdminLayoutAdminAuditLogsIndexRoute,
   AdminLayoutAdminCategoriesIndexRoute: AdminLayoutAdminCategoriesIndexRoute,
   AdminLayoutAdminContentIndexRoute: AdminLayoutAdminContentIndexRoute,
   AdminLayoutAdminFilesIndexRoute: AdminLayoutAdminFilesIndexRoute,
