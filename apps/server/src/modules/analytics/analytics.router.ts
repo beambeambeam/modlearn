@@ -2,7 +2,6 @@ import {
 	getAnalyticsOverview,
 	listCourseLessonEngagementAnalytics,
 	listCoursePerformanceAnalytics,
-	listInstructorBreakdownAnalytics,
 	listLessonViewsAnalytics,
 	listViewSessionsAnalytics,
 } from "@/modules/analytics/analytics.service";
@@ -11,8 +10,6 @@ import {
 	analyticsCourseLessonEngagementOutputSchema,
 	analyticsCoursePerformanceInputSchema,
 	analyticsCoursePerformanceOutputSchema,
-	analyticsInstructorBreakdownInputSchema,
-	analyticsInstructorBreakdownOutputSchema,
 	analyticsLessonViewsInputSchema,
 	analyticsLessonViewsOutputSchema,
 	analyticsOverviewInputSchema,
@@ -30,7 +27,7 @@ export const analyticsRouter = router({
 			tags: ["Analytics Admin"],
 			summary: "Retrieve Analytics Overview Metrics",
 			description:
-				"Requires admin or superadmin role. Returns aggregated platform metrics for the requested window.",
+				"Requires admin or superadmin role. Returns aggregated platform metrics for the requested window, optionally scoped to one course.",
 		})
 		.input(analyticsOverviewInputSchema.optional())
 		.output(analyticsOverviewOutputSchema)
@@ -40,23 +37,6 @@ export const analyticsRouter = router({
 				input: analyticsOverviewInputSchema.parse(input ?? {}),
 			});
 		}),
-	instructorBreakdown: adminProcedure
-		.route({
-			method: "POST",
-			path: "/rpc/analytics/instructorBreakdown",
-			tags: ["Analytics Admin"],
-			summary: "List Instructor Analytics Breakdown",
-			description:
-				"Requires admin or superadmin role. Returns creator-level analytics for the requested scope, window, and sort order.",
-		})
-		.input(analyticsInstructorBreakdownInputSchema.optional())
-		.output(analyticsInstructorBreakdownOutputSchema)
-		.handler(({ context, input }) => {
-			return listInstructorBreakdownAnalytics({
-				db: context.db,
-				input: analyticsInstructorBreakdownInputSchema.parse(input ?? {}),
-			});
-		}),
 	coursePerformance: adminProcedure
 		.route({
 			method: "POST",
@@ -64,7 +44,7 @@ export const analyticsRouter = router({
 			tags: ["Analytics Admin"],
 			summary: "List Course Performance Analytics",
 			description:
-				"Requires admin or superadmin role. Returns per-course instructor analytics for the requested scope, window, and sort order.",
+				"Requires admin or superadmin role. Returns per-course analytics for the requested window and sort order.",
 		})
 		.input(analyticsCoursePerformanceInputSchema.optional())
 		.output(analyticsCoursePerformanceOutputSchema)

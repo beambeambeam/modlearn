@@ -20,7 +20,6 @@ import {
 	coursePurchase,
 	courseReview,
 	order,
-	user,
 	userLibrary,
 	watchProgress,
 } from "@/lib/db/schema";
@@ -31,9 +30,6 @@ import type {
 	AnalyticsCoursePerformanceItem,
 	AnalyticsCoursePerformanceParams,
 	AnalyticsCoursePerformanceResult,
-	AnalyticsInstructorBreakdownItem,
-	AnalyticsInstructorBreakdownParams,
-	AnalyticsInstructorBreakdownResult,
 	AnalyticsLessonViewsParams,
 	AnalyticsLessonViewsResult,
 	AnalyticsOverviewParams,
@@ -45,7 +41,6 @@ import type {
 
 interface CourseDimensionRow {
 	id: string;
-	creatorId: string;
 	title: string;
 	isPublished: boolean;
 	isAvailable: boolean;
@@ -137,13 +132,11 @@ function buildWhere(
 }
 
 function buildCourseScopeWhere(params: {
-	creatorId?: string;
 	courseId?: string;
 }): SQL<unknown> | undefined {
-	const { creatorId, courseId } = params;
+	const { courseId } = params;
 	return buildWhere([
 		eq(course.isDeleted, false),
-		creatorId ? eq(course.creatorId, creatorId) : undefined,
 		courseId ? eq(course.id, courseId) : undefined,
 	]);
 }
@@ -268,15 +261,13 @@ function paginateItems<T>(items: T[], page: number, limit: number): T[] {
 
 function listScopedCourses(params: {
 	db: AnalyticsOverviewParams["db"];
-	creatorId?: string;
 	courseId?: string;
 	search?: string;
 }): Promise<CourseDimensionRow[]> {
-	const { db, creatorId, courseId, search } = params;
+	const { db, courseId, search } = params;
 	return db
 		.select({
 			id: course.id,
-			creatorId: course.creatorId,
 			title: course.title,
 			isPublished: course.isPublished,
 			isAvailable: course.isAvailable,
@@ -285,7 +276,7 @@ function listScopedCourses(params: {
 		.from(course)
 		.where(
 			buildWhere([
-				buildCourseScopeWhere({ creatorId, courseId }),
+				buildCourseScopeWhere({ courseId }),
 				search ? ilike(course.title, `%${search.trim()}%`) : undefined,
 			])
 		)
@@ -574,7 +565,6 @@ async function getCourseProgressAggregates(params: {
 
 async function getScopedUniqueViewers(params: {
 	db: AnalyticsOverviewParams["db"];
-	creatorId?: string;
 	courseId?: string;
 	from?: Date;
 	to?: Date;
@@ -592,7 +582,6 @@ async function getScopedUniqueViewers(params: {
 		.where(
 			buildWhere([
 				buildCourseScopeWhere({
-					creatorId: params.creatorId,
 					courseId: params.courseId,
 				}),
 				buildViewDateRangeWhere(params),
@@ -604,7 +593,6 @@ async function getScopedUniqueViewers(params: {
 
 async function getScopedLearnersStarted(params: {
 	db: AnalyticsOverviewParams["db"];
-	creatorId?: string;
 	courseId?: string;
 	from?: Date;
 	to?: Date;
@@ -618,7 +606,6 @@ async function getScopedLearnersStarted(params: {
 		.where(
 			buildWhere([
 				buildCourseScopeWhere({
-					creatorId: params.creatorId,
 					courseId: params.courseId,
 				}),
 				buildWatchProgressDateRangeWhere(params),
@@ -759,7 +746,6 @@ export async function getAnalyticsOverview(
 	const now = new Date();
 	const scopedCourses = await listScopedCourses({
 		db,
-		creatorId: input.creatorId,
 		courseId: input.courseId,
 	});
 	const courseIds = scopedCourses.map((row) => row.id);
@@ -807,14 +793,12 @@ export async function getAnalyticsOverview(
 	const [uniqueViewers, learnersStarted] = await Promise.all([
 		getScopedUniqueViewers({
 			db,
-			creatorId: input.creatorId,
 			courseId: input.courseId,
 			from: input.from,
 			to: input.to,
 		}),
 		getScopedLearnersStarted({
 			db,
-			creatorId: input.creatorId,
 			courseId: input.courseId,
 			from: input.from,
 			to: input.to,
@@ -882,7 +866,6 @@ export async function listLessonViewsAnalytics(
 		.where(
 			buildWhere([
 				buildCourseScopeWhere({
-					creatorId: input.creatorId,
 					courseId: input.courseId,
 				}),
 				input.search
@@ -927,165 +910,6 @@ export async function listLessonViewsAnalytics(
 	};
 }
 
-export async function listInstructorBreakdownAnalytics(
-	params: AnalyticsInstructorBreakdownParams
-): Promise<AnalyticsInstructorBreakdownResult> {
-	const { db, input } = params;
-	const page = input.page ?? 1;
-	const limit = input.limit ?? 20;
-	const scopedCourses = await listScopedCourses({
-		db,
-		creatorId: input.creatorId,
-		courseId: input.courseId,
-	});
-	const creatorIds = [...new Set(scopedCourses.map((row) => row.creatorId))];
-
-	const instructorRows =
-		creatorIds.length === 0
-			? []
-			: await db
-					.select({
-						id: user.id,
-						name: user.name,
-						email: user.email,
-					})
-					.from(user)
-					.where(
-						buildWhere([
-							inArray(user.id, creatorIds),
-							input.search
-								? or(
-										ilike(user.name, `%${input.search.trim()}%`),
-										ilike(user.email, `%${input.search.trim()}%`),
-										ilike(user.username, `%${input.search.trim()}%`),
-										ilike(user.displayUsername, `%${input.search.trim()}%`)
-									)
-								: undefined,
-						])
-					);
-
-	const filteredCreatorIds = new Set(instructorRows.map((row) => row.id));
-	const filteredCourses = scopedCourses.filter((row) =>
-		filteredCreatorIds.has(row.creatorId)
-	);
-	const filteredCourseIds = filteredCourses.map((row) => row.id);
-
-	const lessonCounts = await getLessonCountsByCourse({
-		db,
-		courseIds: filteredCourseIds,
-	});
-	const viewAggregates = await getCourseViewAggregates({
-		db,
-		courseIds: filteredCourseIds,
-		from: input.from,
-		to: input.to,
-	});
-	const enrollmentAggregates = await getCourseEnrollmentAggregates({
-		db,
-		courseIds: filteredCourseIds,
-		from: input.from,
-		to: input.to,
-	});
-	const progressAggregates = await getCourseProgressAggregates({
-		db,
-		courseIds: filteredCourseIds,
-		from: input.from,
-		to: input.to,
-	});
-	const revenueAggregates = await getCourseRevenueAggregates({
-		db,
-		courseIds: filteredCourseIds,
-		from: input.from,
-		to: input.to,
-	});
-	const reviewAggregates = await getCourseReviewAggregates({
-		db,
-		courseIds: filteredCourseIds,
-		from: input.from,
-		to: input.to,
-	});
-	const metricsByCourse = buildCourseMetricsMap({
-		courseIds: filteredCourseIds,
-		lessonCounts,
-		viewAggregates,
-		enrollmentAggregates,
-		progressAggregates,
-		revenueAggregates,
-		reviewAggregates,
-	});
-
-	const items: AnalyticsInstructorBreakdownItem[] = instructorRows.map(
-		(row) => {
-			const creatorCourses = filteredCourses.filter(
-				(courseRow) => courseRow.creatorId === row.id
-			);
-			let courseCount = 0;
-			let publishedCourses = 0;
-			let totalEnrollments = 0;
-			let activeEnrollments = 0;
-			let learnersStarted = 0;
-			let courseCompletions = 0;
-			let totalViews = 0;
-			let totalWatchDuration = 0;
-			let grossRevenue = 0;
-			let refundedRevenue = 0;
-			let visibleReviewCount = 0;
-			let ratingSum = 0;
-
-			for (const courseRow of creatorCourses) {
-				const metrics =
-					metricsByCourse.get(courseRow.id) ?? getCourseMetricDefaults();
-				courseCount += 1;
-				publishedCourses += courseRow.isPublished ? 1 : 0;
-				totalEnrollments += metrics.totalEnrollments;
-				activeEnrollments += metrics.activeEnrollments;
-				learnersStarted += metrics.learnersStarted;
-				courseCompletions += metrics.courseCompletions;
-				totalViews += metrics.totalViews;
-				totalWatchDuration += metrics.totalWatchDuration;
-				grossRevenue += metrics.grossRevenue;
-				refundedRevenue += metrics.refundedRevenue;
-				visibleReviewCount += metrics.visibleReviewCount;
-				ratingSum += metrics.ratingSum;
-			}
-
-			return {
-				creatorId: row.id,
-				creatorName: row.name,
-				creatorEmail: row.email,
-				courseCount,
-				publishedCourses,
-				totalEnrollments,
-				activeEnrollments,
-				learnersStarted,
-				courseCompletions,
-				totalViews,
-				totalWatchDuration,
-				grossRevenue,
-				refundedRevenue,
-				netRevenue: grossRevenue - refundedRevenue,
-				visibleReviewCount,
-				averageRating: toAverageRating({ visibleReviewCount, ratingSum }),
-			};
-		}
-	);
-
-	const sortBy = input.sortBy ?? "netRevenue";
-	const direction = input.sortDirection ?? "desc";
-	items.sort((left, right) => {
-		const result = compareValues(left[sortBy], right[sortBy], direction);
-		if (result !== 0) {
-			return result;
-		}
-		return left.creatorName.localeCompare(right.creatorName);
-	});
-
-	return {
-		items: paginateItems(items, page, limit),
-		pagination: toPagination({ page, limit, total: items.length }),
-	};
-}
-
 export async function listCoursePerformanceAnalytics(
 	params: AnalyticsCoursePerformanceParams
 ): Promise<AnalyticsCoursePerformanceResult> {
@@ -1094,7 +918,6 @@ export async function listCoursePerformanceAnalytics(
 	const limit = input.limit ?? 20;
 	const scopedCourses = await listScopedCourses({
 		db,
-		creatorId: input.creatorId,
 		courseId: input.courseId,
 		search: input.search,
 	});
@@ -1154,7 +977,6 @@ export async function listCoursePerformanceAnalytics(
 
 		return {
 			courseId: row.id,
-			creatorId: row.creatorId,
 			courseTitle: row.title,
 			isPublished: row.isPublished,
 			isAvailable: row.isAvailable,
@@ -1296,7 +1118,6 @@ export async function listViewSessionsAnalytics(
 			? eq(courseLessonView.courseLessonId, input.courseLessonId)
 			: undefined,
 		input.courseId ? eq(course.id, input.courseId) : undefined,
-		input.creatorId ? eq(course.creatorId, input.creatorId) : undefined,
 		input.from ? gte(courseLessonView.viewedAt, input.from) : undefined,
 		input.to ? lte(courseLessonView.viewedAt, input.to) : undefined,
 	]);
