@@ -5,6 +5,7 @@ const priceStringSchema = z
 	.trim()
 	.regex(/^\d+(\.\d{1,2})?$/, "Price must be a positive decimal string")
 	.refine((value) => Number(value) > 0, "Price must be greater than zero");
+
 const pricingPaginationInputSchema = z.object({
 	page: z.number().int().min(1).default(1),
 	limit: z.number().int().min(1).max(100).default(20),
@@ -39,13 +40,8 @@ export const commercePaymentRefundOutputSchema = z.object({
 	revokedCount: z.number().int().min(0),
 });
 
-export const commerceBuyContentInputSchema = z.object({
-	contentId: z.uuid(),
-	providerTransactionId: z.string().trim().min(1).optional(),
-});
-
-export const commerceBuyPlaylistInputSchema = z.object({
-	playlistId: z.uuid(),
+export const commerceBuyCourseInputSchema = z.object({
+	courseId: z.uuid(),
 	providerTransactionId: z.string().trim().min(1).optional(),
 });
 
@@ -57,9 +53,9 @@ export const commerceBuyOutputSchema = z.object({
 	grantedContentCount: z.number().int().min(0),
 });
 
-const contentPricingWindowSchema = z.object({
+const coursePricingWindowSchema = z.object({
 	id: z.uuid(),
-	contentId: z.uuid(),
+	courseId: z.uuid(),
 	price: z.string(),
 	currency: z.string(),
 	effectiveFrom: z.date(),
@@ -69,26 +65,14 @@ const contentPricingWindowSchema = z.object({
 	isActive: z.boolean(),
 });
 
-const playlistPricingWindowSchema = z.object({
-	id: z.uuid(),
-	playlistId: z.uuid(),
-	price: z.string(),
-	currency: z.string(),
-	effectiveFrom: z.date(),
-	effectiveTo: z.date().nullable(),
-	createdBy: z.string(),
-	createdAt: z.date(),
-	isActive: z.boolean(),
-});
-
-export const commerceAdminContentPricingListInputSchema =
+export const commerceAdminCoursePricingListInputSchema =
 	pricingPaginationInputSchema.extend({
-		contentId: z.uuid(),
+		courseId: z.uuid(),
 	});
 
-export const commerceAdminContentPricingCreateInputSchema = z
+export const commerceAdminCoursePricingCreateInputSchema = z
 	.object({
-		contentId: z.uuid(),
+		courseId: z.uuid(),
 		price: priceStringSchema,
 		currency: z.string().trim().min(1),
 		effectiveFrom: z.date(),
@@ -104,7 +88,7 @@ export const commerceAdminContentPricingCreateInputSchema = z
 		}
 	});
 
-export const commerceAdminContentPricingUpdateInputSchema = z.object({
+export const commerceAdminCoursePricingUpdateInputSchema = z.object({
 	id: z.uuid(),
 	patch: z
 		.object({
@@ -119,46 +103,8 @@ export const commerceAdminContentPricingUpdateInputSchema = z.object({
 		),
 });
 
-export const commerceAdminPlaylistPricingListInputSchema =
-	pricingPaginationInputSchema.extend({
-		playlistId: z.uuid(),
-	});
-
-export const commerceAdminPlaylistPricingCreateInputSchema = z
-	.object({
-		playlistId: z.uuid(),
-		price: priceStringSchema,
-		currency: z.string().trim().min(1),
-		effectiveFrom: z.date(),
-		effectiveTo: z.date().nullable().optional(),
-	})
-	.superRefine((value, ctx) => {
-		if (value.effectiveTo && value.effectiveTo < value.effectiveFrom) {
-			ctx.addIssue({
-				code: "custom",
-				path: ["effectiveTo"],
-				message: "effectiveTo must be greater than or equal to effectiveFrom",
-			});
-		}
-	});
-
-export const commerceAdminPlaylistPricingUpdateInputSchema = z.object({
-	id: z.uuid(),
-	patch: z
-		.object({
-			price: priceStringSchema.optional(),
-			currency: z.string().trim().min(1).optional(),
-			effectiveFrom: z.date().optional(),
-			effectiveTo: z.date().nullable().optional(),
-		})
-		.refine(
-			(value) => Object.keys(value).length > 0,
-			"At least one field must be provided in patch"
-		),
-});
-
-export const commerceAdminContentPricingListOutputSchema = z.object({
-	items: z.array(contentPricingWindowSchema),
+export const commerceAdminCoursePricingListOutputSchema = z.object({
+	items: z.array(coursePricingWindowSchema),
 	pagination: z.object({
 		page: z.number().int(),
 		limit: z.number().int(),
@@ -167,17 +113,4 @@ export const commerceAdminContentPricingListOutputSchema = z.object({
 	}),
 });
 
-export const commerceAdminPlaylistPricingListOutputSchema = z.object({
-	items: z.array(playlistPricingWindowSchema),
-	pagination: z.object({
-		page: z.number().int(),
-		limit: z.number().int(),
-		total: z.number().int(),
-		totalPages: z.number().int(),
-	}),
-});
-
-export const commerceAdminContentPricingOutputSchema =
-	contentPricingWindowSchema;
-export const commerceAdminPlaylistPricingOutputSchema =
-	playlistPricingWindowSchema;
+export const commerceAdminCoursePricingOutputSchema = coursePricingWindowSchema;
