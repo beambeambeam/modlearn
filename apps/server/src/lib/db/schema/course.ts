@@ -14,7 +14,7 @@ import {
 } from "drizzle-orm/pg-core";
 import { timestamps } from "./_helpers";
 import { user } from "./auth";
-import { file } from "./content";
+import { file } from "./media";
 
 export const course = pgTable(
 	"course",
