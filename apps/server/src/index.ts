@@ -5,13 +5,10 @@ import { Elysia } from "elysia";
 import { auth } from "@/lib/auth";
 import { ensureBucketExists } from "@/lib/storage/s3-bucket";
 import { createContext } from "@/orpc/context";
-import { rpcErrorInterceptor } from "@/orpc/error-mapper";
 import { generateOpenApiSpec, renderScalarDocsHtml } from "@/orpc/openapi";
 import { appRouter } from "@/orpc/router";
 
-const rpcHandler = new RPCHandler(appRouter, {
-	interceptors: [rpcErrorInterceptor as never],
-});
+const rpcHandler = new RPCHandler(appRouter);
 
 export const createServerApp = () =>
 	new Elysia()

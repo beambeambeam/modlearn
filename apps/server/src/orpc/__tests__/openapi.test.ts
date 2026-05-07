@@ -32,6 +32,56 @@ describe("openapi docs", () => {
 		expect(spec.components?.securitySchemes?.BearerAuth).toBeDefined();
 	});
 
+	it("includes declared oRPC error responses with default HTTP mappings", async () => {
+		const app = createServerApp();
+		const response = await app.handle(
+			new Request("http://localhost:3000/docs/openapi.json")
+		);
+		const spec = (await response.json()) as {
+			paths: Record<
+				string,
+				{
+					post?: {
+						responses?: Record<
+							string,
+							{
+								content?: {
+									"application/json"?: {
+										schema?: {
+											oneOf?: Array<{
+												properties?: Record<string, { const?: unknown }>;
+											}>;
+										};
+									};
+								};
+							}
+						>;
+					};
+				}
+			>;
+		};
+
+		const getByIdResponses =
+			spec.paths["/rpc/category/getById"]?.post?.responses ?? {};
+		const upsertMineResponses =
+			spec.paths["/rpc/review/upsertMine"]?.post?.responses ?? {};
+
+		expect(getByIdResponses["404"]).toBeDefined();
+		expect(getByIdResponses["500"]).toBeDefined();
+		expect(upsertMineResponses["401"]).toBeDefined();
+		expect(upsertMineResponses["403"]).toBeDefined();
+
+		const definedNotFoundSchema =
+			getByIdResponses["404"]?.content?.["application/json"]?.schema?.oneOf?.[0];
+		const definedForbiddenSchema =
+			upsertMineResponses["403"]?.content?.["application/json"]?.schema?.oneOf?.[0];
+
+		expect(definedNotFoundSchema?.properties?.code?.const).toBe("NOT_FOUND");
+		expect(definedNotFoundSchema?.properties?.status?.const).toBe(404);
+		expect(definedForbiddenSchema?.properties?.code?.const).toBe("FORBIDDEN");
+		expect(definedForbiddenSchema?.properties?.status?.const).toBe(403);
+	});
+
 	it("serves Scalar docs HTML", async () => {
 		const app = createServerApp();
 		const response = await app.handle(

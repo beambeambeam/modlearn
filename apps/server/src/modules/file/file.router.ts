@@ -11,9 +11,12 @@ import {
 	fileAdminGetDownloadUrlOutputSchema,
 } from "@/modules/file/file.validators";
 import { adminProcedure, router } from "@/orpc";
+import { errorGroups } from "@/orpc/errors";
+import { withRpcErrorHandling } from "@/orpc/error-mapper";
 
 export const fileRouter = router({
 	adminCreateUploadRequest: adminProcedure
+		.errors(errorGroups.badRequest)
 		.route({
 			method: "POST",
 			path: "/rpc/file/adminCreateUploadRequest",
@@ -24,16 +27,19 @@ export const fileRouter = router({
 		})
 		.input(fileAdminCreateUploadRequestInputSchema)
 		.output(fileAdminCreateUploadRequestOutputSchema)
-		.handler(({ context, input }) => {
-			return createFileUploadRequest({
-				db: context.db,
-				input: {
-					...input,
-					uploaderId: context.session.user.id,
-				},
-			});
-		}),
+		.handler(
+			withRpcErrorHandling(({ context, input }) => {
+				return createFileUploadRequest({
+					db: context.db,
+					input: {
+						...input,
+						uploaderId: context.session.user.id,
+					},
+				});
+			})
+		),
 	adminGetDownloadUrl: adminProcedure
+		.errors(errorGroups.notFound)
 		.route({
 			method: "POST",
 			path: "/rpc/file/adminGetDownloadUrl",
@@ -44,13 +50,16 @@ export const fileRouter = router({
 		})
 		.input(fileAdminByIdInputSchema)
 		.output(fileAdminGetDownloadUrlOutputSchema)
-		.handler(({ context, input }) => {
-			return createFileDownloadUrl({
-				db: context.db,
-				fileId: input.fileId,
-			});
-		}),
+		.handler(
+			withRpcErrorHandling(({ context, input }) => {
+				return createFileDownloadUrl({
+					db: context.db,
+					fileId: input.fileId,
+				});
+			})
+		),
 	adminDelete: adminProcedure
+		.errors(errorGroups.notFound)
 		.route({
 			method: "POST",
 			path: "/rpc/file/adminDelete",
@@ -61,10 +70,12 @@ export const fileRouter = router({
 		})
 		.input(fileAdminByIdInputSchema)
 		.output(fileAdminDeleteOutputSchema)
-		.handler(({ context, input }) => {
-			return deleteFile({
-				db: context.db,
-				fileId: input.fileId,
-			});
-		}),
+		.handler(
+			withRpcErrorHandling(({ context, input }) => {
+				return deleteFile({
+					db: context.db,
+					fileId: input.fileId,
+				});
+			})
+		),
 });

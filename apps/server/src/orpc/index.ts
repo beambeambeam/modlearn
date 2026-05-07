@@ -1,23 +1,8 @@
-import { ORPCError, os } from "@orpc/server";
+import { os } from "@orpc/server";
 import type { Context } from "./context";
-import { mapDomainErrorToOrpc, toInternalOrpcError } from "./error-mapper";
+import { commonErrors } from "./errors";
 
-const base = os.$context<Context>().use(async ({ next }) => {
-	try {
-		return await next();
-	} catch (error) {
-		if (error instanceof ORPCError) {
-			throw error;
-		}
-
-		const mapped = mapDomainErrorToOrpc(error);
-		if (mapped) {
-			throw mapped;
-		}
-
-		throw toInternalOrpcError(error);
-	}
-});
+const base = os.$context<Context>().errors(commonErrors);
 
 export const router = <TRouter extends Record<string, unknown>>(
 	routerShape: TRouter
@@ -25,11 +10,10 @@ export const router = <TRouter extends Record<string, unknown>>(
 
 export const publicProcedure = base;
 
-export const protectedProcedure = base.use(({ context, next }) => {
+export const protectedProcedure = base.use(({ context, errors, next }) => {
 	if (!context.session) {
-		throw new ORPCError("UNAUTHORIZED", {
-			message: "Authentication required",
-			cause: "No session",
+		throw errors.UNAUTHORIZED({
+			message: commonErrors.UNAUTHORIZED.message,
 		});
 	}
 
@@ -43,17 +27,18 @@ export const protectedProcedure = base.use(({ context, next }) => {
 
 const adminRoles = new Set(["admin", "superadmin"]);
 
-export const adminProcedure = protectedProcedure.use(({ context, next }) => {
-	const role = context.session.user.role ?? "user";
+export const adminProcedure = protectedProcedure.use(
+	({ context, errors, next }) => {
+		const role = context.session.user.role ?? "user";
 
-	if (!adminRoles.has(role)) {
-		throw new ORPCError("FORBIDDEN", {
-			message: "Admin access required",
-			cause: "Insufficient role",
+		if (!adminRoles.has(role)) {
+			throw errors.FORBIDDEN({
+				message: commonErrors.FORBIDDEN.message,
+			});
+		}
+
+		return next({
+			context,
 		});
 	}
-
-	return next({
-		context,
-	});
-});
+);

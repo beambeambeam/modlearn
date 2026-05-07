@@ -12,6 +12,8 @@ import {
 	libraryListMyItemsOutputSchema,
 } from "@/modules/library/library.validators";
 import { protectedProcedure, router } from "@/orpc";
+import { errorGroups } from "@/orpc/errors";
+import { withRpcErrorHandling } from "@/orpc/error-mapper";
 
 export const libraryRouter = router({
 	listMyItems: protectedProcedure
@@ -25,14 +27,17 @@ export const libraryRouter = router({
 		})
 		.input(libraryListMyItemsInputSchema.optional())
 		.output(libraryListMyItemsOutputSchema)
-		.handler(({ context, input }) => {
-			return listMyLibraryItems({
-				db: context.db,
-				userId: context.session.user.id,
-				input: libraryListMyItemsInputSchema.parse(input ?? {}),
-			});
-		}),
+		.handler(
+			withRpcErrorHandling(({ context, input }) => {
+				return listMyLibraryItems({
+					db: context.db,
+					userId: context.session.user.id,
+					input: libraryListMyItemsInputSchema.parse(input ?? {}),
+				});
+			})
+		),
 	getCourse: protectedProcedure
+		.errors(errorGroups.notFoundForbidden)
 		.route({
 			method: "POST",
 			path: "/rpc/library/getCourse",
@@ -43,14 +48,17 @@ export const libraryRouter = router({
 		})
 		.input(libraryGetCourseInputSchema)
 		.output(libraryCourseItemSchema)
-		.handler(({ context, input }) => {
-			return getMyCourse({
-				db: context.db,
-				userId: context.session.user.id,
-				input,
-			});
-		}),
+		.handler(
+			withRpcErrorHandling(({ context, input }) => {
+				return getMyCourse({
+					db: context.db,
+					userId: context.session.user.id,
+					input,
+				});
+			})
+		),
 	hasAccess: protectedProcedure
+		.errors(errorGroups.notFoundForbidden)
 		.route({
 			method: "POST",
 			path: "/rpc/library/hasAccess",
@@ -61,11 +69,13 @@ export const libraryRouter = router({
 		})
 		.input(libraryHasAccessInputSchema)
 		.output(libraryHasAccessOutputSchema)
-		.handler(({ context, input }) => {
-			return hasLibraryAccess({
-				db: context.db,
-				userId: context.session.user.id,
-				input,
-			});
-		}),
+		.handler(
+			withRpcErrorHandling(({ context, input }) => {
+				return hasLibraryAccess({
+					db: context.db,
+					userId: context.session.user.id,
+					input,
+				});
+			})
+		),
 });

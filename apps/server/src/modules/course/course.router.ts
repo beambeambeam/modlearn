@@ -41,6 +41,8 @@ import {
 	courseSchema,
 } from "@/modules/course/course.validators";
 import { adminProcedure, publicProcedure, router } from "@/orpc";
+import { errorGroups } from "@/orpc/errors";
+import { withRpcErrorHandling } from "@/orpc/error-mapper";
 
 export const courseRouter = router({
 	list: publicProcedure
@@ -54,17 +56,21 @@ export const courseRouter = router({
 		})
 		.input(courseListInputSchema.optional())
 		.output(courseListOutputSchema)
-		.handler(({ context, input }) => {
-			const parsedInput = courseListInputSchema.parse(input ?? {});
-			return listCourses({
-				db: context.db,
-				input: {
-					...parsedInput,
-					onlyPublished: true,
-				},
-			});
-		}),
+		.handler(
+			withRpcErrorHandling(({ context, input }) => {
+				const parsedInput = courseListInputSchema.parse(input ?? {});
+
+				return listCourses({
+					db: context.db,
+					input: {
+						...parsedInput,
+						onlyPublished: true,
+					},
+				});
+			})
+		),
 	getById: publicProcedure
+		.errors(errorGroups.notFound)
 		.route({
 			method: "POST",
 			path: "/rpc/course/getById",
@@ -75,15 +81,17 @@ export const courseRouter = router({
 		})
 		.input(courseByIdInputSchema)
 		.output(courseDetailOutputSchema)
-		.handler(({ context, input }) => {
-			return getCourseById({
-				db: context.db,
-				input: {
-					...input,
-					onlyPublished: true,
-				},
-			});
-		}),
+		.handler(
+			withRpcErrorHandling(({ context, input }) => {
+				return getCourseById({
+					db: context.db,
+					input: {
+						...input,
+						onlyPublished: true,
+					},
+				});
+			})
+		),
 	listPopular: publicProcedure
 		.route({
 			method: "POST",
@@ -95,13 +103,16 @@ export const courseRouter = router({
 		})
 		.input(courseListPopularInputSchema.optional())
 		.output(z.array(courseSchema))
-		.handler(({ context, input }) => {
-			return listPopularCourses({
-				db: context.db,
-				input: courseListPopularInputSchema.parse(input ?? {}),
-			});
-		}),
+		.handler(
+			withRpcErrorHandling(({ context, input }) => {
+				return listPopularCourses({
+					db: context.db,
+					input: courseListPopularInputSchema.parse(input ?? {}),
+				});
+			})
+		),
 	listLessons: publicProcedure
+		.errors(errorGroups.notFound)
 		.route({
 			method: "POST",
 			path: "/rpc/course/listLessons",
@@ -112,13 +123,15 @@ export const courseRouter = router({
 		})
 		.input(courseListLessonsInputSchema)
 		.output(z.array(courseLessonSchema))
-		.handler(({ context, input }) => {
-			return listCourseLessons({
-				db: context.db,
-				input,
-				onlyPublished: true,
-			});
-		}),
+		.handler(
+			withRpcErrorHandling(({ context, input }) => {
+				return listCourseLessons({
+					db: context.db,
+					input,
+					onlyPublished: true,
+				});
+			})
+		),
 	adminList: adminProcedure
 		.route({
 			method: "POST",
@@ -130,13 +143,16 @@ export const courseRouter = router({
 		})
 		.input(courseAdminListInputSchema.optional())
 		.output(courseListOutputSchema)
-		.handler(({ context, input }) => {
-			return listCourses({
-				db: context.db,
-				input: courseAdminListInputSchema.parse(input ?? {}),
-			});
-		}),
+		.handler(
+			withRpcErrorHandling(({ context, input }) => {
+				return listCourses({
+					db: context.db,
+					input: courseAdminListInputSchema.parse(input ?? {}),
+				});
+			})
+		),
 	adminGetById: adminProcedure
+		.errors(errorGroups.notFound)
 		.route({
 			method: "POST",
 			path: "/rpc/course/adminGetById",
@@ -147,12 +163,14 @@ export const courseRouter = router({
 		})
 		.input(courseAdminByIdInputSchema)
 		.output(courseDetailOutputSchema)
-		.handler(({ context, input }) => {
-			return getCourseById({
-				db: context.db,
-				input,
-			});
-		}),
+		.handler(
+			withRpcErrorHandling(({ context, input }) => {
+				return getCourseById({
+					db: context.db,
+					input,
+				});
+			})
+		),
 	adminCreate: adminProcedure
 		.route({
 			method: "POST",
@@ -164,21 +182,25 @@ export const courseRouter = router({
 		})
 		.input(courseAdminCreateInputSchema)
 		.output(courseSchema)
-		.handler(async ({ context, input }) => {
-			const created = await createCourse({
-				db: context.db,
-				input,
-				creatorId: context.session.user.id,
-			});
-			return getCourseById({
-				db: context.db,
-				input: {
-					id: created.id,
-					onlyPublished: false,
-				},
-			});
-		}),
+		.handler(
+			withRpcErrorHandling(async ({ context, input }) => {
+				const created = await createCourse({
+					db: context.db,
+					input,
+					creatorId: context.session.user.id,
+				});
+
+				return getCourseById({
+					db: context.db,
+					input: {
+						id: created.id,
+						onlyPublished: false,
+					},
+				});
+			})
+		),
 	adminUpdate: adminProcedure
+		.errors(errorGroups.notFound)
 		.route({
 			method: "POST",
 			path: "/rpc/course/adminUpdate",
@@ -189,20 +211,24 @@ export const courseRouter = router({
 		})
 		.input(courseAdminUpdateInputSchema)
 		.output(courseSchema)
-		.handler(async ({ context, input }) => {
-			const updated = await updateCourse({
-				db: context.db,
-				input,
-			});
-			return getCourseById({
-				db: context.db,
-				input: {
-					id: updated.id,
-					onlyPublished: false,
-				},
-			});
-		}),
+		.handler(
+			withRpcErrorHandling(async ({ context, input }) => {
+				const updated = await updateCourse({
+					db: context.db,
+					input,
+				});
+
+				return getCourseById({
+					db: context.db,
+					input: {
+						id: updated.id,
+						onlyPublished: false,
+					},
+				});
+			})
+		),
 	adminDelete: adminProcedure
+		.errors(errorGroups.notFound)
 		.route({
 			method: "POST",
 			path: "/rpc/course/adminDelete",
@@ -213,13 +239,16 @@ export const courseRouter = router({
 		})
 		.input(courseAdminDeleteInputSchema)
 		.output(courseDeleteOutputSchema)
-		.handler(({ context, input }) => {
-			return deleteCourse({
-				db: context.db,
-				input,
-			});
-		}),
+		.handler(
+			withRpcErrorHandling(({ context, input }) => {
+				return deleteCourse({
+					db: context.db,
+					input,
+				});
+			})
+		),
 	adminSetPublishState: adminProcedure
+		.errors(errorGroups.notFound)
 		.route({
 			method: "POST",
 			path: "/rpc/course/adminSetPublishState",
@@ -230,20 +259,24 @@ export const courseRouter = router({
 		})
 		.input(courseAdminSetPublishStateInputSchema)
 		.output(courseSchema)
-		.handler(async ({ context, input }) => {
-			const updated = await setCoursePublishState({
-				db: context.db,
-				input,
-			});
-			return getCourseById({
-				db: context.db,
-				input: {
-					id: updated.id,
-					onlyPublished: false,
-				},
-			});
-		}),
+		.handler(
+			withRpcErrorHandling(async ({ context, input }) => {
+				const updated = await setCoursePublishState({
+					db: context.db,
+					input,
+				});
+
+				return getCourseById({
+					db: context.db,
+					input: {
+						id: updated.id,
+						onlyPublished: false,
+					},
+				});
+			})
+		),
 	adminSetAvailability: adminProcedure
+		.errors(errorGroups.notFound)
 		.route({
 			method: "POST",
 			path: "/rpc/course/adminSetAvailability",
@@ -254,20 +287,24 @@ export const courseRouter = router({
 		})
 		.input(courseAdminSetAvailabilityInputSchema)
 		.output(courseSchema)
-		.handler(async ({ context, input }) => {
-			const updated = await setCourseAvailability({
-				db: context.db,
-				input,
-			});
-			return getCourseById({
-				db: context.db,
-				input: {
-					id: updated.id,
-					onlyPublished: false,
-				},
-			});
-		}),
+		.handler(
+			withRpcErrorHandling(async ({ context, input }) => {
+				const updated = await setCourseAvailability({
+					db: context.db,
+					input,
+				});
+
+				return getCourseById({
+					db: context.db,
+					input: {
+						id: updated.id,
+						onlyPublished: false,
+					},
+				});
+			})
+		),
 	adminSetClassification: adminProcedure
+		.errors(errorGroups.notFoundBadRequest)
 		.route({
 			method: "POST",
 			path: "/rpc/course/adminSetClassification",
@@ -278,13 +315,16 @@ export const courseRouter = router({
 		})
 		.input(courseAdminSetClassificationInputSchema)
 		.output(courseClassificationOutputSchema)
-		.handler(({ context, input }) => {
-			return setCourseClassification({
-				db: context.db,
-				input,
-			});
-		}),
+		.handler(
+			withRpcErrorHandling(({ context, input }) => {
+				return setCourseClassification({
+					db: context.db,
+					input,
+				});
+			})
+		),
 	adminAddLesson: adminProcedure
+		.errors(errorGroups.notFoundBadRequest)
 		.route({
 			method: "POST",
 			path: "/rpc/course/adminAddLesson",
@@ -295,13 +335,16 @@ export const courseRouter = router({
 		})
 		.input(courseAdminAddLessonInputSchema)
 		.output(courseLessonSchema)
-		.handler(({ context, input }) => {
-			return addLessonToCourse({
-				db: context.db,
-				input,
-			});
-		}),
+		.handler(
+			withRpcErrorHandling(({ context, input }) => {
+				return addLessonToCourse({
+					db: context.db,
+					input,
+				});
+			})
+		),
 	adminUpdateLesson: adminProcedure
+		.errors(errorGroups.notFoundBadRequest)
 		.route({
 			method: "POST",
 			path: "/rpc/course/adminUpdateLesson",
@@ -312,13 +355,16 @@ export const courseRouter = router({
 		})
 		.input(courseAdminUpdateLessonInputSchema)
 		.output(courseLessonSchema)
-		.handler(({ context, input }) => {
-			return updateCourseLesson({
-				db: context.db,
-				input,
-			});
-		}),
+		.handler(
+			withRpcErrorHandling(({ context, input }) => {
+				return updateCourseLesson({
+					db: context.db,
+					input,
+				});
+			})
+		),
 	adminRemoveLesson: adminProcedure
+		.errors(errorGroups.notFound)
 		.route({
 			method: "POST",
 			path: "/rpc/course/adminRemoveLesson",
@@ -329,13 +375,16 @@ export const courseRouter = router({
 		})
 		.input(courseAdminRemoveLessonInputSchema)
 		.output(courseLessonDeleteOutputSchema)
-		.handler(({ context, input }) => {
-			return removeLessonFromCourse({
-				db: context.db,
-				input,
-			});
-		}),
+		.handler(
+			withRpcErrorHandling(({ context, input }) => {
+				return removeLessonFromCourse({
+					db: context.db,
+					input,
+				});
+			})
+		),
 	adminReorderLessons: adminProcedure
+		.errors(errorGroups.notFoundBadRequest)
 		.route({
 			method: "POST",
 			path: "/rpc/course/adminReorderLessons",
@@ -346,10 +395,12 @@ export const courseRouter = router({
 		})
 		.input(courseAdminReorderLessonsInputSchema)
 		.output(z.array(courseLessonSchema))
-		.handler(({ context, input }) => {
-			return reorderCourseLessons({
-				db: context.db,
-				input,
-			});
-		}),
+		.handler(
+			withRpcErrorHandling(({ context, input }) => {
+				return reorderCourseLessons({
+					db: context.db,
+					input,
+				});
+			})
+		),
 });

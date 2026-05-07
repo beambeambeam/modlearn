@@ -32,9 +32,12 @@ import {
 	publicProcedure,
 	router,
 } from "@/orpc";
+import { errorGroups } from "@/orpc/errors";
+import { withRpcErrorHandling } from "@/orpc/error-mapper";
 
 export const reviewRouter = router({
 	listByCourse: publicProcedure
+		.errors(errorGroups.notFound)
 		.route({
 			method: "POST",
 			path: "/rpc/review/listByCourse",
@@ -45,13 +48,16 @@ export const reviewRouter = router({
 		})
 		.input(reviewListByCourseInputSchema)
 		.output(reviewPublicListOutputSchema)
-		.handler(({ context, input }) => {
-			return listCourseReviews({
-				db: context.db,
-				input,
-			});
-		}),
+		.handler(
+			withRpcErrorHandling(({ context, input }) => {
+				return listCourseReviews({
+					db: context.db,
+					input,
+				});
+			})
+		),
 	getCourseSummary: publicProcedure
+		.errors(errorGroups.notFound)
 		.route({
 			method: "POST",
 			path: "/rpc/review/getCourseSummary",
@@ -62,12 +68,14 @@ export const reviewRouter = router({
 		})
 		.input(reviewGetCourseSummaryInputSchema)
 		.output(reviewSummarySchema)
-		.handler(({ context, input }) => {
-			return getCourseReviewSummary({
-				db: context.db,
-				input,
-			});
-		}),
+		.handler(
+			withRpcErrorHandling(({ context, input }) => {
+				return getCourseReviewSummary({
+					db: context.db,
+					input,
+				});
+			})
+		),
 	getMine: protectedProcedure
 		.route({
 			method: "POST",
@@ -79,14 +87,17 @@ export const reviewRouter = router({
 		})
 		.input(reviewGetMineInputSchema)
 		.output(reviewAdminItemSchema.nullable())
-		.handler(({ context, input }) => {
-			return getMyCourseReview({
-				db: context.db,
-				userId: context.session.user.id,
-				input,
-			});
-		}),
+		.handler(
+			withRpcErrorHandling(({ context, input }) => {
+				return getMyCourseReview({
+					db: context.db,
+					userId: context.session.user.id,
+					input,
+				});
+			})
+		),
 	upsertMine: protectedProcedure
+		.errors(errorGroups.notFoundForbidden)
 		.route({
 			method: "POST",
 			path: "/rpc/review/upsertMine",
@@ -97,14 +108,17 @@ export const reviewRouter = router({
 		})
 		.input(reviewUpsertMineInputSchema)
 		.output(reviewAdminItemSchema)
-		.handler(({ context, input }) => {
-			return upsertMyCourseReview({
-				db: context.db,
-				userId: context.session.user.id,
-				input,
-			});
-		}),
+		.handler(
+			withRpcErrorHandling(({ context, input }) => {
+				return upsertMyCourseReview({
+					db: context.db,
+					userId: context.session.user.id,
+					input,
+				});
+			})
+		),
 	deleteMine: protectedProcedure
+		.errors(errorGroups.notFoundForbidden)
 		.route({
 			method: "POST",
 			path: "/rpc/review/deleteMine",
@@ -115,13 +129,15 @@ export const reviewRouter = router({
 		})
 		.input(reviewDeleteMineInputSchema)
 		.output(reviewDeleteResultSchema)
-		.handler(({ context, input }) => {
-			return deleteMyCourseReview({
-				db: context.db,
-				userId: context.session.user.id,
-				input,
-			});
-		}),
+		.handler(
+			withRpcErrorHandling(({ context, input }) => {
+				return deleteMyCourseReview({
+					db: context.db,
+					userId: context.session.user.id,
+					input,
+				});
+			})
+		),
 	adminList: adminProcedure
 		.route({
 			method: "POST",
@@ -133,13 +149,16 @@ export const reviewRouter = router({
 		})
 		.input(reviewAdminListInputSchema.optional())
 		.output(reviewAdminListOutputSchema)
-		.handler(({ context, input }) => {
-			return adminListReviews({
-				db: context.db,
-				input: reviewAdminListInputSchema.parse(input ?? {}),
-			});
-		}),
+		.handler(
+			withRpcErrorHandling(({ context, input }) => {
+				return adminListReviews({
+					db: context.db,
+					input: reviewAdminListInputSchema.parse(input ?? {}),
+				});
+			})
+		),
 	adminHide: adminProcedure
+		.errors(errorGroups.notFoundBadRequest)
 		.route({
 			method: "POST",
 			path: "/rpc/review/adminHide",
@@ -150,14 +169,17 @@ export const reviewRouter = router({
 		})
 		.input(reviewAdminHideInputSchema)
 		.output(reviewAdminItemSchema)
-		.handler(({ context, input }) => {
-			return adminHideReview({
-				db: context.db,
-				adminUserId: context.session.user.id,
-				input,
-			});
-		}),
+		.handler(
+			withRpcErrorHandling(({ context, input }) => {
+				return adminHideReview({
+					db: context.db,
+					adminUserId: context.session.user.id,
+					input,
+				});
+			})
+		),
 	adminUnhide: adminProcedure
+		.errors(errorGroups.notFoundBadRequest)
 		.route({
 			method: "POST",
 			path: "/rpc/review/adminUnhide",
@@ -168,13 +190,16 @@ export const reviewRouter = router({
 		})
 		.input(reviewAdminUnhideInputSchema)
 		.output(reviewAdminItemSchema)
-		.handler(({ context, input }) => {
-			return adminUnhideReview({
-				db: context.db,
-				input,
-			});
-		}),
+		.handler(
+			withRpcErrorHandling(({ context, input }) => {
+				return adminUnhideReview({
+					db: context.db,
+					input,
+				});
+			})
+		),
 	adminDelete: adminProcedure
+		.errors(errorGroups.notFound)
 		.route({
 			method: "POST",
 			path: "/rpc/review/adminDelete",
@@ -185,10 +210,12 @@ export const reviewRouter = router({
 		})
 		.input(reviewAdminDeleteInputSchema)
 		.output(reviewAdminDeleteResultSchema)
-		.handler(({ context, input }) => {
-			return adminDeleteReview({
-				db: context.db,
-				input,
-			});
-		}),
+		.handler(
+			withRpcErrorHandling(({ context, input }) => {
+				return adminDeleteReview({
+					db: context.db,
+					input,
+				});
+			})
+		),
 });

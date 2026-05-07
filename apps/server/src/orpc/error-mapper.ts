@@ -1,3 +1,4 @@
+import type { Context, ErrorMap, Meta, ProcedureHandler } from "@orpc/server";
 import { ORPCError } from "@orpc/server";
 import {
 	CategoryNotFoundError,
@@ -44,6 +45,7 @@ import {
 	WatchProgressCourseNotFoundError,
 	WatchProgressValidationError,
 } from "@/modules/watch-progress/watch-progress.types";
+import { commonErrors } from "./errors";
 
 export function toError(error: unknown): Error {
 	if (error instanceof Error) {
@@ -174,35 +176,38 @@ export function toInternalOrpcError(
 	error: unknown
 ): ORPCError<"INTERNAL_SERVER_ERROR", unknown> {
 	return new ORPCError("INTERNAL_SERVER_ERROR", {
-		message: "Internal server error",
+		message: commonErrors.INTERNAL_SERVER_ERROR.message,
 		cause: toError(error),
 	});
 }
 
-export async function rpcErrorInterceptor(options: {
-	next: (options?: unknown) => Promise<unknown>;
-	request?: { method?: string; pathname?: string; url?: string | URL };
-}): Promise<unknown> {
-	try {
-		return await options.next();
-	} catch (error) {
-		if (error instanceof ORPCError) {
-			throw error;
+export function withRpcErrorHandling<
+	TContext extends Context,
+	TInput,
+	TOutput,
+	TErrorMap extends ErrorMap,
+	TMeta extends Meta,
+>(
+	handler: ProcedureHandler<TContext, TInput, TOutput, TErrorMap, TMeta>
+): ProcedureHandler<TContext, TInput, TOutput, TErrorMap, TMeta> {
+	return async (options) => {
+		try {
+			return await handler(options);
+		} catch (error) {
+			if (error instanceof ORPCError) {
+				throw error;
+			}
+
+			const mapped = mapDomainErrorToOrpc(error);
+			if (mapped) {
+				throw mapped;
+			}
+
+			console.error("Unhandled RPC error", {
+				error,
+			});
+
+			throw toInternalOrpcError(error);
 		}
-
-		const mapped = mapDomainErrorToOrpc(error);
-		if (mapped) {
-			throw mapped;
-		}
-
-		console.error("Unhandled RPC error", {
-			method: options.request?.method,
-			path:
-				options.request?.pathname ??
-				(options.request?.url ? String(options.request.url) : undefined),
-			error,
-		});
-
-		throw toInternalOrpcError(error);
-	}
+	};
 }
