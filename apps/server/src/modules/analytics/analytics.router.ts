@@ -1,9 +1,18 @@
 import {
 	getAnalyticsOverview,
+	listCourseLessonEngagementAnalytics,
+	listCoursePerformanceAnalytics,
+	listInstructorBreakdownAnalytics,
 	listLessonViewsAnalytics,
 	listViewSessionsAnalytics,
 } from "@/modules/analytics/analytics.service";
 import {
+	analyticsCourseLessonEngagementInputSchema,
+	analyticsCourseLessonEngagementOutputSchema,
+	analyticsCoursePerformanceInputSchema,
+	analyticsCoursePerformanceOutputSchema,
+	analyticsInstructorBreakdownInputSchema,
+	analyticsInstructorBreakdownOutputSchema,
 	analyticsLessonViewsInputSchema,
 	analyticsLessonViewsOutputSchema,
 	analyticsOverviewInputSchema,
@@ -29,6 +38,57 @@ export const analyticsRouter = router({
 			return getAnalyticsOverview({
 				db: context.db,
 				input: analyticsOverviewInputSchema.parse(input ?? {}),
+			});
+		}),
+	instructorBreakdown: adminProcedure
+		.route({
+			method: "POST",
+			path: "/rpc/analytics/instructorBreakdown",
+			tags: ["Analytics Admin"],
+			summary: "List Instructor Analytics Breakdown",
+			description:
+				"Requires admin or superadmin role. Returns creator-level analytics for the requested scope, window, and sort order.",
+		})
+		.input(analyticsInstructorBreakdownInputSchema.optional())
+		.output(analyticsInstructorBreakdownOutputSchema)
+		.handler(({ context, input }) => {
+			return listInstructorBreakdownAnalytics({
+				db: context.db,
+				input: analyticsInstructorBreakdownInputSchema.parse(input ?? {}),
+			});
+		}),
+	coursePerformance: adminProcedure
+		.route({
+			method: "POST",
+			path: "/rpc/analytics/coursePerformance",
+			tags: ["Analytics Admin"],
+			summary: "List Course Performance Analytics",
+			description:
+				"Requires admin or superadmin role. Returns per-course instructor analytics for the requested scope, window, and sort order.",
+		})
+		.input(analyticsCoursePerformanceInputSchema.optional())
+		.output(analyticsCoursePerformanceOutputSchema)
+		.handler(({ context, input }) => {
+			return listCoursePerformanceAnalytics({
+				db: context.db,
+				input: analyticsCoursePerformanceInputSchema.parse(input ?? {}),
+			});
+		}),
+	courseLessonEngagement: adminProcedure
+		.route({
+			method: "POST",
+			path: "/rpc/analytics/courseLessonEngagement",
+			tags: ["Analytics Admin"],
+			summary: "List Course Lesson Engagement Analytics",
+			description:
+				"Requires admin or superadmin role. Returns course-scoped lesson engagement metrics including completion and drop-off.",
+		})
+		.input(analyticsCourseLessonEngagementInputSchema)
+		.output(analyticsCourseLessonEngagementOutputSchema)
+		.handler(({ context, input }) => {
+			return listCourseLessonEngagementAnalytics({
+				db: context.db,
+				input: analyticsCourseLessonEngagementInputSchema.parse(input),
 			});
 		}),
 	lessonViews: adminProcedure
