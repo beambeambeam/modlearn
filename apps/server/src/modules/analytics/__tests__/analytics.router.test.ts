@@ -417,7 +417,7 @@ describe("analytics router", () => {
 		});
 	});
 
-	it("aggregates overview metrics correctly and applies creator filters", async () => {
+	it("aggregates overview metrics correctly", async () => {
 		const fixture = await seedAnalyticsFixture();
 		const caller = createCaller(
 			makeAuthenticatedContext(fixture.creatorA.id, "admin", { db: testDb.db })
@@ -440,58 +440,6 @@ describe("analytics router", () => {
 			visibleReviewCount: 2,
 			averageRating: 4.5,
 		});
-
-		const creatorScoped = await caller.analytics.overview({
-			creatorId: fixture.creatorA.id,
-		});
-		expect(creatorScoped).toMatchObject({
-			totalViews: 3,
-			totalWatchDuration: 200,
-			uniqueViewers: 2,
-			totalCourses: 2,
-			publishedCourses: 1,
-			totalEnrollments: 2,
-			activeEnrollments: 2,
-			learnersStarted: 2,
-			courseCompletions: 1,
-			grossRevenue: 200,
-			refundedRevenue: 20,
-			netRevenue: 180,
-			visibleReviewCount: 1,
-			averageRating: 5,
-		});
-	});
-
-	it("returns instructor breakdown sorted by net revenue by default", async () => {
-		const fixture = await seedAnalyticsFixture();
-		const caller = createCaller(
-			makeAuthenticatedContext(fixture.creatorA.id, "admin", { db: testDb.db })
-		);
-
-		const result = await caller.analytics.instructorBreakdown({});
-
-		expect(result.items).toHaveLength(2);
-		expect(result.items[0]).toMatchObject({
-			creatorId: fixture.creatorA.id,
-			creatorName: "Creator Alpha",
-			courseCount: 2,
-			publishedCourses: 1,
-			totalEnrollments: 2,
-			activeEnrollments: 2,
-			learnersStarted: 2,
-			courseCompletions: 1,
-			totalViews: 3,
-			totalWatchDuration: 200,
-			grossRevenue: 200,
-			refundedRevenue: 20,
-			netRevenue: 180,
-			visibleReviewCount: 1,
-			averageRating: 5,
-		});
-		expect(result.items[1]).toMatchObject({
-			creatorId: fixture.creatorB.id,
-			netRevenue: 60,
-		});
 	});
 
 	it("returns course performance with search and pagination support", async () => {
@@ -501,7 +449,6 @@ describe("analytics router", () => {
 		);
 
 		const result = await caller.analytics.coursePerformance({
-			creatorId: fixture.creatorA.id,
 			search: "Alpha",
 			page: 1,
 			limit: 1,
@@ -532,6 +479,7 @@ describe("analytics router", () => {
 			visibleReviewCount: 1,
 			averageRating: 5,
 		});
+		expect(result.items[0]).not.toHaveProperty("creatorId");
 	});
 
 	it("returns course lesson engagement metrics with completion and drop-off", async () => {
@@ -567,6 +515,53 @@ describe("analytics router", () => {
 			dropOffRate: 0,
 			aggregatedWatchDuration: 80,
 		});
+	});
+
+	it("keeps course-level filters for overview, lesson views, and view sessions", async () => {
+		const fixture = await seedAnalyticsFixture();
+		const caller = createCaller(
+			makeAuthenticatedContext(fixture.creatorA.id, "admin", { db: testDb.db })
+		);
+
+		const overview = await caller.analytics.overview({
+			courseId: fixture.courseA1.id,
+		});
+		expect(overview).toMatchObject({
+			totalViews: 3,
+			totalWatchDuration: 200,
+			uniqueViewers: 2,
+			totalCourses: 1,
+			publishedCourses: 1,
+			totalEnrollments: 2,
+			activeEnrollments: 2,
+			learnersStarted: 2,
+			courseCompletions: 1,
+			grossRevenue: 200,
+			refundedRevenue: 20,
+			netRevenue: 180,
+			visibleReviewCount: 1,
+			averageRating: 5,
+		});
+
+		const lessonViews = await caller.analytics.lessonViews({
+			courseId: fixture.courseA1.id,
+		});
+		expect(lessonViews.items).toHaveLength(2);
+		expect(
+			lessonViews.items.every((item) => item.courseId === fixture.courseA1.id)
+		).toBe(true);
+
+		const viewSessions = await caller.analytics.viewSessions({
+			courseId: fixture.courseA1.id,
+		});
+		expect(viewSessions.items).toHaveLength(3);
+		expect(
+			viewSessions.items.every((item) =>
+				[item.courseLessonId].every((lessonId) =>
+					[fixture.lessonA1.id, fixture.lessonA2.id].includes(lessonId)
+				)
+			)
+		).toBe(true);
 	});
 
 	it("enforces admin-only access", async () => {
