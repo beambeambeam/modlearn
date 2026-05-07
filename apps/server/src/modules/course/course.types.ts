@@ -1,9 +1,9 @@
 import type { DbClient } from "@/lib/db/orm";
+import type { category, course, courseLesson } from "@/lib/db/schema";
 import type {
-	category,
-	course,
-	courseLesson,
-} from "@/lib/db/schema";
+	ReviewCompactSummary,
+	ReviewPublicItem,
+} from "@/modules/review/review.types";
 
 export type CourseSortBy = "RECENTLY_ADDED" | "RECENTLY_PUBLISHED";
 
@@ -193,6 +193,7 @@ export type CourseLessonRow = typeof courseLesson.$inferSelect;
 
 export type CourseWithActivePricing = CourseRow & {
 	activePricing: ActivePricing | null;
+	reviewSummary: ReviewCompactSummary;
 };
 
 export type CourseLessonView = CourseLessonRow;
@@ -216,6 +217,7 @@ export interface DeleteCourseResult {
 export interface CourseDetailResult extends CourseWithActivePricing {
 	categories: CourseClassificationItem[];
 	lessons: CourseLessonView[];
+	recentReviews: ReviewPublicItem[];
 }
 
 export interface LessonDeleteResult {

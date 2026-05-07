@@ -5,4 +5,5 @@ export * from "./category";
 export * from "./commerce";
 export * from "./course";
 export * from "./media";
+export * from "./review";
 export * from "./streaming";

@@ -5,6 +5,7 @@ import {
 	courseLesson,
 	courseLessonView,
 	coursePricing,
+	courseReview,
 } from "@/lib/db/schema";
 import { createTestUser } from "../../../__tests__/helpers/factories";
 import {
@@ -112,6 +113,10 @@ describe("course router", () => {
 			email: "course-router-public@example.com",
 			role: "admin",
 		});
+		const reviewer = await createTestUser(testDb.client, {
+			email: "course-router-reviewer@example.com",
+			displayUsername: "Public Reviewer",
+		});
 		const pricedCourse = await createCourseRow(admin.id, {
 			title: "Public Course",
 		});
@@ -129,6 +134,16 @@ describe("course router", () => {
 			courseLessonId: lesson.id,
 			watchDuration: 120,
 		});
+		await testDb.db.insert(courseReview).values({
+			courseId: pricedCourse.id,
+			userId: reviewer.id,
+			rating: 5,
+			comment: "Excellent course",
+			isVisible: true,
+			hiddenAt: null,
+			hiddenBy: null,
+			moderationReason: null,
+		});
 
 		const caller = createCaller(makeTestContext({ db: testDb.db }));
 
@@ -145,6 +160,20 @@ describe("course router", () => {
 			listResult.items.find((item) => item.id === noPriceCourse.id)
 				?.activePricing
 		).toBeNull();
+		expect(
+			listResult.items.find((item) => item.id === pricedCourse.id)
+				?.reviewSummary
+		).toEqual({
+			averageRating: 5,
+			ratingCount: 1,
+		});
+		expect(
+			listResult.items.find((item) => item.id === noPriceCourse.id)
+				?.reviewSummary
+		).toEqual({
+			averageRating: null,
+			ratingCount: 0,
+		});
 
 		const detailResult = await caller.course.getById({ id: pricedCourse.id });
 		expect(detailResult.id).toBe(pricedCourse.id);
@@ -153,15 +182,78 @@ describe("course router", () => {
 			currency: "USD",
 		});
 		expect(detailResult.lessons).toHaveLength(1);
+		expect(detailResult.reviewSummary).toEqual({
+			averageRating: 5,
+			ratingCount: 1,
+		});
+		expect(detailResult.recentReviews).toHaveLength(1);
+		expect(detailResult.recentReviews[0]?.author.displayName).toBe(
+			"Public Reviewer"
+		);
 
 		const popularResult = await caller.course.listPopular({});
 		expect(popularResult[0]?.id).toBe(pricedCourse.id);
+		expect(popularResult[0]?.reviewSummary).toEqual({
+			averageRating: 5,
+			ratingCount: 1,
+		});
 
 		const lessonResult = await caller.course.listLessons({
 			courseId: pricedCourse.id,
 		});
 		expect(lessonResult).toHaveLength(1);
 		expect(lessonResult[0]?.id).toBe(lesson.id);
+	});
+
+	it("excludes hidden reviews from public course summaries and recent reviews", async () => {
+		const admin = await createTestUser(testDb.client, {
+			email: "course-router-hidden-review-admin@example.com",
+			role: "admin",
+		});
+		const visibleReviewer = await createTestUser(testDb.client, {
+			email: "course-router-hidden-visible@example.com",
+			displayUsername: "Visible Reviewer",
+		});
+		const hiddenReviewer = await createTestUser(testDb.client, {
+			email: "course-router-hidden-hidden@example.com",
+			displayUsername: "Hidden Reviewer",
+		});
+		const publicCourse = await createCourseRow(admin.id);
+
+		await testDb.db.insert(courseReview).values([
+			{
+				courseId: publicCourse.id,
+				userId: visibleReviewer.id,
+				rating: 4,
+				comment: "Visible",
+				isVisible: true,
+				hiddenAt: null,
+				hiddenBy: null,
+				moderationReason: null,
+			},
+			{
+				courseId: publicCourse.id,
+				userId: hiddenReviewer.id,
+				rating: 1,
+				comment: "Hidden",
+				isVisible: false,
+				hiddenAt: new Date("2025-01-03T00:00:00.000Z"),
+				hiddenBy: admin.id,
+				moderationReason: "policy",
+			},
+		]);
+
+		const caller = createCaller(makeTestContext({ db: testDb.db }));
+		const detail = await caller.course.getById({ id: publicCourse.id });
+
+		expect(detail.reviewSummary).toEqual({
+			averageRating: 4,
+			ratingCount: 1,
+		});
+		expect(detail.recentReviews).toHaveLength(1);
+		expect(detail.recentReviews[0]?.author.displayName).toBe(
+			"Visible Reviewer"
+		);
 	});
 
 	it("rejects invalid public input", async () => {

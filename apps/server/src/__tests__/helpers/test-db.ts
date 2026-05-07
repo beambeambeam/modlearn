@@ -43,6 +43,7 @@ export async function resetTestDatabase(client: PGlite): Promise<void> {
 		"course_lesson",
 		"course_lesson_view",
 		"course_pricing",
+		"course_review",
 		"course_purchase",
 		"file",
 		"payment",
