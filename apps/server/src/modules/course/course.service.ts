@@ -23,6 +23,10 @@ import {
 	courseLessonView,
 	coursePricing,
 } from "@/lib/db/schema";
+import {
+	getCourseReviewCompactSummaryMap,
+	listRecentVisibleReviewsByCourseIds,
+} from "@/modules/review/review.service";
 import type {
 	ActivePricing,
 	AddLessonToCourseParams,
@@ -304,6 +308,11 @@ export async function listCourses(
 		.limit(limit)
 		.offset(offset);
 
+	const reviewSummaryMap = await getCourseReviewCompactSummaryMap({
+		db,
+		courseIds: items.map((item) => item.id),
+	});
+
 	const itemsWithPricing: CourseWithActivePricing[] = await Promise.all(
 		items.map(async (item) => ({
 			...item,
@@ -311,6 +320,10 @@ export async function listCourses(
 				db,
 				courseId: item.id,
 			}),
+			reviewSummary: reviewSummaryMap.get(item.id) ?? {
+				averageRating: null,
+				ratingCount: 0,
+			},
 		}))
 	);
 
@@ -335,17 +348,37 @@ export async function getCourseById(
 		throw new CourseNotFoundError();
 	}
 
-	const [classification, activePricing, lessons] = await Promise.all([
+	const [
+		classification,
+		activePricing,
+		lessons,
+		reviewSummaryMap,
+		recentReviewsMap,
+	] = await Promise.all([
 		getCourseClassification({ db, courseId: row.id }),
 		resolveActivePricing({ db, courseId: row.id }),
 		getCourseLessons({ db, courseId: row.id }),
+		getCourseReviewCompactSummaryMap({
+			db,
+			courseIds: [row.id],
+		}),
+		listRecentVisibleReviewsByCourseIds({
+			db,
+			courseIds: [row.id],
+			limitPerCourse: 3,
+		}),
 	]);
 
 	return {
 		...row,
 		activePricing,
+		reviewSummary: reviewSummaryMap.get(row.id) ?? {
+			averageRating: null,
+			ratingCount: 0,
+		},
 		categories: classification.categories,
 		lessons,
+		recentReviews: recentReviewsMap.get(row.id) ?? [],
 	};
 }
 
@@ -378,6 +411,11 @@ export async function listPopularCourses(
 		)
 		.limit(limit);
 
+	const reviewSummaryMap = await getCourseReviewCompactSummaryMap({
+		db,
+		courseIds: rows.map((row) => row.item.id),
+	});
+
 	return Promise.all(
 		rows.map(async ({ item }) => ({
 			...item,
@@ -385,6 +423,10 @@ export async function listPopularCourses(
 				db,
 				courseId: item.id,
 			}),
+			reviewSummary: reviewSummaryMap.get(item.id) ?? {
+				averageRating: null,
+				ratingCount: 0,
+			},
 		}))
 	);
 }

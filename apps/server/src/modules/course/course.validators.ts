@@ -1,4 +1,8 @@
 import { z } from "zod";
+import {
+	reviewCompactSummarySchema,
+	reviewPublicItemSchema,
+} from "@/modules/review/review.validators";
 import { hasDuplicates } from "./course.utils";
 
 const releaseDateSchema = z
@@ -156,6 +160,7 @@ export const courseSchema = z.object({
 	createdAt: z.date(),
 	updatedAt: z.date(),
 	activePricing: activePricingSchema.default(null),
+	reviewSummary: reviewCompactSummarySchema,
 });
 
 export const courseLessonSchema = z.object({
@@ -186,6 +191,7 @@ export const courseListOutputSchema = z.object({
 export const courseDetailOutputSchema = courseSchema.extend({
 	categories: z.array(courseClassificationItemSchema),
 	lessons: z.array(courseLessonSchema),
+	recentReviews: z.array(reviewPublicItemSchema),
 });
 
 export const courseClassificationOutputSchema = z.object({
