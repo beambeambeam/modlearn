@@ -186,6 +186,33 @@ function getCourseLessons(params: {
 		);
 }
 
+async function rewriteCourseLessonOrder(params: {
+	db: DbClient;
+	courseId: string;
+	lessonIds: string[];
+}): Promise<void> {
+	const { db, courseId, lessonIds } = params;
+	const total = lessonIds.length;
+
+	for (const [index, lessonId] of lessonIds.entries()) {
+		await db
+			.update(courseLesson)
+			.set({ lessonOrder: total + index + 1 })
+			.where(
+				and(eq(courseLesson.id, lessonId), eq(courseLesson.courseId, courseId))
+			);
+	}
+
+	for (const [index, lessonId] of lessonIds.entries()) {
+		await db
+			.update(courseLesson)
+			.set({ lessonOrder: index + 1 })
+			.where(
+				and(eq(courseLesson.id, lessonId), eq(courseLesson.courseId, courseId))
+			);
+	}
+}
+
 async function getCourseClassification(params: {
 	db: DbClient;
 	courseId: string;
@@ -617,40 +644,23 @@ export function updateCourseLesson(
 			input.patch.lessonOrder !== undefined &&
 			input.patch.lessonOrder !== existing.lessonOrder
 		) {
-			const countRows = await tx
-				.select({ total: count() })
+			const existingRows = await tx
+				.select({ id: courseLesson.id })
 				.from(courseLesson)
 				.where(eq(courseLesson.courseId, existing.courseId));
-			const total = Number(countRows[0]?.total ?? 0);
+			const total = existingRows.length;
 			nextOrder = Math.max(1, Math.min(input.patch.lessonOrder, total));
 
-			if (nextOrder > existing.lessonOrder) {
-				await tx
-					.update(courseLesson)
-					.set({
-						lessonOrder: sql`${courseLesson.lessonOrder} - 1`,
-					})
-					.where(
-						and(
-							eq(courseLesson.courseId, existing.courseId),
-							sql`${courseLesson.lessonOrder} > ${existing.lessonOrder}`,
-							sql`${courseLesson.lessonOrder} <= ${nextOrder}`
-						)
-					);
-			} else {
-				await tx
-					.update(courseLesson)
-					.set({
-						lessonOrder: sql`${courseLesson.lessonOrder} + 1`,
-					})
-					.where(
-						and(
-							eq(courseLesson.courseId, existing.courseId),
-							sql`${courseLesson.lessonOrder} >= ${nextOrder}`,
-							sql`${courseLesson.lessonOrder} < ${existing.lessonOrder}`
-						)
-					);
-			}
+			const reorderedLessonIds = existingRows
+				.map((row) => row.id)
+				.filter((lessonId) => lessonId !== input.id);
+			reorderedLessonIds.splice(nextOrder - 1, 0, input.id);
+
+			await rewriteCourseLessonOrder({
+				db: tx,
+				courseId: existing.courseId,
+				lessonIds: reorderedLessonIds,
+			});
 		}
 
 		const [updated] = await tx
@@ -739,12 +749,11 @@ export function reorderCourseLessons(
 			}
 		}
 
-		for (const [index, lessonId] of input.lessonIds.entries()) {
-			await tx
-				.update(courseLesson)
-				.set({ lessonOrder: index + 1 })
-				.where(eq(courseLesson.id, lessonId));
-		}
+		await rewriteCourseLessonOrder({
+			db: tx,
+			courseId: input.courseId,
+			lessonIds: input.lessonIds,
+		});
 
 		return getCourseLessons({
 			db: tx,
