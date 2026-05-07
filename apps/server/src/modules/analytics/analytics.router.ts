@@ -1,11 +1,11 @@
 import {
 	getAnalyticsOverview,
-	listContentViewsAnalytics,
+	listLessonViewsAnalytics,
 	listViewSessionsAnalytics,
 } from "@/modules/analytics/analytics.service";
 import {
-	analyticsContentViewsInputSchema,
-	analyticsContentViewsOutputSchema,
+	analyticsLessonViewsInputSchema,
+	analyticsLessonViewsOutputSchema,
 	analyticsOverviewInputSchema,
 	analyticsOverviewOutputSchema,
 	analyticsViewSessionsInputSchema,
@@ -31,21 +31,21 @@ export const analyticsRouter = router({
 				input: analyticsOverviewInputSchema.parse(input ?? {}),
 			});
 		}),
-	contentViews: adminProcedure
+	lessonViews: adminProcedure
 		.route({
 			method: "POST",
-			path: "/rpc/analytics/contentViews",
+			path: "/rpc/analytics/lessonViews",
 			tags: ["Analytics Admin"],
-			summary: "List Content View Analytics",
+			summary: "List Lesson View Analytics",
 			description:
-				"Requires admin or superadmin role. Returns per-content view analytics for the requested window and filters.",
+				"Requires admin or superadmin role. Returns per-lesson view analytics for the requested window and filters.",
 		})
-		.input(analyticsContentViewsInputSchema.optional())
-		.output(analyticsContentViewsOutputSchema)
+		.input(analyticsLessonViewsInputSchema.optional())
+		.output(analyticsLessonViewsOutputSchema)
 		.handler(({ context, input }) => {
-			return listContentViewsAnalytics({
+			return listLessonViewsAnalytics({
 				db: context.db,
-				input: analyticsContentViewsInputSchema.parse(input ?? {}),
+				input: analyticsLessonViewsInputSchema.parse(input ?? {}),
 			});
 		}),
 	viewSessions: adminProcedure
@@ -55,7 +55,7 @@ export const analyticsRouter = router({
 			tags: ["Analytics Admin"],
 			summary: "List View Session Analytics",
 			description:
-				"Requires admin or superadmin role. Returns view session analytics for the requested window and filters.",
+				"Requires admin or superadmin role. Returns lesson view session analytics for the requested window and filters.",
 		})
 		.input(analyticsViewSessionsInputSchema.optional())
 		.output(analyticsViewSessionsOutputSchema)

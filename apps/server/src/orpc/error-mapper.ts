@@ -4,25 +4,25 @@ import {
 	CategorySlugConflictError,
 } from "@/modules/category/category.types";
 import {
-	CommerceContentNotFoundError,
+	CommerceCourseEmptyError,
+	CommerceCourseNotFoundError,
 	CommerceCurrencyMismatchError,
 	CommerceInvalidOrderItemError,
 	CommerceItemAlreadyOwnedError,
 	CommerceOrderNotFoundError,
 	CommerceOrderStateError,
 	CommercePaymentConflictError,
-	CommercePlaylistEmptyError,
-	CommercePlaylistNotFoundError,
 	CommercePriceNotFoundError,
 	CommercePricingWindowNotFoundError,
 	CommercePricingWindowOverlapError,
 	CommercePricingWindowValidationError,
 } from "@/modules/commerce/commerce.types";
 import {
-	CategoryNotFoundError as ContentCategoryNotFoundError,
-	ContentNotFoundError,
+	CourseLessonNotFoundError,
+	CourseNotFoundError,
+	CourseReorderValidationError,
 	InvalidClassificationInputError,
-} from "@/modules/content/content.types";
+} from "@/modules/course/course.types";
 import {
 	FileAlreadyDeletedError,
 	FileCreationError,
@@ -31,18 +31,11 @@ import {
 } from "@/modules/file/file.types";
 import {
 	LibraryAccessDeniedError,
-	LibraryPlaylistNotFoundError,
+	LibraryCourseNotFoundError,
 } from "@/modules/library/library.types";
 import {
-	ContentNotFoundError as PlaylistContentNotFoundError,
-	PlaylistEpisodeDuplicateContentError,
-	PlaylistEpisodeNotFoundError,
-	PlaylistNotFoundError,
-	PlaylistReorderValidationError,
-} from "@/modules/playlist/playlist.types";
-import {
-	WatchProgressContentNotFoundError,
-	WatchProgressPlaylistNotFoundError,
+	WatchProgressCourseLessonNotFoundError,
+	WatchProgressCourseNotFoundError,
 	WatchProgressValidationError,
 } from "@/modules/watch-progress/watch-progress.types";
 
@@ -72,15 +65,22 @@ export function mapDomainErrorToOrpc(
 	}
 
 	if (
-		error instanceof ContentNotFoundError ||
-		error instanceof ContentCategoryNotFoundError
+		error instanceof CourseNotFoundError ||
+		error instanceof CourseLessonNotFoundError ||
+		error instanceof LibraryCourseNotFoundError ||
+		error instanceof WatchProgressCourseNotFoundError ||
+		error instanceof WatchProgressCourseLessonNotFoundError
 	) {
 		return new ORPCError("NOT_FOUND", {
 			message: error.message,
 		});
 	}
 
-	if (error instanceof InvalidClassificationInputError) {
+	if (
+		error instanceof InvalidClassificationInputError ||
+		error instanceof CourseReorderValidationError ||
+		error instanceof WatchProgressValidationError
+	) {
 		return new ORPCError("BAD_REQUEST", {
 			message: error.message,
 		});
@@ -89,28 +89,6 @@ export function mapDomainErrorToOrpc(
 	const commerceError = mapCommerceDomainErrorToOrpc(error);
 	if (commerceError) {
 		return commerceError;
-	}
-
-	if (
-		error instanceof PlaylistNotFoundError ||
-		error instanceof PlaylistEpisodeNotFoundError ||
-		error instanceof PlaylistContentNotFoundError
-	) {
-		return new ORPCError("NOT_FOUND", {
-			message: error.message,
-		});
-	}
-
-	if (error instanceof PlaylistEpisodeDuplicateContentError) {
-		return new ORPCError("CONFLICT", {
-			message: error.message,
-		});
-	}
-
-	if (error instanceof PlaylistReorderValidationError) {
-		return new ORPCError("BAD_REQUEST", {
-			message: error.message,
-		});
 	}
 
 	if (
@@ -129,29 +107,8 @@ export function mapDomainErrorToOrpc(
 		});
 	}
 
-	if (error instanceof LibraryPlaylistNotFoundError) {
-		return new ORPCError("NOT_FOUND", {
-			message: error.message,
-		});
-	}
-
 	if (error instanceof LibraryAccessDeniedError) {
 		return new ORPCError("FORBIDDEN", {
-			message: error.message,
-		});
-	}
-
-	if (
-		error instanceof WatchProgressContentNotFoundError ||
-		error instanceof WatchProgressPlaylistNotFoundError
-	) {
-		return new ORPCError("NOT_FOUND", {
-			message: error.message,
-		});
-	}
-
-	if (error instanceof WatchProgressValidationError) {
-		return new ORPCError("BAD_REQUEST", {
 			message: error.message,
 		});
 	}
@@ -163,8 +120,7 @@ function mapCommerceDomainErrorToOrpc(
 	error: unknown
 ): ORPCError<string, unknown> | null {
 	if (
-		error instanceof CommerceContentNotFoundError ||
-		error instanceof CommercePlaylistNotFoundError ||
+		error instanceof CommerceCourseNotFoundError ||
 		error instanceof CommerceOrderNotFoundError ||
 		error instanceof CommercePricingWindowNotFoundError
 	) {
@@ -187,7 +143,7 @@ function mapCommerceDomainErrorToOrpc(
 		error instanceof CommercePriceNotFoundError ||
 		error instanceof CommerceCurrencyMismatchError ||
 		error instanceof CommerceOrderStateError ||
-		error instanceof CommercePlaylistEmptyError ||
+		error instanceof CommerceCourseEmptyError ||
 		error instanceof CommerceInvalidOrderItemError ||
 		error instanceof CommercePricingWindowValidationError
 	) {

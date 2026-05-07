@@ -1,19 +1,10 @@
 import type { SQL } from "drizzle-orm";
-import {
-	and,
-	count,
-	desc,
-	eq,
-	gte,
-	ilike,
-	inArray,
-	lte,
-	sql,
-} from "drizzle-orm";
-import { content, contentView } from "@/lib/db/schema";
+import { and, count, desc, eq, gte, ilike, inArray, lte } from "drizzle-orm";
+import { sql } from "drizzle-orm";
+import { course, courseLesson, courseLessonView } from "@/lib/db/schema";
 import type {
-	AnalyticsContentViewsParams,
-	AnalyticsContentViewsResult,
+	AnalyticsLessonViewsParams,
+	AnalyticsLessonViewsResult,
 	AnalyticsOverviewParams,
 	AnalyticsOverviewResult,
 	AnalyticsViewSessionsParams,
@@ -38,10 +29,10 @@ function buildViewDateRangeWhere(params: {
 	const conditions: SQL<unknown>[] = [];
 
 	if (from) {
-		conditions.push(gte(contentView.viewedAt, from));
+		conditions.push(gte(courseLessonView.viewedAt, from));
 	}
 	if (to) {
-		conditions.push(lte(contentView.viewedAt, to));
+		conditions.push(lte(courseLessonView.viewedAt, to));
 	}
 
 	if (conditions.length === 0) {
@@ -63,10 +54,10 @@ export async function getAnalyticsOverview(
 
 	const [totalsRow] = await db
 		.select({
-			totalViews: count(contentView.id),
-			totalWatchDuration: sql<number>`coalesce(sum(${contentView.watchDuration}), 0)::int`,
+			totalViews: count(courseLessonView.id),
+			totalWatchDuration: sql<number>`coalesce(sum(${courseLessonView.watchDuration}), 0)::int`,
 		})
-		.from(contentView)
+		.from(courseLessonView)
 		.where(viewDateWhere);
 
 	return {
@@ -76,56 +67,58 @@ export async function getAnalyticsOverview(
 	};
 }
 
-export async function listContentViewsAnalytics(
-	params: AnalyticsContentViewsParams
-): Promise<AnalyticsContentViewsResult> {
+export async function listLessonViewsAnalytics(
+	params: AnalyticsLessonViewsParams
+): Promise<AnalyticsLessonViewsResult> {
 	const { db, input } = params;
 	const page = input.page ?? 1;
 	const limit = input.limit ?? 20;
 	const offset = (page - 1) * limit;
-	const contentWhereConditions: SQL<unknown>[] = [eq(content.isDeleted, false)];
-
-	if (input.contentType) {
-		contentWhereConditions.push(eq(content.contentType, input.contentType));
-	}
+	const lessonWhereConditions: SQL<unknown>[] = [eq(course.isDeleted, false)];
 
 	const search = input.search?.trim();
 	if (search) {
-		contentWhereConditions.push(ilike(content.title, `%${search}%`));
+		lessonWhereConditions.push(ilike(courseLesson.title, `%${search}%`));
 	}
 
-	const contentWhere = and(...contentWhereConditions);
+	const lessonWhere = and(...lessonWhereConditions);
 
 	const [countRow] = await db
 		.select({ total: count() })
-		.from(content)
-		.where(contentWhere);
-
+		.from(courseLesson)
+		.innerJoin(course, eq(courseLesson.courseId, course.id))
+		.where(lessonWhere);
 	const total = Number(countRow?.total ?? 0);
-	const contentRows = await db
+
+	const lessonRows = await db
 		.select({
-			id: content.id,
-			title: content.title,
-			contentType: content.contentType,
-			viewCount: content.viewCount,
-			createdAt: content.createdAt,
+			courseLessonId: courseLesson.id,
+			courseId: courseLesson.courseId,
+			courseTitle: course.title,
+			title: courseLesson.title,
+			createdAt: courseLesson.createdAt,
 		})
-		.from(content)
-		.where(contentWhere)
-		.orderBy(desc(content.viewCount), desc(content.createdAt), desc(content.id))
+		.from(courseLesson)
+		.innerJoin(course, eq(courseLesson.courseId, course.id))
+		.where(lessonWhere)
+		.orderBy(
+			desc(courseLesson.createdAt),
+			desc(courseLesson.lessonOrder),
+			desc(courseLesson.id)
+		)
 		.limit(limit)
 		.offset(offset);
 
-	if (contentRows.length === 0) {
+	if (lessonRows.length === 0) {
 		return {
 			items: [],
 			pagination: toPagination({ page, limit, total }),
 		};
 	}
 
-	const contentIds = contentRows.map((row) => row.id);
+	const lessonIds = lessonRows.map((row) => row.courseLessonId);
 	const viewConditions: SQL<unknown>[] = [
-		inArray(contentView.contentId, contentIds),
+		inArray(courseLessonView.courseLessonId, lessonIds),
 	];
 	const viewDateWhere = buildViewDateRangeWhere({
 		from: input.from,
@@ -137,32 +130,32 @@ export async function listContentViewsAnalytics(
 
 	const aggregateRows = await db
 		.select({
-			contentId: contentView.contentId,
-			aggregatedViews: count(contentView.id),
-			aggregatedWatchDuration: sql<number>`coalesce(sum(${contentView.watchDuration}), 0)::int`,
+			courseLessonId: courseLessonView.courseLessonId,
+			aggregatedViews: count(courseLessonView.id),
+			aggregatedWatchDuration: sql<number>`coalesce(sum(${courseLessonView.watchDuration}), 0)::int`,
 		})
-		.from(contentView)
+		.from(courseLessonView)
 		.where(and(...viewConditions))
-		.groupBy(contentView.contentId);
+		.groupBy(courseLessonView.courseLessonId);
 
-	const aggregatesByContentId = new Map(
-		aggregateRows.map((row) => [row.contentId, row])
+	const aggregatesByLessonId = new Map(
+		aggregateRows.map((row) => [row.courseLessonId, row])
 	);
 
-	const items = contentRows.map((row) => {
-		const aggregate = aggregatesByContentId.get(row.id);
-		return {
-			contentId: row.id,
-			title: row.title,
-			contentType: row.contentType,
-			aggregatedViews: Number(aggregate?.aggregatedViews ?? 0),
-			aggregatedWatchDuration: Number(aggregate?.aggregatedWatchDuration ?? 0),
-			cachedViewCount: Number(row.viewCount),
-		};
-	});
-
 	return {
-		items,
+		items: lessonRows.map((row) => {
+			const aggregate = aggregatesByLessonId.get(row.courseLessonId);
+			return {
+				courseLessonId: row.courseLessonId,
+				courseId: row.courseId,
+				courseTitle: row.courseTitle,
+				title: row.title,
+				aggregatedViews: Number(aggregate?.aggregatedViews ?? 0),
+				aggregatedWatchDuration: Number(
+					aggregate?.aggregatedWatchDuration ?? 0
+				),
+			};
+		}),
 		pagination: toPagination({ page, limit, total }),
 	};
 }
@@ -177,38 +170,40 @@ export async function listViewSessionsAnalytics(
 	const whereConditions: SQL<unknown>[] = [];
 
 	if (input.userId) {
-		whereConditions.push(eq(contentView.userId, input.userId));
+		whereConditions.push(eq(courseLessonView.userId, input.userId));
 	}
-	if (input.contentId) {
-		whereConditions.push(eq(contentView.contentId, input.contentId));
+	if (input.courseLessonId) {
+		whereConditions.push(
+			eq(courseLessonView.courseLessonId, input.courseLessonId)
+		);
 	}
 	if (input.from) {
-		whereConditions.push(gte(contentView.viewedAt, input.from));
+		whereConditions.push(gte(courseLessonView.viewedAt, input.from));
 	}
 	if (input.to) {
-		whereConditions.push(lte(contentView.viewedAt, input.to));
+		whereConditions.push(lte(courseLessonView.viewedAt, input.to));
 	}
 
 	const where =
 		whereConditions.length > 0 ? and(...whereConditions) : undefined;
 	const [countRow] = await db
 		.select({ total: count() })
-		.from(contentView)
+		.from(courseLessonView)
 		.where(where);
 	const total = Number(countRow?.total ?? 0);
 
 	const items = await db
 		.select({
-			id: contentView.id,
-			contentId: contentView.contentId,
-			userId: contentView.userId,
-			viewedAt: contentView.viewedAt,
-			watchDuration: contentView.watchDuration,
-			deviceType: contentView.deviceType,
+			id: courseLessonView.id,
+			courseLessonId: courseLessonView.courseLessonId,
+			userId: courseLessonView.userId,
+			viewedAt: courseLessonView.viewedAt,
+			watchDuration: courseLessonView.watchDuration,
+			deviceType: courseLessonView.deviceType,
 		})
-		.from(contentView)
+		.from(courseLessonView)
 		.where(where)
-		.orderBy(desc(contentView.viewedAt), desc(contentView.id))
+		.orderBy(desc(courseLessonView.viewedAt), desc(courseLessonView.id))
 		.limit(limit)
 		.offset(offset);
 
