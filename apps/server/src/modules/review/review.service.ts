@@ -512,7 +512,7 @@ export async function deleteMyCourseReview(
 				eq(courseReview.userId, userId)
 			)
 		)
-		.returning({ id: courseReview.id });
+		.returning();
 
 	if (deleted.length === 0) {
 		throw new ReviewNotFoundError();
@@ -681,7 +681,7 @@ export async function adminDeleteReview(
 	const deleted = await db
 		.delete(courseReview)
 		.where(eq(courseReview.id, input.reviewId))
-		.returning({ id: courseReview.id });
+		.returning();
 
 	if (deleted.length === 0) {
 		throw new ReviewNotFoundError();
