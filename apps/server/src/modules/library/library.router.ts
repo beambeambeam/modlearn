@@ -1,15 +1,15 @@
 import {
-	getMyPlaylistCollection,
+	getMyCourse,
 	hasLibraryAccess,
 	listMyLibraryItems,
 } from "@/modules/library/library.service";
 import {
-	libraryGetPlaylistCollectionInputSchema,
+	libraryCourseItemSchema,
+	libraryGetCourseInputSchema,
 	libraryHasAccessInputSchema,
 	libraryHasAccessOutputSchema,
 	libraryListMyItemsInputSchema,
 	libraryListMyItemsOutputSchema,
-	libraryPlaylistCollectionSchema,
 } from "@/modules/library/library.validators";
 import { protectedProcedure, router } from "@/orpc";
 
@@ -21,7 +21,7 @@ export const libraryRouter = router({
 			tags: ["Library User"],
 			summary: "List Current User Library Items",
 			description:
-				"Requires authentication. Returns the signed-in user's owned or entitled library items.",
+				"Requires authentication. Returns the signed-in user's owned courses.",
 		})
 		.input(libraryListMyItemsInputSchema.optional())
 		.output(libraryListMyItemsOutputSchema)
@@ -32,19 +32,19 @@ export const libraryRouter = router({
 				input: libraryListMyItemsInputSchema.parse(input ?? {}),
 			});
 		}),
-	getPlaylistCollection: protectedProcedure
+	getCourse: protectedProcedure
 		.route({
 			method: "POST",
-			path: "/rpc/library/getPlaylistCollection",
+			path: "/rpc/library/getCourse",
 			tags: ["Library User"],
-			summary: "Retrieve Current User Playlist Collection",
+			summary: "Retrieve Current User Course",
 			description:
-				"Requires authentication. Returns one purchased playlist collection for the signed-in user.",
+				"Requires authentication. Returns one owned course for the signed-in user.",
 		})
-		.input(libraryGetPlaylistCollectionInputSchema)
-		.output(libraryPlaylistCollectionSchema)
+		.input(libraryGetCourseInputSchema)
+		.output(libraryCourseItemSchema)
 		.handler(({ context, input }) => {
-			return getMyPlaylistCollection({
+			return getMyCourse({
 				db: context.db,
 				userId: context.session.user.id,
 				input,
@@ -57,7 +57,7 @@ export const libraryRouter = router({
 			tags: ["Library User"],
 			summary: "Check Current User Library Access",
 			description:
-				"Requires authentication. Checks whether the signed-in user can access the requested content or playlist.",
+				"Requires authentication. Checks whether the signed-in user can access the requested course or lesson.",
 		})
 		.input(libraryHasAccessInputSchema)
 		.output(libraryHasAccessOutputSchema)

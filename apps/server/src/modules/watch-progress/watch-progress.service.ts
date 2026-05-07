@@ -1,32 +1,24 @@
-import { asc, count, desc, sql } from "drizzle-orm";
+import { and, asc, count, desc, eq } from "drizzle-orm";
 import type { DbClient } from "@/lib/db/orm";
-import { and, eq } from "@/lib/db/orm";
-
-import {
-	content,
-	playlist,
-	playlistContent,
-	playlistEpisode,
-	watchProgress,
-} from "@/lib/db/schema";
+import { course, courseLesson, watchProgress } from "@/lib/db/schema";
 import type {
 	ContinueWatchingItem,
 	ContinueWatchingResult,
-	GetPlaylistAutoPlayNextParams,
-	GetPlaylistWatchProgressResumeParams,
+	CourseAutoPlayNextResult,
+	CourseLessonProgressSummary,
+	CourseWatchProgressResumeResult,
+	GetCourseAutoPlayNextParams,
+	GetCourseWatchProgressResumeParams,
 	GetWatchProgressResumeParams,
 	ListContinueWatchingParams,
 	MarkWatchProgressCompletedParams,
-	PlaylistAutoPlayNextResult,
-	PlaylistEpisodeProgressSummary,
-	PlaylistWatchProgressResumeResult,
 	ProgressEnvelope,
 	SaveWatchProgressParams,
 	WatchProgressResumeResult,
 } from "./watch-progress.types";
 import {
-	WatchProgressContentNotFoundError,
-	WatchProgressPlaylistNotFoundError,
+	WatchProgressCourseLessonNotFoundError,
+	WatchProgressCourseNotFoundError,
 	WatchProgressValidationError,
 } from "./watch-progress.types";
 
@@ -44,38 +36,6 @@ function toEnvelope(row: typeof watchProgress.$inferSelect): ProgressEnvelope {
 		progress: row,
 		progressPercent: toProgressPercent(row.lastPosition, row.duration),
 	};
-}
-
-async function assertContentExists(
-	db: DbClient,
-	contentId: string
-): Promise<void> {
-	const row = await db.query.content.findFirst({
-		where: and(eq(content.id, contentId), eq(content.isDeleted, false)),
-		columns: { id: true },
-	});
-
-	if (!row) {
-		throw new WatchProgressContentNotFoundError();
-	}
-}
-
-async function assertPlaylistExists(
-	db: DbClient,
-	playlistId?: string | null
-): Promise<void> {
-	if (!playlistId) {
-		return;
-	}
-
-	const row = await db.query.playlist.findFirst({
-		where: eq(playlist.id, playlistId),
-		columns: { id: true },
-	});
-
-	if (!row) {
-		throw new WatchProgressPlaylistNotFoundError();
-	}
 }
 
 function clampPosition(lastPosition: number, duration: number): number {
@@ -101,101 +61,69 @@ function normalizeResumePosition(params: {
 	return Math.min(Math.max(0, lastPosition), duration);
 }
 
-async function setLatestPlaylistContent(params: {
-	db: DbClient;
-	userId: string;
-	playlistId?: string | null;
-	contentId: string;
-}): Promise<void> {
-	const { db, userId, playlistId, contentId } = params;
-	if (!playlistId) {
-		return;
-	}
-
-	await db
-		.update(playlistContent)
-		.set({
-			isLatestWatched: false,
-			updatedAt: new Date(),
-		})
-		.where(
-			and(
-				eq(playlistContent.userId, userId),
-				eq(playlistContent.playlistId, playlistId),
-				eq(playlistContent.isLatestWatched, true)
-			)
-		);
-
-	const existing = await db.query.playlistContent.findFirst({
-		where: and(
-			eq(playlistContent.userId, userId),
-			eq(playlistContent.playlistId, playlistId),
-			eq(playlistContent.contentId, contentId)
-		),
+async function assertCourseExists(db: DbClient, courseId: string): Promise<void> {
+	const row = await db.query.course.findFirst({
+		where: eq(course.id, courseId),
 		columns: { id: true },
-		orderBy: [desc(playlistContent.updatedAt), desc(playlistContent.id)],
 	});
 
-	if (existing) {
-		await db
-			.update(playlistContent)
-			.set({
-				isLatestWatched: true,
-				updatedAt: new Date(),
-			})
-			.where(eq(playlistContent.id, existing.id));
-		return;
+	if (!row) {
+		throw new WatchProgressCourseNotFoundError();
 	}
-
-	await db.insert(playlistContent).values({
-		userId,
-		playlistId,
-		contentId,
-		isLatestWatched: true,
-	});
 }
 
-async function listVisiblePlaylistEpisodes(
+async function assertCourseLessonExists(params: {
+	db: DbClient;
+	courseId: string;
+	courseLessonId: string;
+}): Promise<void> {
+	const row = await params.db.query.courseLesson.findFirst({
+		where: and(
+			eq(courseLesson.id, params.courseLessonId),
+			eq(courseLesson.courseId, params.courseId)
+		),
+		columns: { id: true },
+	});
+
+	if (!row) {
+		throw new WatchProgressCourseLessonNotFoundError();
+	}
+}
+
+async function listPlayableCourseLessons(
 	db: DbClient,
-	playlistId: string
-): Promise<PlaylistEpisodeProgressSummary[]> {
-	const rows = await db
+	courseId: string
+): Promise<CourseLessonProgressSummary[]> {
+	return db
 		.select({
-			id: playlistEpisode.id,
-			playlistId: playlistEpisode.playlistId,
-			contentId: playlistEpisode.contentId,
-			episodeOrder: playlistEpisode.episodeOrder,
-			seasonNumber: playlistEpisode.seasonNumber,
-			episodeNumber: playlistEpisode.episodeNumber,
-			title: playlistEpisode.title,
-			addedAt: playlistEpisode.addedAt,
-			content: {
-				id: content.id,
-				title: content.title,
-				thumbnailImageId: content.thumbnailImageId,
-				duration: content.duration,
-				contentType: content.contentType,
-				releaseDate: content.releaseDate,
-			},
+			id: courseLesson.id,
+			courseId: courseLesson.courseId,
+			lessonOrder: courseLesson.lessonOrder,
+			title: courseLesson.title,
+			description: courseLesson.description,
+			thumbnailImageId: courseLesson.thumbnailImageId,
+			duration: courseLesson.duration,
+			releaseDate: courseLesson.releaseDate,
+			fileId: courseLesson.fileId,
+			addedAt: courseLesson.addedAt,
+			createdAt: courseLesson.createdAt,
+			updatedAt: courseLesson.updatedAt,
 		})
-		.from(playlistEpisode)
-		.innerJoin(content, eq(playlistEpisode.contentId, content.id))
+		.from(courseLesson)
+		.innerJoin(course, eq(courseLesson.courseId, course.id))
 		.where(
 			and(
-				eq(playlistEpisode.playlistId, playlistId),
-				eq(content.isDeleted, false),
-				eq(content.isPublished, true),
-				eq(content.isAvailable, true)
+				eq(courseLesson.courseId, courseId),
+				eq(course.isDeleted, false),
+				eq(course.isPublished, true),
+				eq(course.isAvailable, true)
 			)
 		)
 		.orderBy(
-			sql`${playlistEpisode.seasonNumber} ASC NULLS LAST`,
-			asc(playlistEpisode.episodeOrder),
-			asc(playlistEpisode.addedAt),
-			asc(playlistEpisode.id)
+			asc(courseLesson.lessonOrder),
+			asc(courseLesson.addedAt),
+			asc(courseLesson.id)
 		);
-
-	return rows;
 }
 
 export async function saveWatchProgress(
@@ -203,50 +131,39 @@ export async function saveWatchProgress(
 ): Promise<ProgressEnvelope> {
 	const { db, input } = params;
 
-	await assertContentExists(db, input.contentId);
-	await assertPlaylistExists(db, input.playlistId);
+	await assertCourseExists(db, input.courseId);
+	await assertCourseLessonExists({
+		db,
+		courseId: input.courseId,
+		courseLessonId: input.courseLessonId,
+	});
 
 	const lastPosition = clampPosition(input.lastPosition, input.duration);
 	const isCompleted = lastPosition / input.duration >= COMPLETION_THRESHOLD;
 
-	const saved = await db.transaction(async (tx) => {
-		const [row] = await tx
-			.insert(watchProgress)
-			.values({
-				userId: input.userId,
-				contentId: input.contentId,
-				playlistId: input.playlistId ?? null,
+	const [saved] = await db
+		.insert(watchProgress)
+		.values({
+			userId: input.userId,
+			courseId: input.courseId,
+			courseLessonId: input.courseLessonId,
+			lastPosition,
+			duration: input.duration,
+			isCompleted,
+			deviceType: input.deviceType ?? null,
+		})
+		.onConflictDoUpdate({
+			target: [watchProgress.userId, watchProgress.courseLessonId],
+			set: {
+				courseId: input.courseId,
 				lastPosition,
 				duration: input.duration,
 				isCompleted,
 				deviceType: input.deviceType ?? null,
-			})
-			.onConflictDoUpdate({
-				target: [watchProgress.userId, watchProgress.contentId],
-				set: {
-					playlistId: input.playlistId ?? null,
-					lastPosition,
-					duration: input.duration,
-					isCompleted,
-					deviceType: input.deviceType ?? null,
-					updatedAt: new Date(),
-				},
-			})
-			.returning();
-
-		if (!row) {
-			throw new Error("Failed to save watch progress");
-		}
-
-		await setLatestPlaylistContent({
-			db: tx,
-			userId: input.userId,
-			playlistId: input.playlistId,
-			contentId: input.contentId,
-		});
-
-		return row;
-	});
+				updatedAt: new Date(),
+			},
+		})
+		.returning();
 
 	if (!saved) {
 		throw new Error("Failed to save watch progress");
@@ -260,13 +177,17 @@ export async function markWatchProgressCompleted(
 ): Promise<ProgressEnvelope> {
 	const { db, input } = params;
 
-	await assertContentExists(db, input.contentId);
-	await assertPlaylistExists(db, input.playlistId);
+	await assertCourseExists(db, input.courseId);
+	await assertCourseLessonExists({
+		db,
+		courseId: input.courseId,
+		courseLessonId: input.courseLessonId,
+	});
 
 	const existing = await db.query.watchProgress.findFirst({
 		where: and(
 			eq(watchProgress.userId, input.userId),
-			eq(watchProgress.contentId, input.contentId)
+			eq(watchProgress.courseLessonId, input.courseLessonId)
 		),
 	});
 
@@ -277,45 +198,29 @@ export async function markWatchProgressCompleted(
 		);
 	}
 
-	const resolvedPlaylistId = input.playlistId ?? existing?.playlistId ?? null;
-	const saved = await db.transaction(async (tx) => {
-		const [row] = await tx
-			.insert(watchProgress)
-			.values({
-				userId: input.userId,
-				contentId: input.contentId,
-				playlistId: resolvedPlaylistId,
+	const [saved] = await db
+		.insert(watchProgress)
+		.values({
+			userId: input.userId,
+			courseId: input.courseId,
+			courseLessonId: input.courseLessonId,
+			lastPosition: duration,
+			duration,
+			isCompleted: true,
+			deviceType: input.deviceType ?? existing?.deviceType ?? null,
+		})
+		.onConflictDoUpdate({
+			target: [watchProgress.userId, watchProgress.courseLessonId],
+			set: {
+				courseId: input.courseId,
 				lastPosition: duration,
 				duration,
 				isCompleted: true,
 				deviceType: input.deviceType ?? existing?.deviceType ?? null,
-			})
-			.onConflictDoUpdate({
-				target: [watchProgress.userId, watchProgress.contentId],
-				set: {
-					playlistId: resolvedPlaylistId,
-					lastPosition: duration,
-					duration,
-					isCompleted: true,
-					deviceType: input.deviceType ?? existing?.deviceType ?? null,
-					updatedAt: new Date(),
-				},
-			})
-			.returning();
-
-		if (!row) {
-			throw new Error("Failed to mark watch progress as completed");
-		}
-
-		await setLatestPlaylistContent({
-			db: tx,
-			userId: input.userId,
-			playlistId: resolvedPlaylistId,
-			contentId: input.contentId,
-		});
-
-		return row;
-	});
+				updatedAt: new Date(),
+			},
+		})
+		.returning();
 
 	if (!saved) {
 		throw new Error("Failed to mark watch progress as completed");
@@ -334,7 +239,7 @@ export async function getWatchProgressResume(
 	const row = await db.query.watchProgress.findFirst({
 		where: and(
 			eq(watchProgress.userId, input.userId),
-			eq(watchProgress.contentId, input.contentId)
+			eq(watchProgress.courseLessonId, input.courseLessonId)
 		),
 	});
 
@@ -348,145 +253,124 @@ export async function getWatchProgressResume(
 	};
 }
 
-export async function getPlaylistWatchProgressResume(
-	params: GetPlaylistWatchProgressResumeParams
-): Promise<PlaylistWatchProgressResumeResult | null> {
+export async function getCourseWatchProgressResume(
+	params: GetCourseWatchProgressResumeParams
+): Promise<CourseWatchProgressResumeResult | null> {
 	const { db, input } = params;
-	await assertPlaylistExists(db, input.playlistId);
+	await assertCourseExists(db, input.courseId);
 
-	const episodes = await listVisiblePlaylistEpisodes(db, input.playlistId);
-	if (episodes.length === 0) {
+	const lessons = await listPlayableCourseLessons(db, input.courseId);
+	if (lessons.length === 0) {
 		return null;
 	}
 
-	const latest = await db.query.playlistContent.findFirst({
-		where: and(
-			eq(playlistContent.userId, input.userId),
-			eq(playlistContent.playlistId, input.playlistId),
-			eq(playlistContent.isLatestWatched, true)
-		),
-		columns: {
-			contentId: true,
-		},
-		orderBy: [desc(playlistContent.updatedAt), desc(playlistContent.id)],
-	});
-
-	const lastWatchedContentId = latest?.contentId ?? null;
-	const firstEpisode = episodes[0];
-	if (!firstEpisode) {
-		return null;
-	}
-
-	if (!lastWatchedContentId) {
-		return {
-			playlistId: input.playlistId,
-			currentEpisode: firstEpisode,
-			resumePosition: 0,
-			nextEpisode: episodes[1] ?? null,
-			isPlaylistCompleted: false,
-			lastWatchedContentId: null,
-		};
-	}
-
-	const lastEpisodeIndex = episodes.findIndex(
-		(episode) => episode.contentId === lastWatchedContentId
-	);
-
-	if (lastEpisodeIndex < 0) {
-		return {
-			playlistId: input.playlistId,
-			currentEpisode: firstEpisode,
-			resumePosition: 0,
-			nextEpisode: episodes[1] ?? null,
-			isPlaylistCompleted: false,
-			lastWatchedContentId,
-		};
-	}
-
-	const lastProgress = await db.query.watchProgress.findFirst({
+	const latestProgress = await db.query.watchProgress.findFirst({
 		where: and(
 			eq(watchProgress.userId, input.userId),
-			eq(watchProgress.contentId, lastWatchedContentId)
+			eq(watchProgress.courseId, input.courseId)
 		),
-		columns: {
-			lastPosition: true,
-			duration: true,
-			isCompleted: true,
-		},
+		orderBy: [desc(watchProgress.updatedAt), desc(watchProgress.id)],
 	});
 
-	const lastEpisode = episodes[lastEpisodeIndex];
-	if (!lastEpisode) {
-		return {
-			playlistId: input.playlistId,
-			currentEpisode: firstEpisode,
-			resumePosition: 0,
-			nextEpisode: episodes[1] ?? null,
-			isPlaylistCompleted: false,
-			lastWatchedContentId,
-		};
+	const firstLesson = lessons[0];
+	if (!firstLesson) {
+		return null;
 	}
-	const nextFromLast = episodes[lastEpisodeIndex + 1] ?? null;
-	const isLastEpisodeCompleted = Boolean(lastProgress?.isCompleted);
 
-	if (isLastEpisodeCompleted && nextFromLast) {
+	if (!latestProgress) {
 		return {
-			playlistId: input.playlistId,
-			currentEpisode: nextFromLast,
+			courseId: input.courseId,
+			currentLesson: firstLesson,
 			resumePosition: 0,
-			nextEpisode: episodes[lastEpisodeIndex + 2] ?? null,
-			isPlaylistCompleted: false,
-			lastWatchedContentId,
+			nextLesson: lessons[1] ?? null,
+			isCourseCompleted: false,
+			lastWatchedCourseLessonId: null,
 		};
 	}
 
-	if (isLastEpisodeCompleted && !nextFromLast) {
+	const currentIndex = lessons.findIndex(
+		(lesson) => lesson.id === latestProgress.courseLessonId
+	);
+	if (currentIndex < 0) {
 		return {
-			playlistId: input.playlistId,
-			currentEpisode: lastEpisode,
+			courseId: input.courseId,
+			currentLesson: firstLesson,
 			resumePosition: 0,
-			nextEpisode: null,
-			isPlaylistCompleted: true,
-			lastWatchedContentId,
+			nextLesson: lessons[1] ?? null,
+			isCourseCompleted: false,
+			lastWatchedCourseLessonId: latestProgress.courseLessonId,
+		};
+	}
+
+	const currentLesson = lessons[currentIndex];
+	if (!currentLesson) {
+		return null;
+	}
+	const nextLesson = lessons[currentIndex + 1] ?? null;
+
+	if (latestProgress.isCompleted && nextLesson) {
+		return {
+			courseId: input.courseId,
+			currentLesson: nextLesson,
+			resumePosition: 0,
+			nextLesson: lessons[currentIndex + 2] ?? null,
+			isCourseCompleted: false,
+			lastWatchedCourseLessonId: latestProgress.courseLessonId,
+		};
+	}
+
+	if (latestProgress.isCompleted && !nextLesson) {
+		return {
+			courseId: input.courseId,
+			currentLesson,
+			resumePosition: 0,
+			nextLesson: null,
+			isCourseCompleted: true,
+			lastWatchedCourseLessonId: latestProgress.courseLessonId,
 		};
 	}
 
 	return {
-		playlistId: input.playlistId,
-		currentEpisode: lastEpisode,
+		courseId: input.courseId,
+		currentLesson,
 		resumePosition: normalizeResumePosition({
-			lastPosition: lastProgress?.lastPosition ?? 0,
-			duration: lastEpisode.content.duration,
+			lastPosition: latestProgress.lastPosition,
+			duration: currentLesson.duration,
 		}),
-		nextEpisode: nextFromLast,
-		isPlaylistCompleted: false,
-		lastWatchedContentId,
+		nextLesson,
+		isCourseCompleted: false,
+		lastWatchedCourseLessonId: latestProgress.courseLessonId,
 	};
 }
 
-export async function getPlaylistAutoPlayNext(
-	params: GetPlaylistAutoPlayNextParams
-): Promise<PlaylistAutoPlayNextResult> {
+export async function getCourseAutoPlayNext(
+	params: GetCourseAutoPlayNextParams
+): Promise<CourseAutoPlayNextResult> {
 	const { db, input } = params;
-	await assertPlaylistExists(db, input.playlistId);
+	await assertCourseExists(db, input.courseId);
+	await assertCourseLessonExists({
+		db,
+		courseId: input.courseId,
+		courseLessonId: input.courseLessonId,
+	});
 
-	const episodes = await listVisiblePlaylistEpisodes(db, input.playlistId);
-	const currentIndex = episodes.findIndex(
-		(episode) => episode.contentId === input.contentId
+	const lessons = await listPlayableCourseLessons(db, input.courseId);
+	const currentIndex = lessons.findIndex(
+		(lesson) => lesson.id === input.courseLessonId
 	);
 
 	if (currentIndex < 0) {
 		throw new WatchProgressValidationError(
-			"contentId does not belong to a playable episode in this playlist"
+			"courseLessonId does not belong to a playable lesson in this course"
 		);
 	}
 
-	const nextEpisode = episodes[currentIndex + 1] ?? null;
+	const nextLesson = lessons[currentIndex + 1] ?? null;
 	return {
-		playlistId: input.playlistId,
-		contentId: input.contentId,
-		nextEpisode,
-		isPlaylistCompleted: nextEpisode === null,
+		courseId: input.courseId,
+		courseLessonId: input.courseLessonId,
+		nextLesson,
+		isCourseCompleted: nextLesson === null,
 	};
 }
 
@@ -501,32 +385,44 @@ export async function listContinueWatching(
 	const where = and(
 		eq(watchProgress.userId, input.userId),
 		eq(watchProgress.isCompleted, false),
-		eq(content.isDeleted, false),
-		eq(content.isPublished, true),
-		eq(content.isAvailable, true)
+		eq(course.isDeleted, false),
+		eq(course.isPublished, true),
+		eq(course.isAvailable, true)
 	);
 
 	const countRows = await db
 		.select({ total: count() })
 		.from(watchProgress)
-		.innerJoin(content, eq(watchProgress.contentId, content.id))
+		.innerJoin(course, eq(watchProgress.courseId, course.id))
 		.where(where);
 	const total = Number(countRows[0]?.total ?? 0);
 
 	const rows = await db
 		.select({
 			progress: watchProgress,
-			content: {
-				id: content.id,
-				title: content.title,
-				thumbnailImageId: content.thumbnailImageId,
-				duration: content.duration,
-				contentType: content.contentType,
-				releaseDate: content.releaseDate,
+			course: {
+				id: course.id,
+				title: course.title,
+				thumbnailImageId: course.thumbnailImageId,
+			},
+			lesson: {
+				id: courseLesson.id,
+				courseId: courseLesson.courseId,
+				lessonOrder: courseLesson.lessonOrder,
+				title: courseLesson.title,
+				description: courseLesson.description,
+				thumbnailImageId: courseLesson.thumbnailImageId,
+				duration: courseLesson.duration,
+				releaseDate: courseLesson.releaseDate,
+				fileId: courseLesson.fileId,
+				addedAt: courseLesson.addedAt,
+				createdAt: courseLesson.createdAt,
+				updatedAt: courseLesson.updatedAt,
 			},
 		})
 		.from(watchProgress)
-		.innerJoin(content, eq(watchProgress.contentId, content.id))
+		.innerJoin(course, eq(watchProgress.courseId, course.id))
+		.innerJoin(courseLesson, eq(watchProgress.courseLessonId, courseLesson.id))
 		.where(where)
 		.orderBy(desc(watchProgress.updatedAt), desc(watchProgress.id))
 		.limit(limit)
@@ -538,7 +434,8 @@ export async function listContinueWatching(
 			row.progress.lastPosition,
 			row.progress.duration
 		),
-		content: row.content,
+		course: row.course,
+		lesson: row.lesson,
 	}));
 
 	return {
