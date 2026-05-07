@@ -78,6 +78,13 @@
       "when": 1777474744384,
       "tag": "0010_secret_blue_shield",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1778134739771,
+      "tag": "0011_green_madelyne_pryor",
+      "breakpoints": true
     }
   ]
 }

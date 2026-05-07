@@ -14,6 +14,7 @@ import {
 } from "drizzle-orm/pg-core";
 import { timestamps } from "./_helpers";
 import { user } from "./auth";
+import { category } from "./category";
 import { file } from "./media";
 
 export const course = pgTable(
@@ -76,6 +77,24 @@ export const courseLesson = pgTable(
 	]
 );
 
+export const courseCategory = pgTable(
+	"course_category",
+	{
+		id: uuid("id").primaryKey().defaultRandom(),
+		courseId: uuid("course_id")
+			.notNull()
+			.references(() => course.id, { onDelete: "cascade" }),
+		categoryId: uuid("category_id")
+			.notNull()
+			.references(() => category.id, { onDelete: "cascade" }),
+	},
+	(table) => [
+		index("courseCategory_courseId_idx").on(table.courseId),
+		index("courseCategory_categoryId_idx").on(table.categoryId),
+		unique("courseCategory_unique").on(table.courseId, table.categoryId),
+	]
+);
+
 export const coursePricing = pgTable(
 	"course_pricing",
 	{
@@ -116,7 +135,19 @@ export const courseRelations = relations(course, ({ one, many }) => ({
 		relationName: "courseThumbnailImage",
 	}),
 	courseLessons: many(courseLesson),
+	courseCategories: many(courseCategory),
 	coursePricings: many(coursePricing),
+}));
+
+export const courseCategoryRelations = relations(courseCategory, ({ one }) => ({
+	course: one(course, {
+		fields: [courseCategory.courseId],
+		references: [course.id],
+	}),
+	category: one(category, {
+		fields: [courseCategory.categoryId],
+		references: [category.id],
+	}),
 }));
 
 export const courseLessonRelations = relations(courseLesson, ({ one }) => ({
