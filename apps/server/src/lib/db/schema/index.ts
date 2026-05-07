@@ -3,6 +3,6 @@ export * from "./_helpers";
 export * from "./auth";
 export * from "./commerce";
 export * from "./content";
+export * from "./course";
 export * from "./media";
-export * from "./playlist";
 export * from "./streaming";
