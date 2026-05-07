@@ -11,22 +11,10 @@ const dateRangeInputSchema = z.object({
 });
 
 const scopedInputSchema = dateRangeInputSchema.extend({
-	creatorId: z.string().trim().min(1).optional(),
 	courseId: z.uuid().optional(),
 });
 
 const sortDirectionSchema = z.enum(["asc", "desc"]);
-
-const instructorBreakdownSortBySchema = z.enum([
-	"netRevenue",
-	"totalEnrollments",
-	"activeEnrollments",
-	"learnersStarted",
-	"courseCompletions",
-	"totalViews",
-	"averageRating",
-	"publishedCourses",
-]);
 
 const coursePerformanceSortBySchema = z.enum([
 	"netRevenue",
@@ -65,16 +53,6 @@ export const analyticsViewSessionsInputSchema = scopedInputSchema.extend({
 	userId: z.string().trim().min(1).optional(),
 	courseLessonId: z.uuid().optional(),
 });
-
-export const analyticsInstructorBreakdownInputSchema = scopedInputSchema.extend(
-	{
-		page: paginationInputSchema.shape.page,
-		limit: paginationInputSchema.shape.limit,
-		search: z.string().trim().min(1).optional(),
-		sortBy: instructorBreakdownSortBySchema.default("netRevenue"),
-		sortDirection: sortDirectionSchema.default("desc"),
-	}
-);
 
 export const analyticsCoursePerformanceInputSchema = scopedInputSchema.extend({
 	page: paginationInputSchema.shape.page,
@@ -147,35 +125,10 @@ export const analyticsViewSessionsOutputSchema = z.object({
 	pagination: analyticsPaginationSchema,
 });
 
-export const analyticsInstructorBreakdownOutputSchema = z.object({
-	items: z.array(
-		z.object({
-			creatorId: z.string(),
-			creatorName: z.string(),
-			creatorEmail: z.string(),
-			courseCount: z.number().int(),
-			publishedCourses: z.number().int(),
-			totalEnrollments: z.number().int(),
-			activeEnrollments: z.number().int(),
-			learnersStarted: z.number().int(),
-			courseCompletions: z.number().int(),
-			totalViews: z.number().int(),
-			totalWatchDuration: z.number().int(),
-			grossRevenue: z.number(),
-			refundedRevenue: z.number(),
-			netRevenue: z.number(),
-			visibleReviewCount: z.number().int(),
-			averageRating: z.number().nullable(),
-		})
-	),
-	pagination: analyticsPaginationSchema,
-});
-
 export const analyticsCoursePerformanceOutputSchema = z.object({
 	items: z.array(
 		z.object({
 			courseId: z.uuid(),
-			creatorId: z.string(),
 			courseTitle: z.string(),
 			isPublished: z.boolean(),
 			isAvailable: z.boolean(),

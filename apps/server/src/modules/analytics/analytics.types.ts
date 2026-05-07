@@ -6,7 +6,6 @@ export interface AnalyticsDateRangeInput {
 }
 
 export interface AnalyticsScopedInput extends AnalyticsDateRangeInput {
-	creatorId?: string;
 	courseId?: string;
 }
 
@@ -30,24 +29,6 @@ export interface AnalyticsViewSessionsInput
 		AnalyticsPaginationInput {
 	userId?: string;
 	courseLessonId?: string;
-}
-
-export type AnalyticsInstructorBreakdownSortBy =
-	| "netRevenue"
-	| "totalEnrollments"
-	| "activeEnrollments"
-	| "learnersStarted"
-	| "courseCompletions"
-	| "totalViews"
-	| "averageRating"
-	| "publishedCourses";
-
-export interface AnalyticsInstructorBreakdownInput
-	extends AnalyticsScopedInput,
-		AnalyticsPaginationInput {
-	search?: string;
-	sortBy?: AnalyticsInstructorBreakdownSortBy;
-	sortDirection?: AnalyticsSortDirection;
 }
 
 export type AnalyticsCoursePerformanceSortBy =
@@ -124,28 +105,8 @@ export interface AnalyticsViewSessionItem {
 	deviceType: string | null;
 }
 
-export interface AnalyticsInstructorBreakdownItem {
-	creatorId: string;
-	creatorName: string;
-	creatorEmail: string;
-	courseCount: number;
-	publishedCourses: number;
-	totalEnrollments: number;
-	activeEnrollments: number;
-	learnersStarted: number;
-	courseCompletions: number;
-	totalViews: number;
-	totalWatchDuration: number;
-	grossRevenue: number;
-	refundedRevenue: number;
-	netRevenue: number;
-	visibleReviewCount: number;
-	averageRating: number | null;
-}
-
 export interface AnalyticsCoursePerformanceItem {
 	courseId: string;
-	creatorId: string;
 	courseTitle: string;
 	isPublished: boolean;
 	isAvailable: boolean;
@@ -201,11 +162,6 @@ export interface AnalyticsViewSessionsResult {
 	pagination: AnalyticsPagination;
 }
 
-export interface AnalyticsInstructorBreakdownResult {
-	items: AnalyticsInstructorBreakdownItem[];
-	pagination: AnalyticsPagination;
-}
-
 export interface AnalyticsCoursePerformanceResult {
 	items: AnalyticsCoursePerformanceItem[];
 	pagination: AnalyticsPagination;
@@ -229,11 +185,6 @@ export interface AnalyticsLessonViewsParams {
 export interface AnalyticsViewSessionsParams {
 	db: DbClient;
 	input: AnalyticsViewSessionsInput;
-}
-
-export interface AnalyticsInstructorBreakdownParams {
-	db: DbClient;
-	input: AnalyticsInstructorBreakdownInput;
 }
 
 export interface AnalyticsCoursePerformanceParams {
