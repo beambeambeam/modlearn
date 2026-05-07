@@ -164,11 +164,18 @@ export const courseRouter = router({
 		})
 		.input(courseAdminCreateInputSchema)
 		.output(courseSchema)
-		.handler(({ context, input }) => {
-			return createCourse({
+		.handler(async ({ context, input }) => {
+			const created = await createCourse({
 				db: context.db,
 				input,
 				creatorId: context.session.user.id,
+			});
+			return getCourseById({
+				db: context.db,
+				input: {
+					id: created.id,
+					onlyPublished: false,
+				},
 			});
 		}),
 	adminUpdate: adminProcedure
@@ -182,10 +189,17 @@ export const courseRouter = router({
 		})
 		.input(courseAdminUpdateInputSchema)
 		.output(courseSchema)
-		.handler(({ context, input }) => {
-			return updateCourse({
+		.handler(async ({ context, input }) => {
+			const updated = await updateCourse({
 				db: context.db,
 				input,
+			});
+			return getCourseById({
+				db: context.db,
+				input: {
+					id: updated.id,
+					onlyPublished: false,
+				},
 			});
 		}),
 	adminDelete: adminProcedure
@@ -216,10 +230,17 @@ export const courseRouter = router({
 		})
 		.input(courseAdminSetPublishStateInputSchema)
 		.output(courseSchema)
-		.handler(({ context, input }) => {
-			return setCoursePublishState({
+		.handler(async ({ context, input }) => {
+			const updated = await setCoursePublishState({
 				db: context.db,
 				input,
+			});
+			return getCourseById({
+				db: context.db,
+				input: {
+					id: updated.id,
+					onlyPublished: false,
+				},
 			});
 		}),
 	adminSetAvailability: adminProcedure
@@ -233,10 +254,17 @@ export const courseRouter = router({
 		})
 		.input(courseAdminSetAvailabilityInputSchema)
 		.output(courseSchema)
-		.handler(({ context, input }) => {
-			return setCourseAvailability({
+		.handler(async ({ context, input }) => {
+			const updated = await setCourseAvailability({
 				db: context.db,
 				input,
+			});
+			return getCourseById({
+				db: context.db,
+				input: {
+					id: updated.id,
+					onlyPublished: false,
+				},
 			});
 		}),
 	adminSetClassification: adminProcedure
