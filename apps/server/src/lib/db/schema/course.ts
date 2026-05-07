@@ -16,6 +16,7 @@ import { timestamps } from "./_helpers";
 import { user } from "./auth";
 import { category } from "./category";
 import { file } from "./media";
+import { courseReview } from "./review";
 
 export const course = pgTable(
 	"course",
@@ -137,6 +138,7 @@ export const courseRelations = relations(course, ({ one, many }) => ({
 	courseLessons: many(courseLesson),
 	courseCategories: many(courseCategory),
 	coursePricings: many(coursePricing),
+	reviews: many(courseReview),
 }));
 
 export const courseCategoryRelations = relations(courseCategory, ({ one }) => ({
