@@ -11,13 +11,9 @@ import {
 } from "drizzle-orm/pg-core";
 import { timestamps } from "./_helpers";
 import { user } from "./auth";
-import { content } from "./content";
-import { playlist } from "./playlist";
+import { course } from "./course";
 
-export const cartItemTypeEnum = pgEnum("cart_item_type", [
-	"CONTENT",
-	"PLAYLIST",
-]);
+export const cartItemTypeEnum = pgEnum("cart_item_type", ["COURSE"]);
 
 export const orderStatusEnum = pgEnum("order_status", [
 	"PENDING",
@@ -45,10 +41,7 @@ export const order = pgTable(
 		}).notNull(),
 		currency: text("currency").notNull(),
 		itemType: cartItemTypeEnum("item_type").notNull(),
-		contentId: uuid("content_id").references(() => content.id, {
-			onDelete: "set null",
-		}),
-		playlistId: uuid("playlist_id").references(() => playlist.id, {
+		courseId: uuid("course_id").references(() => course.id, {
 			onDelete: "set null",
 		}),
 		status: orderStatusEnum("status").notNull(),
@@ -57,8 +50,7 @@ export const order = pgTable(
 	(table) => [
 		index("order_userId_idx").on(table.userId),
 		index("order_status_idx").on(table.status),
-		index("order_contentId_idx").on(table.contentId),
-		index("order_playlistId_idx").on(table.playlistId),
+		index("order_courseId_idx").on(table.courseId),
 		index("order_createdAt_idx").on(table.createdAt),
 	]
 );
@@ -88,13 +80,13 @@ export const payment = pgTable(
 	]
 );
 
-export const contentPurchase = pgTable(
-	"content_purchase",
+export const coursePurchase = pgTable(
+	"course_purchase",
 	{
 		id: uuid("id").primaryKey().defaultRandom(),
-		contentId: uuid("content_id")
+		courseId: uuid("course_id")
 			.notNull()
-			.references(() => content.id, { onDelete: "cascade" }),
+			.references(() => course.id, { onDelete: "cascade" }),
 		userId: text("user_id")
 			.notNull()
 			.references(() => user.id, { onDelete: "cascade" }),
@@ -108,11 +100,11 @@ export const contentPurchase = pgTable(
 		}),
 	},
 	(table) => [
-		index("contentPurchase_userId_idx").on(table.userId),
-		index("contentPurchase_contentId_idx").on(table.contentId),
-		unique("contentPurchase_userContent_unique").on(
+		index("coursePurchase_userId_idx").on(table.userId),
+		index("coursePurchase_courseId_idx").on(table.courseId),
+		unique("coursePurchase_userCourse_unique").on(
 			table.userId,
-			table.contentId
+			table.courseId
 		),
 	]
 );
@@ -124,12 +116,9 @@ export const userLibrary = pgTable(
 		userId: text("user_id")
 			.notNull()
 			.references(() => user.id, { onDelete: "cascade" }),
-		contentId: uuid("content_id")
+		courseId: uuid("course_id")
 			.notNull()
-			.references(() => content.id, { onDelete: "cascade" }),
-		playlistId: uuid("playlist_id").references(() => playlist.id, {
-			onDelete: "set null",
-		}),
+			.references(() => course.id, { onDelete: "cascade" }),
 		orderId: uuid("order_id")
 			.notNull()
 			.references(() => order.id, { onDelete: "cascade" }),
@@ -140,9 +129,9 @@ export const userLibrary = pgTable(
 	},
 	(table) => [
 		index("userLibrary_userId_idx").on(table.userId),
-		index("userLibrary_contentId_idx").on(table.contentId),
+		index("userLibrary_courseId_idx").on(table.courseId),
 		index("userLibrary_orderId_idx").on(table.orderId),
-		unique("userLibrary_userContent_unique").on(table.userId, table.contentId),
+		unique("userLibrary_userCourse_unique").on(table.userId, table.courseId),
 	]
 );
 
@@ -151,16 +140,12 @@ export const orderRelations = relations(order, ({ one, many }) => ({
 		fields: [order.userId],
 		references: [user.id],
 	}),
-	content: one(content, {
-		fields: [order.contentId],
-		references: [content.id],
-	}),
-	playlist: one(playlist, {
-		fields: [order.playlistId],
-		references: [playlist.id],
+	course: one(course, {
+		fields: [order.courseId],
+		references: [course.id],
 	}),
 	payments: many(payment),
-	contentPurchases: many(contentPurchase),
+	coursePurchases: many(coursePurchase),
 	userLibraries: many(userLibrary),
 }));
 
@@ -171,19 +156,19 @@ export const paymentRelations = relations(payment, ({ one }) => ({
 	}),
 }));
 
-export const contentPurchaseRelations = relations(
-	contentPurchase,
+export const coursePurchaseRelations = relations(
+	coursePurchase,
 	({ one }) => ({
-		content: one(content, {
-			fields: [contentPurchase.contentId],
-			references: [content.id],
+		course: one(course, {
+			fields: [coursePurchase.courseId],
+			references: [course.id],
 		}),
 		user: one(user, {
-			fields: [contentPurchase.userId],
+			fields: [coursePurchase.userId],
 			references: [user.id],
 		}),
 		order: one(order, {
-			fields: [contentPurchase.orderId],
+			fields: [coursePurchase.orderId],
 			references: [order.id],
 		}),
 	})
@@ -194,13 +179,9 @@ export const userLibraryRelations = relations(userLibrary, ({ one }) => ({
 		fields: [userLibrary.userId],
 		references: [user.id],
 	}),
-	content: one(content, {
-		fields: [userLibrary.contentId],
-		references: [content.id],
-	}),
-	playlist: one(playlist, {
-		fields: [userLibrary.playlistId],
-		references: [playlist.id],
+	course: one(course, {
+		fields: [userLibrary.courseId],
+		references: [course.id],
 	}),
 	order: one(order, {
 		fields: [userLibrary.orderId],

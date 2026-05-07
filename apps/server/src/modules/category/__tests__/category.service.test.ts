@@ -6,7 +6,7 @@ import {
 	type TestDatabase,
 } from "@/__tests__/helpers/test-db";
 import { eq } from "@/lib/db/orm";
-import { content, contentCategory } from "@/lib/db/schema";
+import { course, courseCategory } from "@/lib/db/schema";
 import {
 	createCategory,
 	deleteCategory,
@@ -194,7 +194,7 @@ describe("category service", () => {
 		).rejects.toThrow(CategoryNotFoundError);
 	});
 
-	it("deleteCategory cascades content_category links", async () => {
+	it("deleteCategory cascades course_category links", async () => {
 		const user = await createTestUser(testDb.client, {
 			email: "category-cascade@example.com",
 		});
@@ -202,23 +202,22 @@ describe("category service", () => {
 			db: testDb.db,
 			input: { title: "Cascade", slug: "cascade" },
 		});
-		const [createdContent] = await testDb.db
-			.insert(content)
+		const [createdCourse] = await testDb.db
+			.insert(course)
 			.values({
-				title: "Linked Content",
-				contentType: "MOVIE",
-				updatedBy: user.id,
+				title: "Linked Course",
+				creatorId: user.id,
 				isPublished: true,
 				isAvailable: true,
 				publishedAt: new Date("2025-01-01T00:00:00.000Z"),
 			})
 			.returning();
-		if (!createdContent) {
-			throw new Error("Failed to create content");
+		if (!createdCourse) {
+			throw new Error("Failed to create course");
 		}
 
-		await testDb.db.insert(contentCategory).values({
-			contentId: createdContent.id,
+		await testDb.db.insert(courseCategory).values({
+			courseId: createdCourse.id,
 			categoryId: createdCategory.id,
 		});
 
@@ -229,8 +228,8 @@ describe("category service", () => {
 
 		const links = await testDb.db
 			.select()
-			.from(contentCategory)
-			.where(eq(contentCategory.contentId, createdContent.id));
+			.from(courseCategory)
+			.where(eq(courseCategory.courseId, createdCourse.id));
 		expect(links).toHaveLength(0);
 	});
 });

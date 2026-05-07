@@ -1,19 +1,15 @@
 import type { DbClient } from "@/lib/db/orm";
-import type { contentTypeEnum } from "@/lib/db/schema";
-
-export type AnalyticsContentType = (typeof contentTypeEnum.enumValues)[number];
 
 export interface AnalyticsOverviewInput {
 	from?: Date;
 	to?: Date;
 }
 
-export interface AnalyticsContentViewsInput {
+export interface AnalyticsLessonViewsInput {
 	page?: number;
 	limit?: number;
 	from?: Date;
 	to?: Date;
-	contentType?: AnalyticsContentType;
 	search?: string;
 }
 
@@ -23,7 +19,7 @@ export interface AnalyticsViewSessionsInput {
 	from?: Date;
 	to?: Date;
 	userId?: string;
-	contentId?: string;
+	courseLessonId?: string;
 }
 
 export interface AnalyticsOverviewResult {
@@ -32,18 +28,18 @@ export interface AnalyticsOverviewResult {
 	generatedAt: Date;
 }
 
-export interface AnalyticsContentViewItem {
-	contentId: string;
+export interface AnalyticsLessonViewItem {
+	courseLessonId: string;
+	courseId: string;
+	courseTitle: string;
 	title: string;
-	contentType: AnalyticsContentType;
 	aggregatedViews: number;
 	aggregatedWatchDuration: number;
-	cachedViewCount: number;
 }
 
 export interface AnalyticsViewSessionItem {
 	id: string;
-	contentId: string;
+	courseLessonId: string;
 	userId: string | null;
 	viewedAt: Date;
 	watchDuration: number | null;
@@ -57,8 +53,8 @@ export interface AnalyticsPagination {
 	totalPages: number;
 }
 
-export interface AnalyticsContentViewsResult {
-	items: AnalyticsContentViewItem[];
+export interface AnalyticsLessonViewsResult {
+	items: AnalyticsLessonViewItem[];
 	pagination: AnalyticsPagination;
 }
 
@@ -72,9 +68,9 @@ export interface AnalyticsOverviewParams {
 	input: AnalyticsOverviewInput;
 }
 
-export interface AnalyticsContentViewsParams {
+export interface AnalyticsLessonViewsParams {
 	db: DbClient;
-	input: AnalyticsContentViewsInput;
+	input: AnalyticsLessonViewsInput;
 }
 
 export interface AnalyticsViewSessionsParams {

@@ -1,12 +1,11 @@
 import type { DbClient } from "@/lib/db/orm";
 
-export type CommerceItemType = "CONTENT" | "PLAYLIST";
+export type CommerceItemType = "COURSE";
 export type CommerceCurrency = string;
 
 export interface CommercePriceSnapshot {
 	itemType: CommerceItemType;
-	contentId: string | null;
-	playlistId: string | null;
+	courseId: string;
 	price: string;
 	currency: CommerceCurrency;
 }
@@ -22,13 +21,8 @@ export interface CommercePaymentRefundInput {
 	reason?: string;
 }
 
-export interface CommerceBuyContentInput {
-	contentId: string;
-	providerTransactionId?: string;
-}
-
-export interface CommerceBuyPlaylistInput {
-	playlistId: string;
+export interface CommerceBuyCourseInput {
+	courseId: string;
 	providerTransactionId?: string;
 }
 
@@ -60,9 +54,9 @@ export interface CommercePricingPagination {
 	totalPages: number;
 }
 
-export interface CommerceContentPricingWindowView {
+export interface CommerceCoursePricingWindowView {
 	id: string;
-	contentId: string;
+	courseId: string;
 	price: string;
 	currency: string;
 	effectiveFrom: Date;
@@ -72,47 +66,21 @@ export interface CommerceContentPricingWindowView {
 	isActive: boolean;
 }
 
-export interface CommercePlaylistPricingWindowView {
-	id: string;
-	playlistId: string;
-	price: string;
-	currency: string;
-	effectiveFrom: Date;
-	effectiveTo: Date | null;
-	createdBy: string;
-	createdAt: Date;
-	isActive: boolean;
-}
-
-export interface CommerceContentPricingListInput {
-	contentId: string;
+export interface CommerceCoursePricingListInput {
+	courseId: string;
 	page?: number;
 	limit?: number;
 }
 
-export interface CommercePlaylistPricingListInput {
-	playlistId: string;
-	page?: number;
-	limit?: number;
-}
-
-export interface CommerceContentPricingCreateInput {
-	contentId: string;
+export interface CommerceCoursePricingCreateInput {
+	courseId: string;
 	price: string;
 	currency: string;
 	effectiveFrom: Date;
 	effectiveTo?: Date | null;
 }
 
-export interface CommercePlaylistPricingCreateInput {
-	playlistId: string;
-	price: string;
-	currency: string;
-	effectiveFrom: Date;
-	effectiveTo?: Date | null;
-}
-
-export interface CommerceContentPricingUpdateInput {
+export interface CommerceCoursePricingUpdateInput {
 	id: string;
 	patch: {
 		price?: string;
@@ -122,23 +90,8 @@ export interface CommerceContentPricingUpdateInput {
 	};
 }
 
-export interface CommercePlaylistPricingUpdateInput {
-	id: string;
-	patch: {
-		price?: string;
-		currency?: string;
-		effectiveFrom?: Date;
-		effectiveTo?: Date | null;
-	};
-}
-
-export interface CommerceContentPricingListView {
-	items: CommerceContentPricingWindowView[];
-	pagination: CommercePricingPagination;
-}
-
-export interface CommercePlaylistPricingListView {
-	items: CommercePlaylistPricingWindowView[];
+export interface CommerceCoursePricingListView {
+	items: CommerceCoursePricingWindowView[];
 	pagination: CommercePricingPagination;
 }
 
@@ -149,39 +102,36 @@ export interface CommerceServiceBaseParams {
 
 export interface CommerceActivePriceQuery {
 	db: DbClient;
-	contentId?: string;
-	playlistId?: string;
+	courseId: string;
 	now?: Date;
 }
 
 export interface CommerceOwnershipQuery {
 	db: DbClient;
 	userId: string;
-	contentId?: string;
-	playlistId?: string;
+	courseId: string;
 	now?: Date;
 }
 
-export class CommerceContentNotFoundError extends Error {
+export class CommerceCourseNotFoundError extends Error {
 	constructor() {
-		super("Content not found");
-		this.name = "CommerceContentNotFoundError";
+		super("Course not found");
+		this.name = "CommerceCourseNotFoundError";
 	}
 }
 
-export class CommercePlaylistNotFoundError extends Error {
+// Temporary aliases so shared error handling still compiles until fully cleaned up.
+export class CommerceContentNotFoundError extends CommerceCourseNotFoundError {}
+export class CommercePlaylistNotFoundError extends CommerceCourseNotFoundError {}
+
+export class CommerceCourseEmptyError extends Error {
 	constructor() {
-		super("Playlist not found");
-		this.name = "CommercePlaylistNotFoundError";
+		super("Course has no lessons to purchase");
+		this.name = "CommerceCourseEmptyError";
 	}
 }
 
-export class CommercePlaylistEmptyError extends Error {
-	constructor() {
-		super("Playlist has no episodes to purchase");
-		this.name = "CommercePlaylistEmptyError";
-	}
-}
+export class CommercePlaylistEmptyError extends CommerceCourseEmptyError {}
 
 export class CommerceItemAlreadyOwnedError extends Error {
 	constructor() {

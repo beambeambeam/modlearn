@@ -1,5 +1,5 @@
 import type { DbClient } from "@/lib/db/orm";
-import type { content } from "@/lib/db/schema";
+import type { courseLesson } from "@/lib/db/schema";
 
 export interface RecommendationListForMeInput {
 	limit?: number;
@@ -33,4 +33,4 @@ export interface ListRecentlyAddedRecommendationsParams {
 	input: RecommendationListRecentlyAddedInput;
 }
 
-export type RecommendationItem = typeof content.$inferSelect;
+export type RecommendationItem = typeof courseLesson.$inferSelect;

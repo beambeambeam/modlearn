@@ -1,10 +1,10 @@
 import type { DbClient } from "@/lib/db/orm";
-import type { content, playlistEpisode, watchProgress } from "@/lib/db/schema";
+import type { course, courseLesson, watchProgress } from "@/lib/db/schema";
 
 export interface WatchProgressSaveInput {
 	userId: string;
-	contentId: string;
-	playlistId?: string | null;
+	courseId: string;
+	courseLessonId: string;
 	lastPosition: number;
 	duration: number;
 	deviceType?: string | null;
@@ -12,26 +12,26 @@ export interface WatchProgressSaveInput {
 
 export interface WatchProgressMarkCompletedInput {
 	userId: string;
-	contentId: string;
-	playlistId?: string | null;
+	courseId: string;
+	courseLessonId: string;
 	duration?: number;
 	deviceType?: string | null;
 }
 
 export interface WatchProgressGetResumeInput {
 	userId: string;
-	contentId: string;
+	courseLessonId: string;
 }
 
-export interface WatchProgressGetPlaylistResumeInput {
+export interface WatchProgressGetCourseResumeInput {
 	userId: string;
-	playlistId: string;
+	courseId: string;
 }
 
-export interface WatchProgressGetPlaylistAutoPlayNextInput {
+export interface WatchProgressGetCourseAutoPlayNextInput {
 	userId: string;
-	playlistId: string;
-	contentId: string;
+	courseId: string;
+	courseLessonId: string;
 }
 
 export interface WatchProgressContinueWatchingInput {
@@ -55,14 +55,14 @@ export interface GetWatchProgressResumeParams {
 	input: WatchProgressGetResumeInput;
 }
 
-export interface GetPlaylistWatchProgressResumeParams {
+export interface GetCourseWatchProgressResumeParams {
 	db: DbClient;
-	input: WatchProgressGetPlaylistResumeInput;
+	input: WatchProgressGetCourseResumeInput;
 }
 
-export interface GetPlaylistAutoPlayNextParams {
+export interface GetCourseAutoPlayNextParams {
 	db: DbClient;
-	input: WatchProgressGetPlaylistAutoPlayNextInput;
+	input: WatchProgressGetCourseAutoPlayNextInput;
 }
 
 export interface ListContinueWatchingParams {
@@ -79,60 +79,46 @@ export interface WatchProgressResumeResult extends ProgressEnvelope {
 	resumePosition: number;
 }
 
-type PlaylistEpisodeRow = Pick<
-	typeof playlistEpisode.$inferSelect,
+export type CourseLessonProgressSummary = Pick<
+	typeof courseLesson.$inferSelect,
 	| "id"
-	| "playlistId"
-	| "contentId"
-	| "episodeOrder"
-	| "seasonNumber"
-	| "episodeNumber"
+	| "courseId"
+	| "lessonOrder"
 	| "title"
+	| "description"
+	| "thumbnailImageId"
+	| "duration"
+	| "releaseDate"
+	| "fileId"
 	| "addedAt"
+	| "createdAt"
+	| "updatedAt"
 >;
 
-type PlaylistEpisodeContentSummary = Pick<
-	typeof content.$inferSelect,
-	| "id"
-	| "title"
-	| "thumbnailImageId"
-	| "duration"
-	| "contentType"
-	| "releaseDate"
->;
-
-export type PlaylistEpisodeProgressSummary = PlaylistEpisodeRow & {
-	content: PlaylistEpisodeContentSummary;
-};
-
-export interface PlaylistWatchProgressResumeResult {
-	playlistId: string;
-	currentEpisode: PlaylistEpisodeProgressSummary;
+export interface CourseWatchProgressResumeResult {
+	courseId: string;
+	currentLesson: CourseLessonProgressSummary;
 	resumePosition: number;
-	nextEpisode: PlaylistEpisodeProgressSummary | null;
-	isPlaylistCompleted: boolean;
-	lastWatchedContentId: string | null;
+	nextLesson: CourseLessonProgressSummary | null;
+	isCourseCompleted: boolean;
+	lastWatchedCourseLessonId: string | null;
 }
 
-export interface PlaylistAutoPlayNextResult {
-	playlistId: string;
-	contentId: string;
-	nextEpisode: PlaylistEpisodeProgressSummary | null;
-	isPlaylistCompleted: boolean;
+export interface CourseAutoPlayNextResult {
+	courseId: string;
+	courseLessonId: string;
+	nextLesson: CourseLessonProgressSummary | null;
+	isCourseCompleted: boolean;
 }
 
-type ContinueWatchingContentSummary = Pick<
-	typeof content.$inferSelect,
-	| "id"
-	| "title"
-	| "thumbnailImageId"
-	| "duration"
-	| "contentType"
-	| "releaseDate"
+export type ContinueWatchingCourseSummary = Pick<
+	typeof course.$inferSelect,
+	"id" | "title" | "thumbnailImageId"
 >;
 
 export interface ContinueWatchingItem extends ProgressEnvelope {
-	content: ContinueWatchingContentSummary;
+	course: ContinueWatchingCourseSummary;
+	lesson: CourseLessonProgressSummary;
 }
 
 export interface ContinueWatchingResult {
@@ -145,16 +131,30 @@ export interface ContinueWatchingResult {
 	};
 }
 
-export class WatchProgressContentNotFoundError extends Error {
+export class WatchProgressCourseNotFoundError extends Error {
 	constructor() {
-		super("Content not found");
+		super("Course not found");
+		this.name = "WatchProgressCourseNotFoundError";
+	}
+}
+
+export class WatchProgressCourseLessonNotFoundError extends Error {
+	constructor() {
+		super("Course lesson not found");
+		this.name = "WatchProgressCourseLessonNotFoundError";
+	}
+}
+
+export class WatchProgressContentNotFoundError extends WatchProgressCourseLessonNotFoundError {
+	constructor() {
+		super();
 		this.name = "WatchProgressContentNotFoundError";
 	}
 }
 
-export class WatchProgressPlaylistNotFoundError extends Error {
+export class WatchProgressPlaylistNotFoundError extends WatchProgressCourseNotFoundError {
 	constructor() {
-		super("Playlist not found");
+		super();
 		this.name = "WatchProgressPlaylistNotFoundError";
 	}
 }

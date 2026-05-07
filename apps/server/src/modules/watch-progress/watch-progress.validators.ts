@@ -3,31 +3,31 @@ import { z } from "zod";
 const deviceTypeSchema = z.string().trim().min(1).max(64).nullable().optional();
 
 export const watchProgressSaveInputSchema = z.object({
-	contentId: z.uuid(),
-	playlistId: z.uuid().nullable().optional(),
+	courseId: z.uuid(),
+	courseLessonId: z.uuid(),
 	lastPosition: z.number().int().min(0),
 	duration: z.number().int().positive(),
 	deviceType: deviceTypeSchema,
 });
 
 export const watchProgressMarkCompletedInputSchema = z.object({
-	contentId: z.uuid(),
-	playlistId: z.uuid().nullable().optional(),
+	courseId: z.uuid(),
+	courseLessonId: z.uuid(),
 	duration: z.number().int().positive().optional(),
 	deviceType: deviceTypeSchema,
 });
 
 export const watchProgressGetResumeInputSchema = z.object({
-	contentId: z.uuid(),
+	courseLessonId: z.uuid(),
 });
 
-export const watchProgressGetPlaylistResumeInputSchema = z.object({
-	playlistId: z.uuid(),
+export const watchProgressGetCourseResumeInputSchema = z.object({
+	courseId: z.uuid(),
 });
 
-export const watchProgressGetPlaylistAutoPlayNextInputSchema = z.object({
-	playlistId: z.uuid(),
-	contentId: z.uuid(),
+export const watchProgressGetCourseAutoPlayNextInputSchema = z.object({
+	courseId: z.uuid(),
+	courseLessonId: z.uuid(),
 });
 
 export const watchProgressContinueWatchingInputSchema = z.object({
@@ -38,8 +38,8 @@ export const watchProgressContinueWatchingInputSchema = z.object({
 export const watchProgressSchema = z.object({
 	id: z.uuid(),
 	userId: z.string(),
-	contentId: z.uuid(),
-	playlistId: z.uuid().nullable(),
+	courseId: z.uuid(),
+	courseLessonId: z.uuid(),
 	lastPosition: z.number().int(),
 	duration: z.number().int(),
 	isCompleted: z.boolean(),
@@ -58,54 +58,48 @@ export const watchProgressResumeOutputSchema = watchProgressEnvelopeSchema
 	})
 	.nullable();
 
-export const continueWatchingItemSchema = z.object({
-	progress: watchProgressSchema,
-	progressPercent: z.number(),
-	content: z.object({
-		id: z.uuid(),
-		title: z.string(),
-		thumbnailImageId: z.string().nullable(),
-		duration: z.number().int().nullable(),
-		contentType: z.enum(["MOVIE", "SERIES", "EPISODE", "MUSIC"]),
-		releaseDate: z.date().nullable(),
-	}),
-});
-
-export const playlistProgressEpisodeSchema = z.object({
+export const courseLessonProgressSchema = z.object({
 	id: z.uuid(),
-	playlistId: z.uuid(),
-	contentId: z.uuid(),
-	episodeOrder: z.number().int(),
-	seasonNumber: z.number().int().nullable(),
-	episodeNumber: z.number().int().nullable(),
-	title: z.string().nullable(),
+	courseId: z.uuid(),
+	lessonOrder: z.number().int(),
+	title: z.string(),
+	description: z.string().nullable(),
+	thumbnailImageId: z.string().nullable(),
+	duration: z.number().int().nullable(),
+	releaseDate: z.date().nullable(),
+	fileId: z.string().nullable(),
 	addedAt: z.date(),
-	content: z.object({
-		id: z.uuid(),
-		title: z.string(),
-		thumbnailImageId: z.string().nullable(),
-		duration: z.number().int().nullable(),
-		contentType: z.enum(["MOVIE", "SERIES", "EPISODE", "MUSIC"]),
-		releaseDate: z.date().nullable(),
-	}),
+	createdAt: z.date(),
+	updatedAt: z.date(),
 });
 
-export const playlistWatchProgressResumeOutputSchema = z
+export const courseWatchProgressResumeOutputSchema = z
 	.object({
-		playlistId: z.uuid(),
-		currentEpisode: playlistProgressEpisodeSchema,
+		courseId: z.uuid(),
+		currentLesson: courseLessonProgressSchema,
 		resumePosition: z.number().int().min(0),
-		nextEpisode: playlistProgressEpisodeSchema.nullable(),
-		isPlaylistCompleted: z.boolean(),
-		lastWatchedContentId: z.uuid().nullable(),
+		nextLesson: courseLessonProgressSchema.nullable(),
+		isCourseCompleted: z.boolean(),
+		lastWatchedCourseLessonId: z.uuid().nullable(),
 	})
 	.nullable();
 
-export const playlistAutoPlayNextOutputSchema = z.object({
-	playlistId: z.uuid(),
-	contentId: z.uuid(),
-	nextEpisode: playlistProgressEpisodeSchema.nullable(),
-	isPlaylistCompleted: z.boolean(),
+export const courseAutoPlayNextOutputSchema = z.object({
+	courseId: z.uuid(),
+	courseLessonId: z.uuid(),
+	nextLesson: courseLessonProgressSchema.nullable(),
+	isCourseCompleted: z.boolean(),
+});
+
+export const continueWatchingItemSchema = z.object({
+	progress: watchProgressSchema,
+	progressPercent: z.number(),
+	course: z.object({
+		id: z.uuid(),
+		title: z.string(),
+		thumbnailImageId: z.string().nullable(),
+	}),
+	lesson: courseLessonProgressSchema,
 });
 
 export const continueWatchingOutputSchema = z.object({

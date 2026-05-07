@@ -1,30 +1,20 @@
 import {
-	buyContent,
-	buyPlaylist,
+	buyCourse,
 	confirmPaymentWebhook,
-	createContentPricingWindow,
-	createPlaylistPricingWindow,
-	listContentPricingWindows,
-	listPlaylistPricingWindows,
+	createCoursePricingWindow,
+	listCoursePricingWindows,
 	markPaymentSuccess,
 	refundPayment,
-	updateContentPricingWindow,
-	updatePlaylistPricingWindow,
+	updateCoursePricingWindow,
 } from "@/modules/commerce/commerce.service";
 import {
-	commerceAdminContentPricingCreateInputSchema,
-	commerceAdminContentPricingListInputSchema,
-	commerceAdminContentPricingListOutputSchema,
-	commerceAdminContentPricingOutputSchema,
-	commerceAdminContentPricingUpdateInputSchema,
-	commerceAdminPlaylistPricingCreateInputSchema,
-	commerceAdminPlaylistPricingListInputSchema,
-	commerceAdminPlaylistPricingListOutputSchema,
-	commerceAdminPlaylistPricingOutputSchema,
-	commerceAdminPlaylistPricingUpdateInputSchema,
-	commerceBuyContentInputSchema,
+	commerceAdminCoursePricingCreateInputSchema,
+	commerceAdminCoursePricingListInputSchema,
+	commerceAdminCoursePricingListOutputSchema,
+	commerceAdminCoursePricingOutputSchema,
+	commerceAdminCoursePricingUpdateInputSchema,
+	commerceBuyCourseInputSchema,
 	commerceBuyOutputSchema,
-	commerceBuyPlaylistInputSchema,
 	commercePaymentConfirmWebhookInputSchema,
 	commercePaymentMarkSuccessInputSchema,
 	commercePaymentRefundInputSchema,
@@ -95,37 +85,19 @@ export const commerceRouter = router({
 			}),
 	}),
 	purchase: router({
-		buyContent: protectedProcedure
+		buyCourse: protectedProcedure
 			.route({
 				method: "POST",
-				path: "/rpc/commerce/purchase/buyContent",
+				path: "/rpc/commerce/purchase/buyCourse",
 				tags: ["Commerce Purchase User"],
-				summary: "Purchase Single Content Item",
+				summary: "Purchase Whole Course",
 				description:
-					"Requires authentication. Purchases one content item for the signed-in user.",
+					"Requires authentication. Purchases one whole course for the signed-in user.",
 			})
-			.input(commerceBuyContentInputSchema)
+			.input(commerceBuyCourseInputSchema)
 			.output(commerceBuyOutputSchema)
 			.handler(({ context, input }) => {
-				return buyContent({
-					db: context.db,
-					userId: context.session.user.id,
-					input,
-				});
-			}),
-		buyPlaylist: protectedProcedure
-			.route({
-				method: "POST",
-				path: "/rpc/commerce/purchase/buyPlaylist",
-				tags: ["Commerce Purchase User"],
-				summary: "Purchase Playlist",
-				description:
-					"Requires authentication. Purchases one playlist for the signed-in user.",
-			})
-			.input(commerceBuyPlaylistInputSchema)
-			.output(commerceBuyOutputSchema)
-			.handler(({ context, input }) => {
-				return buyPlaylist({
+				return buyCourse({
 					db: context.db,
 					userId: context.session.user.id,
 					input,
@@ -133,20 +105,20 @@ export const commerceRouter = router({
 			}),
 	}),
 	adminPricing: router({
-		content: router({
+		course: router({
 			list: adminProcedure
 				.route({
 					method: "POST",
-					path: "/rpc/commerce/adminPricing/content/list",
+					path: "/rpc/commerce/adminPricing/course/list",
 					tags: ["Commerce Pricing Admin"],
-					summary: "List Content Pricing Windows",
+					summary: "List Course Pricing Windows",
 					description:
-						"Requires admin or superadmin role. Returns content pricing windows for admin management.",
+						"Requires admin or superadmin role. Returns course pricing windows for admin management.",
 				})
-				.input(commerceAdminContentPricingListInputSchema)
-				.output(commerceAdminContentPricingListOutputSchema)
+				.input(commerceAdminCoursePricingListInputSchema)
+				.output(commerceAdminCoursePricingListOutputSchema)
 				.handler(({ context, input }) => {
-					return listContentPricingWindows({
+					return listCoursePricingWindows({
 						db: context.db,
 						input,
 					});
@@ -154,16 +126,16 @@ export const commerceRouter = router({
 			create: adminProcedure
 				.route({
 					method: "POST",
-					path: "/rpc/commerce/adminPricing/content/create",
+					path: "/rpc/commerce/adminPricing/course/create",
 					tags: ["Commerce Pricing Admin"],
-					summary: "Create Content Pricing Window",
+					summary: "Create Course Pricing Window",
 					description:
-						"Requires admin or superadmin role. Creates a pricing window for a content item.",
+						"Requires admin or superadmin role. Creates a pricing window for a course.",
 				})
-				.input(commerceAdminContentPricingCreateInputSchema)
-				.output(commerceAdminContentPricingOutputSchema)
+				.input(commerceAdminCoursePricingCreateInputSchema)
+				.output(commerceAdminCoursePricingOutputSchema)
 				.handler(({ context, input }) => {
-					return createContentPricingWindow({
+					return createCoursePricingWindow({
 						db: context.db,
 						createdBy: context.session.user.id,
 						input,
@@ -172,70 +144,16 @@ export const commerceRouter = router({
 			update: adminProcedure
 				.route({
 					method: "POST",
-					path: "/rpc/commerce/adminPricing/content/update",
+					path: "/rpc/commerce/adminPricing/course/update",
 					tags: ["Commerce Pricing Admin"],
-					summary: "Update Content Pricing Window",
+					summary: "Update Course Pricing Window",
 					description:
-						"Requires admin or superadmin role. Updates mutable fields of a content pricing window.",
+						"Requires admin or superadmin role. Updates mutable fields of a course pricing window.",
 				})
-				.input(commerceAdminContentPricingUpdateInputSchema)
-				.output(commerceAdminContentPricingOutputSchema)
+				.input(commerceAdminCoursePricingUpdateInputSchema)
+				.output(commerceAdminCoursePricingOutputSchema)
 				.handler(({ context, input }) => {
-					return updateContentPricingWindow({
-						db: context.db,
-						input,
-					});
-				}),
-		}),
-		playlist: router({
-			list: adminProcedure
-				.route({
-					method: "POST",
-					path: "/rpc/commerce/adminPricing/playlist/list",
-					tags: ["Commerce Pricing Admin"],
-					summary: "List Playlist Pricing Windows",
-					description:
-						"Requires admin or superadmin role. Returns playlist pricing windows for admin management.",
-				})
-				.input(commerceAdminPlaylistPricingListInputSchema)
-				.output(commerceAdminPlaylistPricingListOutputSchema)
-				.handler(({ context, input }) => {
-					return listPlaylistPricingWindows({
-						db: context.db,
-						input,
-					});
-				}),
-			create: adminProcedure
-				.route({
-					method: "POST",
-					path: "/rpc/commerce/adminPricing/playlist/create",
-					tags: ["Commerce Pricing Admin"],
-					summary: "Create Playlist Pricing Window",
-					description:
-						"Requires admin or superadmin role. Creates a pricing window for a playlist.",
-				})
-				.input(commerceAdminPlaylistPricingCreateInputSchema)
-				.output(commerceAdminPlaylistPricingOutputSchema)
-				.handler(({ context, input }) => {
-					return createPlaylistPricingWindow({
-						db: context.db,
-						createdBy: context.session.user.id,
-						input,
-					});
-				}),
-			update: adminProcedure
-				.route({
-					method: "POST",
-					path: "/rpc/commerce/adminPricing/playlist/update",
-					tags: ["Commerce Pricing Admin"],
-					summary: "Update Playlist Pricing Window",
-					description:
-						"Requires admin or superadmin role. Updates mutable fields of a playlist pricing window.",
-				})
-				.input(commerceAdminPlaylistPricingUpdateInputSchema)
-				.output(commerceAdminPlaylistPricingOutputSchema)
-				.handler(({ context, input }) => {
-					return updatePlaylistPricingWindow({
+					return updateCoursePricingWindow({
 						db: context.db,
 						input,
 					});

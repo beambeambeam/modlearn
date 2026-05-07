@@ -5,81 +5,67 @@ export const libraryListMyItemsInputSchema = z.object({
 	limit: z.number().int().min(1).max(50).default(20),
 });
 
-export const libraryGetPlaylistCollectionInputSchema = z.object({
-	playlistId: z.uuid(),
+export const libraryGetCourseInputSchema = z.object({
+	courseId: z.uuid(),
 });
 
 export const libraryHasAccessInputSchema = z
 	.object({
-		contentId: z.uuid().optional(),
-		playlistId: z.uuid().optional(),
+		courseId: z.uuid().optional(),
+		courseLessonId: z.uuid().optional(),
 	})
 	.superRefine((value, ctx) => {
 		const provided =
-			Number(Boolean(value.contentId)) + Number(Boolean(value.playlistId));
+			Number(Boolean(value.courseId)) + Number(Boolean(value.courseLessonId));
 		if (provided !== 1) {
 			ctx.addIssue({
 				code: "custom",
-				message: "Exactly one of contentId or playlistId must be provided",
-				path: ["contentId"],
+				message: "Exactly one of courseId or courseLessonId must be provided",
+				path: ["courseId"],
 			});
 		}
 	});
 
-export const libraryContentSummarySchema = z.object({
+export const libraryCourseLessonSummarySchema = z.object({
 	id: z.uuid(),
+	courseId: z.uuid(),
+	lessonOrder: z.number().int(),
 	title: z.string(),
 	description: z.string().nullable(),
+	thumbnailImageId: z.string().nullable(),
 	duration: z.number().int().nullable(),
 	releaseDate: z.date().nullable(),
-	contentType: z.enum(["MOVIE", "SERIES", "EPISODE", "MUSIC"]),
-	thumbnailImageId: z.string().nullable(),
+	fileId: z.string().nullable(),
+	addedAt: z.date(),
+	createdAt: z.date(),
+	updatedAt: z.date(),
 });
 
-export const libraryPlaylistSummarySchema = z.object({
+export const libraryCourseSummarySchema = z.object({
 	id: z.uuid(),
 	creatorId: z.string(),
 	title: z.string(),
 	description: z.string().nullable(),
 	thumbnailImageId: z.string().nullable(),
-	isSeries: z.boolean(),
+	isPublished: z.boolean(),
+	publishedAt: z.date().nullable(),
+	isAvailable: z.boolean(),
+	isDeleted: z.boolean(),
+	deletedAt: z.date().nullable(),
 	createdAt: z.date(),
 	updatedAt: z.date(),
 });
 
-export const libraryPlaylistEpisodeSchema = z.object({
-	id: z.uuid(),
-	playlistId: z.uuid(),
-	contentId: z.uuid(),
-	episodeOrder: z.number().int(),
-	seasonNumber: z.number().int().nullable(),
-	episodeNumber: z.number().int().nullable(),
-	title: z.string().nullable(),
-	addedAt: z.date(),
-	content: libraryContentSummarySchema,
-});
-
-export const libraryContentItemSchema = z.object({
-	type: z.literal("CONTENT"),
+export const libraryCourseItemSchema = z.object({
+	type: z.literal("COURSE"),
 	acquiredAt: z.date(),
 	expiresAt: z.date().nullable(),
 	orderId: z.uuid(),
-	content: libraryContentSummarySchema,
+	course: libraryCourseSummarySchema,
+	lessons: z.array(libraryCourseLessonSummarySchema),
 });
 
-export const libraryPlaylistCollectionSchema = z.object({
-	type: z.literal("PLAYLIST_COLLECTION"),
-	acquiredAt: z.date(),
-	expiresAt: z.date().nullable(),
-	orderId: z.uuid(),
-	playlist: libraryPlaylistSummarySchema,
-	episodes: z.array(libraryPlaylistEpisodeSchema),
-});
-
-export const libraryItemSchema = z.discriminatedUnion("type", [
-	libraryContentItemSchema,
-	libraryPlaylistCollectionSchema,
-]);
+export const libraryItemSchema = libraryCourseItemSchema;
 
 export const libraryListMyItemsOutputSchema = z.object({
 	items: z.array(libraryItemSchema),

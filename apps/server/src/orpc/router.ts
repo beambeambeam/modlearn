@@ -2,10 +2,9 @@ import { z } from "zod";
 import { analyticsRouter } from "@/modules/analytics/analytics.router";
 import { categoryRouter } from "@/modules/category/category.router";
 import { commerceRouter } from "@/modules/commerce/commerce.router";
-import { contentRouter } from "@/modules/content/content.router";
+import { courseRouter } from "@/modules/course/course.router";
 import { fileRouter } from "@/modules/file/file.router";
 import { libraryRouter } from "@/modules/library/library.router";
-import { playlistRouter } from "@/modules/playlist/playlist.router";
 import { recommendationRouter } from "@/modules/recommendation/recommendation.router";
 import { watchProgressRouter } from "@/modules/watch-progress/watch-progress.router";
 import {
@@ -79,10 +78,9 @@ export const appRouter = router({
 	analytics: analyticsRouter,
 	category: categoryRouter,
 	commerce: commerceRouter,
-	content: contentRouter,
+	course: courseRouter,
 	file: fileRouter,
 	library: libraryRouter,
-	playlist: playlistRouter,
 	recommendation: recommendationRouter,
 	watchProgress: watchProgressRouter,
 });
