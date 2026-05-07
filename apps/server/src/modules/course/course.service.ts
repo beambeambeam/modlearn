@@ -40,6 +40,7 @@ import type {
 	ListCoursesResult,
 	ListPopularCoursesParams,
 	ReorderCourseLessonsParams,
+	RemoveLessonFromCourseParams,
 	SetCourseAvailabilityParams,
 	SetCourseClassificationParams,
 	SetCoursePublishStateParams,

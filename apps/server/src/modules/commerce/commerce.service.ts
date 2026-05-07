@@ -31,6 +31,7 @@ import {
 	type CommerceCoursePricingWindowView,
 	CommerceCourseEmptyError,
 	CommerceCourseNotFoundError,
+	CommerceInvalidOrderItemError,
 	CommerceItemAlreadyOwnedError,
 	CommerceOrderNotFoundError,
 	CommerceOrderStateError,
@@ -432,6 +433,7 @@ export async function markPaymentSuccess(params: {
 	if (existingOrder.status === "REFUNDED") {
 		throw new CommerceOrderStateError("Order is already refunded");
 	}
+	const courseId = existingOrder.courseId;
 
 	return db.transaction(async (tx) => {
 		const [upsertedPayment] = await tx
@@ -462,7 +464,7 @@ export async function markPaymentSuccess(params: {
 			db: tx,
 			orderId: existingOrder.id,
 			userId,
-			courseId: existingOrder.courseId,
+			courseId,
 			price: existingOrder.totalAmount,
 		});
 
@@ -502,11 +504,11 @@ export async function refundPayment(params: {
 		throw new CommerceOrderStateError("Order is not paid");
 	}
 
-	return db.transaction(async (tx) => {
-		const revokedRows = await tx
-			.delete(userLibrary)
-			.where(eq(userLibrary.orderId, existingOrder.id))
-			.returning({ id: userLibrary.id });
+		return db.transaction(async (tx) => {
+			const revokedRows = await tx
+				.delete(userLibrary)
+				.where(eq(userLibrary.orderId, existingOrder.id))
+				.returning();
 		await tx
 			.delete(coursePurchase)
 			.where(eq(coursePurchase.orderId, existingOrder.id));
