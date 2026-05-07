@@ -22,10 +22,13 @@ import {
 	commercePaymentSuccessOutputSchema,
 } from "@/modules/commerce/commerce.validators";
 import { adminProcedure, protectedProcedure, router } from "@/orpc";
+import { errorGroups } from "@/orpc/errors";
+import { withRpcErrorHandling } from "@/orpc/error-mapper";
 
 export const commerceRouter = router({
 	payment: router({
 		markSuccess: protectedProcedure
+			.errors(errorGroups.notFoundBadRequestConflict)
 			.route({
 				method: "POST",
 				path: "/rpc/commerce/payment/markSuccess",
@@ -36,14 +39,17 @@ export const commerceRouter = router({
 			})
 			.input(commercePaymentMarkSuccessInputSchema)
 			.output(commercePaymentSuccessOutputSchema)
-			.handler(({ context, input }) => {
-				return markPaymentSuccess({
-					db: context.db,
-					userId: context.session.user.id,
-					input,
-				});
-			}),
+			.handler(
+				withRpcErrorHandling(({ context, input }) => {
+					return markPaymentSuccess({
+						db: context.db,
+						userId: context.session.user.id,
+						input,
+					});
+				})
+			),
 		confirmWebhook: protectedProcedure
+			.errors(errorGroups.notFoundBadRequestConflict)
 			.route({
 				method: "POST",
 				path: "/rpc/commerce/payment/confirmWebhook",
@@ -54,18 +60,21 @@ export const commerceRouter = router({
 			})
 			.input(commercePaymentConfirmWebhookInputSchema)
 			.output(commercePaymentSuccessOutputSchema)
-			.handler(({ context, input }) => {
-				return confirmPaymentWebhook({
-					db: context.db,
-					userId: context.session.user.id,
-					input: {
-						orderId: input.orderId,
-						provider: input.provider,
-						providerTransactionId: input.providerTransactionId,
-					},
-				});
-			}),
+			.handler(
+				withRpcErrorHandling(({ context, input }) => {
+					return confirmPaymentWebhook({
+						db: context.db,
+						userId: context.session.user.id,
+						input: {
+							orderId: input.orderId,
+							provider: input.provider,
+							providerTransactionId: input.providerTransactionId,
+						},
+					});
+				})
+			),
 		refund: protectedProcedure
+			.errors(errorGroups.notFoundBadRequestConflict)
 			.route({
 				method: "POST",
 				path: "/rpc/commerce/payment/refund",
@@ -76,16 +85,19 @@ export const commerceRouter = router({
 			})
 			.input(commercePaymentRefundInputSchema)
 			.output(commercePaymentRefundOutputSchema)
-			.handler(({ context, input }) => {
-				return refundPayment({
-					db: context.db,
-					userId: context.session.user.id,
-					input,
-				});
-			}),
+			.handler(
+				withRpcErrorHandling(({ context, input }) => {
+					return refundPayment({
+						db: context.db,
+						userId: context.session.user.id,
+						input,
+					});
+				})
+			),
 	}),
 	purchase: router({
 		buyCourse: protectedProcedure
+			.errors(errorGroups.notFoundBadRequestConflict)
 			.route({
 				method: "POST",
 				path: "/rpc/commerce/purchase/buyCourse",
@@ -96,17 +108,20 @@ export const commerceRouter = router({
 			})
 			.input(commerceBuyCourseInputSchema)
 			.output(commerceBuyOutputSchema)
-			.handler(({ context, input }) => {
-				return buyCourse({
-					db: context.db,
-					userId: context.session.user.id,
-					input,
-				});
-			}),
+			.handler(
+				withRpcErrorHandling(({ context, input }) => {
+					return buyCourse({
+						db: context.db,
+						userId: context.session.user.id,
+						input,
+					});
+				})
+			),
 	}),
 	adminPricing: router({
 		course: router({
 			list: adminProcedure
+				.errors(errorGroups.notFound)
 				.route({
 					method: "POST",
 					path: "/rpc/commerce/adminPricing/course/list",
@@ -117,13 +132,16 @@ export const commerceRouter = router({
 				})
 				.input(commerceAdminCoursePricingListInputSchema)
 				.output(commerceAdminCoursePricingListOutputSchema)
-				.handler(({ context, input }) => {
-					return listCoursePricingWindows({
-						db: context.db,
-						input,
-					});
-				}),
+				.handler(
+					withRpcErrorHandling(({ context, input }) => {
+						return listCoursePricingWindows({
+							db: context.db,
+							input,
+						});
+					})
+				),
 			create: adminProcedure
+				.errors(errorGroups.notFoundBadRequestConflict)
 				.route({
 					method: "POST",
 					path: "/rpc/commerce/adminPricing/course/create",
@@ -134,14 +152,17 @@ export const commerceRouter = router({
 				})
 				.input(commerceAdminCoursePricingCreateInputSchema)
 				.output(commerceAdminCoursePricingOutputSchema)
-				.handler(({ context, input }) => {
-					return createCoursePricingWindow({
-						db: context.db,
-						createdBy: context.session.user.id,
-						input,
-					});
-				}),
+				.handler(
+					withRpcErrorHandling(({ context, input }) => {
+						return createCoursePricingWindow({
+							db: context.db,
+							createdBy: context.session.user.id,
+							input,
+						});
+					})
+				),
 			update: adminProcedure
+				.errors(errorGroups.notFoundBadRequestConflict)
 				.route({
 					method: "POST",
 					path: "/rpc/commerce/adminPricing/course/update",
@@ -152,12 +173,14 @@ export const commerceRouter = router({
 				})
 				.input(commerceAdminCoursePricingUpdateInputSchema)
 				.output(commerceAdminCoursePricingOutputSchema)
-				.handler(({ context, input }) => {
-					return updateCoursePricingWindow({
-						db: context.db,
-						input,
-					});
-				}),
+				.handler(
+					withRpcErrorHandling(({ context, input }) => {
+						return updateCoursePricingWindow({
+							db: context.db,
+							input,
+						});
+					})
+				),
 		}),
 	}),
 });

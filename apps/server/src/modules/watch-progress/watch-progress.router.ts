@@ -20,9 +20,12 @@ import {
 	watchProgressSaveInputSchema,
 } from "@/modules/watch-progress/watch-progress.validators";
 import { protectedProcedure, router } from "@/orpc";
+import { errorGroups } from "@/orpc/errors";
+import { withRpcErrorHandling } from "@/orpc/error-mapper";
 
 export const watchProgressRouter = router({
 	save: protectedProcedure
+		.errors(errorGroups.notFoundBadRequest)
 		.route({
 			method: "POST",
 			path: "/rpc/watchProgress/save",
@@ -33,16 +36,19 @@ export const watchProgressRouter = router({
 		})
 		.input(watchProgressSaveInputSchema)
 		.output(watchProgressEnvelopeSchema)
-		.handler(({ context, input }) => {
-			return saveWatchProgress({
-				db: context.db,
-				input: {
-					userId: context.session.user.id,
-					...input,
-				},
-			});
-		}),
+		.handler(
+			withRpcErrorHandling(({ context, input }) => {
+				return saveWatchProgress({
+					db: context.db,
+					input: {
+						userId: context.session.user.id,
+						...input,
+					},
+				});
+			})
+		),
 	markCompleted: protectedProcedure
+		.errors(errorGroups.notFoundBadRequest)
 		.route({
 			method: "POST",
 			path: "/rpc/watchProgress/markCompleted",
@@ -53,16 +59,19 @@ export const watchProgressRouter = router({
 		})
 		.input(watchProgressMarkCompletedInputSchema)
 		.output(watchProgressEnvelopeSchema)
-		.handler(({ context, input }) => {
-			return markWatchProgressCompleted({
-				db: context.db,
-				input: {
-					userId: context.session.user.id,
-					...input,
-				},
-			});
-		}),
+		.handler(
+			withRpcErrorHandling(({ context, input }) => {
+				return markWatchProgressCompleted({
+					db: context.db,
+					input: {
+						userId: context.session.user.id,
+						...input,
+					},
+				});
+			})
+		),
 	getResume: protectedProcedure
+		.errors(errorGroups.notFound)
 		.route({
 			method: "POST",
 			path: "/rpc/watchProgress/getResume",
@@ -73,16 +82,19 @@ export const watchProgressRouter = router({
 		})
 		.input(watchProgressGetResumeInputSchema)
 		.output(watchProgressResumeOutputSchema)
-		.handler(({ context, input }) => {
-			return getWatchProgressResume({
-				db: context.db,
-				input: {
-					userId: context.session.user.id,
-					...input,
-				},
-			});
-		}),
+		.handler(
+			withRpcErrorHandling(({ context, input }) => {
+				return getWatchProgressResume({
+					db: context.db,
+					input: {
+						userId: context.session.user.id,
+						...input,
+					},
+				});
+			})
+		),
 	getCourseResume: protectedProcedure
+		.errors(errorGroups.notFound)
 		.route({
 			method: "POST",
 			path: "/rpc/watchProgress/getCourseResume",
@@ -93,16 +105,19 @@ export const watchProgressRouter = router({
 		})
 		.input(watchProgressGetCourseResumeInputSchema)
 		.output(courseWatchProgressResumeOutputSchema)
-		.handler(({ context, input }) => {
-			return getCourseWatchProgressResume({
-				db: context.db,
-				input: {
-					userId: context.session.user.id,
-					...input,
-				},
-			});
-		}),
+		.handler(
+			withRpcErrorHandling(({ context, input }) => {
+				return getCourseWatchProgressResume({
+					db: context.db,
+					input: {
+						userId: context.session.user.id,
+						...input,
+					},
+				});
+			})
+		),
 	getCourseAutoPlayNext: protectedProcedure
+		.errors(errorGroups.notFound)
 		.route({
 			method: "POST",
 			path: "/rpc/watchProgress/getCourseAutoPlayNext",
@@ -113,15 +128,17 @@ export const watchProgressRouter = router({
 		})
 		.input(watchProgressGetCourseAutoPlayNextInputSchema)
 		.output(courseAutoPlayNextOutputSchema)
-		.handler(({ context, input }) => {
-			return getCourseAutoPlayNext({
-				db: context.db,
-				input: {
-					userId: context.session.user.id,
-					...input,
-				},
-			});
-		}),
+		.handler(
+			withRpcErrorHandling(({ context, input }) => {
+				return getCourseAutoPlayNext({
+					db: context.db,
+					input: {
+						userId: context.session.user.id,
+						...input,
+					},
+				});
+			})
+		),
 	continueWatching: protectedProcedure
 		.route({
 			method: "POST",
@@ -133,13 +150,15 @@ export const watchProgressRouter = router({
 		})
 		.input(watchProgressContinueWatchingInputSchema.optional())
 		.output(continueWatchingOutputSchema)
-		.handler(({ context, input }) => {
-			return listContinueWatching({
-				db: context.db,
-				input: {
-					userId: context.session.user.id,
-					...watchProgressContinueWatchingInputSchema.parse(input ?? {}),
-				},
-			});
-		}),
+		.handler(
+			withRpcErrorHandling(({ context, input }) => {
+				return listContinueWatching({
+					db: context.db,
+					input: {
+						userId: context.session.user.id,
+						...watchProgressContinueWatchingInputSchema.parse(input ?? {}),
+					},
+				});
+			})
+		),
 });
