@@ -61,7 +61,10 @@ function normalizeResumePosition(params: {
 	return Math.min(Math.max(0, lastPosition), duration);
 }
 
-async function assertCourseExists(db: DbClient, courseId: string): Promise<void> {
+async function assertCourseExists(
+	db: DbClient,
+	courseId: string
+): Promise<void> {
 	const row = await db.query.course.findFirst({
 		where: eq(course.id, courseId),
 		columns: { id: true },
@@ -90,7 +93,7 @@ async function assertCourseLessonExists(params: {
 	}
 }
 
-async function listPlayableCourseLessons(
+function listPlayableCourseLessons(
 	db: DbClient,
 	courseId: string
 ): Promise<CourseLessonProgressSummary[]> {

@@ -39,8 +39,8 @@ import type {
 	ListCoursesParams,
 	ListCoursesResult,
 	ListPopularCoursesParams,
-	ReorderCourseLessonsParams,
 	RemoveLessonFromCourseParams,
+	ReorderCourseLessonsParams,
 	SetCourseAvailabilityParams,
 	SetCourseClassificationParams,
 	SetCoursePublishStateParams,
@@ -66,7 +66,10 @@ function toPagination(params: { page: number; limit: number; total: number }) {
 	};
 }
 
-async function ensureCourseExists(db: DbClient, courseId: string): Promise<void> {
+async function ensureCourseExists(
+	db: DbClient,
+	courseId: string
+): Promise<void> {
 	const row = await db.query.course.findFirst({
 		where: and(eq(course.id, courseId), eq(course.isDeleted, false)),
 		columns: { id: true },
@@ -167,7 +170,7 @@ async function resolveActivePricing(params: {
 	};
 }
 
-async function getCourseLessons(params: {
+function getCourseLessons(params: {
 	db: DbClient;
 	courseId: string;
 }): Promise<CourseLessonViewType[]> {
@@ -214,7 +217,11 @@ async function compactLessonOrder(
 		.select({ id: courseLesson.id })
 		.from(courseLesson)
 		.where(eq(courseLesson.courseId, courseId))
-		.orderBy(asc(courseLesson.lessonOrder), asc(courseLesson.addedAt), asc(courseLesson.id));
+		.orderBy(
+			asc(courseLesson.lessonOrder),
+			asc(courseLesson.addedAt),
+			asc(courseLesson.id)
+		);
 
 	for (const [index, row] of rows.entries()) {
 		await db
@@ -331,10 +338,17 @@ export async function listPopularCourses(
 		})
 		.from(course)
 		.leftJoin(courseLesson, eq(courseLesson.courseId, course.id))
-		.leftJoin(courseLessonView, eq(courseLessonView.courseLessonId, courseLesson.id))
+		.leftJoin(
+			courseLessonView,
+			eq(courseLessonView.courseLessonId, courseLesson.id)
+		)
 		.where(filters)
 		.groupBy(course.id)
-		.orderBy(desc(count(courseLessonView.id)), desc(course.createdAt), desc(course.id))
+		.orderBy(
+			desc(count(courseLessonView.id)),
+			desc(course.createdAt),
+			desc(course.id)
+		)
 		.limit(limit);
 
 	return Promise.all(
@@ -437,7 +451,7 @@ export async function setCoursePublishState(
 	return updated;
 }
 
-export async function setCourseClassification(
+export function setCourseClassification(
 	params: SetCourseClassificationParams
 ): Promise<CourseClassificationResult> {
 	const { db, input } = params;
@@ -540,7 +554,7 @@ export async function listCourseLessons(
 	});
 }
 
-export async function addLessonToCourse(
+export function addLessonToCourse(
 	params: AddLessonToCourseParams
 ): Promise<typeof courseLesson.$inferSelect> {
 	const { db, input } = params;
@@ -591,7 +605,7 @@ export async function addLessonToCourse(
 	});
 }
 
-export async function updateCourseLesson(
+export function updateCourseLesson(
 	params: UpdateCourseLessonParams
 ): Promise<typeof courseLesson.$inferSelect> {
 	const { db, input } = params;
@@ -660,7 +674,9 @@ export async function updateCourseLesson(
 						? existing.releaseDate
 						: toReleaseDate(input.patch.releaseDate),
 				fileId:
-					input.patch.fileId === undefined ? existing.fileId : input.patch.fileId,
+					input.patch.fileId === undefined
+						? existing.fileId
+						: input.patch.fileId,
 				lessonOrder: nextOrder,
 			})
 			.where(eq(courseLesson.id, input.id))
@@ -674,7 +690,7 @@ export async function updateCourseLesson(
 	});
 }
 
-export async function removeLessonFromCourse(
+export function removeLessonFromCourse(
 	params: RemoveLessonFromCourseParams
 ): Promise<LessonDeleteResult> {
 	const { db, input } = params;
@@ -692,7 +708,7 @@ export async function removeLessonFromCourse(
 	});
 }
 
-export async function reorderCourseLessons(
+export function reorderCourseLessons(
 	params: ReorderCourseLessonsParams
 ): Promise<CourseLessonViewType[]> {
 	const { db, input } = params;

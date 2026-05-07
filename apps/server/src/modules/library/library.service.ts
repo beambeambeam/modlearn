@@ -73,12 +73,12 @@ async function getCourseSummaryMap(db: DbClient, courseIds: string[]) {
 	return new Map(rows.map((row) => [row.id, row]));
 }
 
-async function listCourseLessons(
+function listCourseLessons(
 	db: DbClient,
 	courseIds: string[]
 ): Promise<LibraryCourseLessonSummary[]> {
 	if (courseIds.length === 0) {
-		return [];
+		return Promise.resolve([]);
 	}
 
 	return db

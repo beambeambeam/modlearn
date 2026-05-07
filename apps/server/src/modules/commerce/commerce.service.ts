@@ -1,15 +1,5 @@
 import { randomUUID } from "node:crypto";
-import {
-	and,
-	count,
-	desc,
-	eq,
-	gt,
-	isNull,
-	lte,
-	ne,
-	or,
-} from "drizzle-orm";
+import { and, count, desc, eq, gt, isNull, lte, ne, or } from "drizzle-orm";
 import type { DbClient } from "@/lib/db/orm";
 import {
 	course,
@@ -24,13 +14,13 @@ import {
 	type CommerceActivePriceQuery,
 	type CommerceBuyCourseInput,
 	type CommerceBuyView,
+	CommerceCourseEmptyError,
+	CommerceCourseNotFoundError,
 	type CommerceCoursePricingCreateInput,
 	type CommerceCoursePricingListInput,
 	type CommerceCoursePricingListView,
 	type CommerceCoursePricingUpdateInput,
 	type CommerceCoursePricingWindowView,
-	CommerceCourseEmptyError,
-	CommerceCourseNotFoundError,
 	CommerceInvalidOrderItemError,
 	CommerceItemAlreadyOwnedError,
 	CommerceOrderNotFoundError,
@@ -38,8 +28,8 @@ import {
 	type CommercePaymentMarkSuccessInput,
 	type CommercePaymentRefundInput,
 	type CommercePaymentSuccessView,
-	type CommercePriceSnapshot,
 	CommercePriceNotFoundError,
+	type CommercePriceSnapshot,
 	CommercePricingWindowNotFoundError,
 	CommercePricingWindowOverlapError,
 	CommercePricingWindowValidationError,
@@ -97,7 +87,7 @@ async function resolveActiveCoursePrice(
 	};
 }
 
-async function findExistingOwnership(params: {
+function findExistingOwnership(params: {
 	db: DbClient;
 	userId: string;
 	courseId: string;
@@ -341,7 +331,7 @@ export async function buyCourse(params: {
 					where: eq(payment.orderId, owned.orderId),
 				})
 			: null;
-		if (!owned.orderId || !paymentRow) {
+		if (!(owned.orderId && paymentRow)) {
 			throw new CommerceItemAlreadyOwnedError();
 		}
 		return {
@@ -504,11 +494,11 @@ export async function refundPayment(params: {
 		throw new CommerceOrderStateError("Order is not paid");
 	}
 
-		return db.transaction(async (tx) => {
-			const revokedRows = await tx
-				.delete(userLibrary)
-				.where(eq(userLibrary.orderId, existingOrder.id))
-				.returning();
+	return db.transaction(async (tx) => {
+		const revokedRows = await tx
+			.delete(userLibrary)
+			.where(eq(userLibrary.orderId, existingOrder.id))
+			.returning();
 		await tx
 			.delete(coursePurchase)
 			.where(eq(coursePurchase.orderId, existingOrder.id));
