@@ -34,6 +34,12 @@ import {
 	LibraryCourseNotFoundError,
 } from "@/modules/library/library.types";
 import {
+	ReviewCourseNotFoundError,
+	ReviewModerationValidationError,
+	ReviewNotFoundError,
+	ReviewOwnershipRequiredError,
+} from "@/modules/review/review.types";
+import {
 	WatchProgressCourseLessonNotFoundError,
 	WatchProgressCourseNotFoundError,
 	WatchProgressValidationError,
@@ -68,6 +74,8 @@ export function mapDomainErrorToOrpc(
 		error instanceof CourseNotFoundError ||
 		error instanceof CourseLessonNotFoundError ||
 		error instanceof LibraryCourseNotFoundError ||
+		error instanceof ReviewCourseNotFoundError ||
+		error instanceof ReviewNotFoundError ||
 		error instanceof WatchProgressCourseNotFoundError ||
 		error instanceof WatchProgressCourseLessonNotFoundError
 	) {
@@ -79,6 +87,7 @@ export function mapDomainErrorToOrpc(
 	if (
 		error instanceof InvalidClassificationInputError ||
 		error instanceof CourseReorderValidationError ||
+		error instanceof ReviewModerationValidationError ||
 		error instanceof WatchProgressValidationError
 	) {
 		return new ORPCError("BAD_REQUEST", {
@@ -108,6 +117,12 @@ export function mapDomainErrorToOrpc(
 	}
 
 	if (error instanceof LibraryAccessDeniedError) {
+		return new ORPCError("FORBIDDEN", {
+			message: error.message,
+		});
+	}
+
+	if (error instanceof ReviewOwnershipRequiredError) {
 		return new ORPCError("FORBIDDEN", {
 			message: error.message,
 		});

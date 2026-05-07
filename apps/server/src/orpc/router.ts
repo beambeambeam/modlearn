@@ -6,6 +6,7 @@ import { courseRouter } from "@/modules/course/course.router";
 import { fileRouter } from "@/modules/file/file.router";
 import { libraryRouter } from "@/modules/library/library.router";
 import { recommendationRouter } from "@/modules/recommendation/recommendation.router";
+import { reviewRouter } from "@/modules/review/review.router";
 import { watchProgressRouter } from "@/modules/watch-progress/watch-progress.router";
 import {
 	adminProcedure,
@@ -82,6 +83,7 @@ export const appRouter = router({
 	file: fileRouter,
 	library: libraryRouter,
 	recommendation: recommendationRouter,
+	review: reviewRouter,
 	watchProgress: watchProgressRouter,
 });
 export type AppRouter = typeof appRouter;
