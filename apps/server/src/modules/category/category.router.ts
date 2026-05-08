@@ -16,8 +16,8 @@ import {
 	categorySchema,
 } from "@/modules/category/category.validators";
 import { adminProcedure, publicProcedure, router } from "@/orpc";
-import { errorGroups } from "@/orpc/errors";
 import { withRpcErrorHandling } from "@/orpc/error-mapper";
+import { errorGroups } from "@/orpc/errors";
 
 export const categoryRouter = router({
 	list: publicProcedure

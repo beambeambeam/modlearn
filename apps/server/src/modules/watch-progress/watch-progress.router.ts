@@ -20,8 +20,8 @@ import {
 	watchProgressSaveInputSchema,
 } from "@/modules/watch-progress/watch-progress.validators";
 import { protectedProcedure, router } from "@/orpc";
-import { errorGroups } from "@/orpc/errors";
 import { withRpcErrorHandling } from "@/orpc/error-mapper";
+import { errorGroups } from "@/orpc/errors";
 
 export const watchProgressRouter = router({
 	save: protectedProcedure

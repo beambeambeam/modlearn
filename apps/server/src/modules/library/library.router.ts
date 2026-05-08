@@ -12,8 +12,8 @@ import {
 	libraryListMyItemsOutputSchema,
 } from "@/modules/library/library.validators";
 import { protectedProcedure, router } from "@/orpc";
-import { errorGroups } from "@/orpc/errors";
 import { withRpcErrorHandling } from "@/orpc/error-mapper";
+import { errorGroups } from "@/orpc/errors";
 
 export const libraryRouter = router({
 	listMyItems: protectedProcedure

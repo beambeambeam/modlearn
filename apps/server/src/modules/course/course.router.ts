@@ -41,8 +41,8 @@ import {
 	courseSchema,
 } from "@/modules/course/course.validators";
 import { adminProcedure, publicProcedure, router } from "@/orpc";
-import { errorGroups } from "@/orpc/errors";
 import { withRpcErrorHandling } from "@/orpc/error-mapper";
+import { errorGroups } from "@/orpc/errors";
 
 export const courseRouter = router({
 	list: publicProcedure
