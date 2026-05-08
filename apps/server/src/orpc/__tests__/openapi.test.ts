@@ -72,9 +72,11 @@ describe("openapi docs", () => {
 		expect(upsertMineResponses["403"]).toBeDefined();
 
 		const definedNotFoundSchema =
-			getByIdResponses["404"]?.content?.["application/json"]?.schema?.oneOf?.[0];
+			getByIdResponses["404"]?.content?.["application/json"]?.schema
+				?.oneOf?.[0];
 		const definedForbiddenSchema =
-			upsertMineResponses["403"]?.content?.["application/json"]?.schema?.oneOf?.[0];
+			upsertMineResponses["403"]?.content?.["application/json"]?.schema
+				?.oneOf?.[0];
 
 		expect(definedNotFoundSchema?.properties?.code?.const).toBe("NOT_FOUND");
 		expect(definedNotFoundSchema?.properties?.status?.const).toBe(404);

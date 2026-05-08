@@ -102,10 +102,7 @@ export const coursePurchase = pgTable(
 	(table) => [
 		index("coursePurchase_userId_idx").on(table.userId),
 		index("coursePurchase_courseId_idx").on(table.courseId),
-		unique("coursePurchase_userCourse_unique").on(
-			table.userId,
-			table.courseId
-		),
+		unique("coursePurchase_userCourse_unique").on(table.userId, table.courseId),
 	]
 );
 
@@ -156,23 +153,20 @@ export const paymentRelations = relations(payment, ({ one }) => ({
 	}),
 }));
 
-export const coursePurchaseRelations = relations(
-	coursePurchase,
-	({ one }) => ({
-		course: one(course, {
-			fields: [coursePurchase.courseId],
-			references: [course.id],
-		}),
-		user: one(user, {
-			fields: [coursePurchase.userId],
-			references: [user.id],
-		}),
-		order: one(order, {
-			fields: [coursePurchase.orderId],
-			references: [order.id],
-		}),
-	})
-);
+export const coursePurchaseRelations = relations(coursePurchase, ({ one }) => ({
+	course: one(course, {
+		fields: [coursePurchase.courseId],
+		references: [course.id],
+	}),
+	user: one(user, {
+		fields: [coursePurchase.userId],
+		references: [user.id],
+	}),
+	order: one(order, {
+		fields: [coursePurchase.orderId],
+		references: [order.id],
+	}),
+}));
 
 export const userLibraryRelations = relations(userLibrary, ({ one }) => ({
 	user: one(user, {

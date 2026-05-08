@@ -133,7 +133,9 @@ describe("orpc procedures", () => {
 			const original = new ORPCError("FORBIDDEN", {
 				message: "No access",
 			});
-			const handler = withRpcErrorHandling(async () => Promise.reject(original));
+			const handler = withRpcErrorHandling(async () =>
+				Promise.reject(original)
+			);
 
 			await expect(handler({} as never)).rejects.toBe(original);
 		});
