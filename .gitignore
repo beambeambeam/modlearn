@@ -72,3 +72,4 @@ temp
 *.fdb_latexmk
 *.fls
 *.pdf
+*.out
