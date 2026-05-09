@@ -81,19 +81,6 @@ describe("orpc procedures", () => {
 			expect(result.message).toBe("This is admin-only");
 			expect(result.user.id).toBe("test-admin-id");
 		});
-
-		it("should return data when role is superadmin", async () => {
-			const context = makeAuthenticatedContext(
-				"test-superadmin-id",
-				"superadmin"
-			);
-			const caller = createCaller(context);
-
-			const result = await caller.adminData();
-
-			expect(result.message).toBe("This is admin-only");
-			expect(result.user.id).toBe("test-superadmin-id");
-		});
 	});
 
 	describe("withRpcErrorHandling", () => {

@@ -386,14 +386,10 @@ describe("course router", () => {
 		).rejects.toThrow(expect.objectContaining({ code: "FORBIDDEN" }));
 	});
 
-	it("allows admin and superadmin to run admin course mutations", async () => {
+	it("allows admin to run admin course mutations", async () => {
 		const admin = await createTestUser(testDb.client, {
 			email: "course-router-admin@example.com",
 			role: "admin",
-		});
-		const superadmin = await createTestUser(testDb.client, {
-			email: "course-router-superadmin@example.com",
-			role: "superadmin",
 		});
 		const createdCategory = await testDb.db
 			.insert(category)
@@ -447,10 +443,7 @@ describe("course router", () => {
 		});
 		expect(unavailable.isAvailable).toBe(false);
 
-		const superadminCaller = createCaller(
-			makeAuthenticatedContext(superadmin.id, "superadmin", { db: testDb.db })
-		);
-		const deleted = await superadminCaller.course.adminDelete({
+		const deleted = await adminCaller.course.adminDelete({
 			id: created.id,
 		});
 		expect(deleted.deleted).toBe(true);
