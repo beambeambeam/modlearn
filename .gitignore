@@ -67,3 +67,9 @@ temp
 /apps/web/CLAUDE.md
 /apps/web/CLAUDE.md.bak
 # END Ruler Generated Files
+
+*.aux
+*.fdb_latexmk
+*.fls
+*.pdf
+*.out
