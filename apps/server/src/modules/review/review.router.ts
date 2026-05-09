@@ -145,7 +145,7 @@ export const reviewRouter = router({
 			tags: ["Review Admin"],
 			summary: "List Reviews For Moderation",
 			description:
-				"Requires admin or superadmin role. Returns review items across visibility states for moderation.",
+				"Requires admin role. Returns review items across visibility states for moderation.",
 		})
 		.input(reviewAdminListInputSchema.optional())
 		.output(reviewAdminListOutputSchema)
@@ -165,7 +165,7 @@ export const reviewRouter = router({
 			tags: ["Review Admin"],
 			summary: "Hide Review",
 			description:
-				"Requires admin or superadmin role. Hides a review from public responses and stores moderation metadata.",
+				"Requires admin role. Hides a review from public responses and stores moderation metadata.",
 		})
 		.input(reviewAdminHideInputSchema)
 		.output(reviewAdminItemSchema)
@@ -186,7 +186,7 @@ export const reviewRouter = router({
 			tags: ["Review Admin"],
 			summary: "Unhide Review",
 			description:
-				"Requires admin or superadmin role. Restores a hidden review to public visibility.",
+				"Requires admin role. Restores a hidden review to public visibility.",
 		})
 		.input(reviewAdminUnhideInputSchema)
 		.output(reviewAdminItemSchema)
@@ -205,8 +205,7 @@ export const reviewRouter = router({
 			path: "/rpc/review/adminDelete",
 			tags: ["Review Admin"],
 			summary: "Delete Review",
-			description:
-				"Requires admin or superadmin role. Permanently deletes a review.",
+			description: "Requires admin role. Permanently deletes a review.",
 		})
 		.input(reviewAdminDeleteInputSchema)
 		.output(reviewAdminDeleteResultSchema)

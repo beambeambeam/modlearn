@@ -128,7 +128,7 @@ export const commerceRouter = router({
 					tags: ["Commerce Pricing Admin"],
 					summary: "List Course Pricing Windows",
 					description:
-						"Requires admin or superadmin role. Returns course pricing windows for admin management.",
+						"Requires admin role. Returns course pricing windows for admin management.",
 				})
 				.input(commerceAdminCoursePricingListInputSchema)
 				.output(commerceAdminCoursePricingListOutputSchema)
@@ -148,7 +148,7 @@ export const commerceRouter = router({
 					tags: ["Commerce Pricing Admin"],
 					summary: "Create Course Pricing Window",
 					description:
-						"Requires admin or superadmin role. Creates a pricing window for a course.",
+						"Requires admin role. Creates a pricing window for a course.",
 				})
 				.input(commerceAdminCoursePricingCreateInputSchema)
 				.output(commerceAdminCoursePricingOutputSchema)
@@ -169,7 +169,7 @@ export const commerceRouter = router({
 					tags: ["Commerce Pricing Admin"],
 					summary: "Update Course Pricing Window",
 					description:
-						"Requires admin or superadmin role. Updates mutable fields of a course pricing window.",
+						"Requires admin role. Updates mutable fields of a course pricing window.",
 				})
 				.input(commerceAdminCoursePricingUpdateInputSchema)
 				.output(commerceAdminCoursePricingOutputSchema)

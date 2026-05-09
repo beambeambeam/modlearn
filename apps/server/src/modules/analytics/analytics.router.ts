@@ -27,7 +27,7 @@ export const analyticsRouter = router({
 			tags: ["Analytics Admin"],
 			summary: "Retrieve Analytics Overview Metrics",
 			description:
-				"Requires admin or superadmin role. Returns aggregated platform metrics for the requested window, optionally scoped to one course.",
+				"Requires admin role. Returns aggregated platform metrics for the requested window, optionally scoped to one course.",
 		})
 		.input(analyticsOverviewInputSchema.optional())
 		.output(analyticsOverviewOutputSchema)
@@ -44,7 +44,7 @@ export const analyticsRouter = router({
 			tags: ["Analytics Admin"],
 			summary: "List Course Performance Analytics",
 			description:
-				"Requires admin or superadmin role. Returns per-course analytics for the requested window and sort order.",
+				"Requires admin role. Returns per-course analytics for the requested window and sort order.",
 		})
 		.input(analyticsCoursePerformanceInputSchema.optional())
 		.output(analyticsCoursePerformanceOutputSchema)
@@ -61,7 +61,7 @@ export const analyticsRouter = router({
 			tags: ["Analytics Admin"],
 			summary: "List Course Lesson Engagement Analytics",
 			description:
-				"Requires admin or superadmin role. Returns course-scoped lesson engagement metrics including completion and drop-off.",
+				"Requires admin role. Returns course-scoped lesson engagement metrics including completion and drop-off.",
 		})
 		.input(analyticsCourseLessonEngagementInputSchema)
 		.output(analyticsCourseLessonEngagementOutputSchema)
@@ -78,7 +78,7 @@ export const analyticsRouter = router({
 			tags: ["Analytics Admin"],
 			summary: "List Lesson View Analytics",
 			description:
-				"Requires admin or superadmin role. Returns per-lesson view analytics for the requested window and filters.",
+				"Requires admin role. Returns per-lesson view analytics for the requested window and filters.",
 		})
 		.input(analyticsLessonViewsInputSchema.optional())
 		.output(analyticsLessonViewsOutputSchema)
@@ -95,7 +95,7 @@ export const analyticsRouter = router({
 			tags: ["Analytics Admin"],
 			summary: "List View Session Analytics",
 			description:
-				"Requires admin or superadmin role. Returns lesson view session analytics for the requested window and filters.",
+				"Requires admin role. Returns lesson view session analytics for the requested window and filters.",
 		})
 		.input(analyticsViewSessionsInputSchema.optional())
 		.output(analyticsViewSessionsOutputSchema)

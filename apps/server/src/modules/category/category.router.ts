@@ -66,8 +66,7 @@ export const categoryRouter = router({
 			path: "/rpc/category/adminCreate",
 			tags: ["Category Admin"],
 			summary: "Create Category",
-			description:
-				"Requires admin or superadmin role. Creates a new category record.",
+			description: "Requires admin role. Creates a new category record.",
 		})
 		.input(categoryAdminCreateInputSchema)
 		.output(categorySchema)
@@ -86,8 +85,7 @@ export const categoryRouter = router({
 			path: "/rpc/category/adminUpdate",
 			tags: ["Category Admin"],
 			summary: "Update Category",
-			description:
-				"Requires admin or superadmin role. Updates mutable category fields.",
+			description: "Requires admin role. Updates mutable category fields.",
 		})
 		.input(categoryAdminUpdateInputSchema)
 		.output(categorySchema)
@@ -107,7 +105,7 @@ export const categoryRouter = router({
 			tags: ["Category Admin"],
 			summary: "Delete Category",
 			description:
-				"Requires admin or superadmin role. Deletes a category and returns deletion metadata.",
+				"Requires admin role. Deletes a category and returns deletion metadata.",
 		})
 		.input(categoryAdminDeleteInputSchema)
 		.output(categoryDeleteOutputSchema)

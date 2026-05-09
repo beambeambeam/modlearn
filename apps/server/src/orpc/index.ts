@@ -25,13 +25,11 @@ export const protectedProcedure = base.use(({ context, errors, next }) => {
 	});
 });
 
-const adminRoles = new Set(["admin", "superadmin"]);
-
 export const adminProcedure = protectedProcedure.use(
 	({ context, errors, next }) => {
 		const role = context.session.user.role ?? "user";
 
-		if (!adminRoles.has(role)) {
+		if (role !== "admin") {
 			throw errors.FORBIDDEN({
 				message: commonErrors.FORBIDDEN.message,
 			});

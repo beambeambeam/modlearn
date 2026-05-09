@@ -62,7 +62,7 @@ export const appRouter = router({
 			path: "/rpc/adminData",
 			tags: ["System"],
 			summary: "Admin data",
-			description: "Requires admin or superadmin role.",
+			description: "Requires admin role.",
 		})
 		.output(
 			z.object({

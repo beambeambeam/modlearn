@@ -139,7 +139,7 @@ export const courseRouter = router({
 			tags: ["Course Admin"],
 			summary: "List Admin Courses",
 			description:
-				"Requires admin or superadmin role. Can return published, unpublished, available, or unavailable courses.",
+				"Requires admin role. Can return published, unpublished, available, or unavailable courses.",
 		})
 		.input(courseAdminListInputSchema.optional())
 		.output(courseListOutputSchema)
@@ -159,7 +159,7 @@ export const courseRouter = router({
 			tags: ["Course Admin"],
 			summary: "Retrieve Admin Course Details By ID",
 			description:
-				"Requires admin or superadmin role. Can include unpublished or unavailable course details.",
+				"Requires admin role. Can include unpublished or unavailable course details.",
 		})
 		.input(courseAdminByIdInputSchema)
 		.output(courseDetailOutputSchema)
@@ -177,8 +177,7 @@ export const courseRouter = router({
 			path: "/rpc/course/adminCreate",
 			tags: ["Course Admin"],
 			summary: "Create Course",
-			description:
-				"Requires admin or superadmin role. Creates a new course container.",
+			description: "Requires admin role. Creates a new course container.",
 		})
 		.input(courseAdminCreateInputSchema)
 		.output(courseSchema)
@@ -206,8 +205,7 @@ export const courseRouter = router({
 			path: "/rpc/course/adminUpdate",
 			tags: ["Course Admin"],
 			summary: "Update Course",
-			description:
-				"Requires admin or superadmin role. Updates mutable course fields.",
+			description: "Requires admin role. Updates mutable course fields.",
 		})
 		.input(courseAdminUpdateInputSchema)
 		.output(courseSchema)
@@ -235,7 +233,7 @@ export const courseRouter = router({
 			tags: ["Course Admin"],
 			summary: "Delete Course",
 			description:
-				"Requires admin or superadmin role. Soft-deletes a course and returns deletion metadata.",
+				"Requires admin role. Soft-deletes a course and returns deletion metadata.",
 		})
 		.input(courseAdminDeleteInputSchema)
 		.output(courseDeleteOutputSchema)
@@ -254,8 +252,7 @@ export const courseRouter = router({
 			path: "/rpc/course/adminSetPublishState",
 			tags: ["Course Admin"],
 			summary: "Set Course Publish State",
-			description:
-				"Requires admin or superadmin role. Sets whether a course is published.",
+			description: "Requires admin role. Sets whether a course is published.",
 		})
 		.input(courseAdminSetPublishStateInputSchema)
 		.output(courseSchema)
@@ -282,8 +279,7 @@ export const courseRouter = router({
 			path: "/rpc/course/adminSetAvailability",
 			tags: ["Course Admin"],
 			summary: "Set Course Availability State",
-			description:
-				"Requires admin or superadmin role. Sets whether a course is available.",
+			description: "Requires admin role. Sets whether a course is available.",
 		})
 		.input(courseAdminSetAvailabilityInputSchema)
 		.output(courseSchema)
@@ -311,7 +307,7 @@ export const courseRouter = router({
 			tags: ["Course Admin"],
 			summary: "Set Course Category Classification",
 			description:
-				"Requires admin or superadmin role. Updates category associations for a course.",
+				"Requires admin role. Updates category associations for a course.",
 		})
 		.input(courseAdminSetClassificationInputSchema)
 		.output(courseClassificationOutputSchema)
@@ -330,8 +326,7 @@ export const courseRouter = router({
 			path: "/rpc/course/adminAddLesson",
 			tags: ["Course Admin"],
 			summary: "Add Lesson To Course",
-			description:
-				"Requires admin or superadmin role. Adds a lesson directly to a course.",
+			description: "Requires admin role. Adds a lesson directly to a course.",
 		})
 		.input(courseAdminAddLessonInputSchema)
 		.output(courseLessonSchema)
@@ -350,8 +345,7 @@ export const courseRouter = router({
 			path: "/rpc/course/adminUpdateLesson",
 			tags: ["Course Admin"],
 			summary: "Update Course Lesson",
-			description:
-				"Requires admin or superadmin role. Updates mutable course lesson fields.",
+			description: "Requires admin role. Updates mutable course lesson fields.",
 		})
 		.input(courseAdminUpdateLessonInputSchema)
 		.output(courseLessonSchema)
@@ -370,8 +364,7 @@ export const courseRouter = router({
 			path: "/rpc/course/adminRemoveLesson",
 			tags: ["Course Admin"],
 			summary: "Remove Lesson From Course",
-			description:
-				"Requires admin or superadmin role. Removes a lesson from a course.",
+			description: "Requires admin role. Removes a lesson from a course.",
 		})
 		.input(courseAdminRemoveLessonInputSchema)
 		.output(courseLessonDeleteOutputSchema)
@@ -391,7 +384,7 @@ export const courseRouter = router({
 			tags: ["Course Admin"],
 			summary: "Reorder Course Lessons",
 			description:
-				"Requires admin or superadmin role. Reorders the full lesson set for a course.",
+				"Requires admin role. Reorders the full lesson set for a course.",
 		})
 		.input(courseAdminReorderLessonsInputSchema)
 		.output(z.array(courseLessonSchema))

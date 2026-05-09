@@ -21,21 +21,7 @@ export const adminRole = ac.newRole({
 	session: ["list", "revoke", "delete"],
 });
 
-export const superadminRole = ac.newRole({
-	user: [
-		"create",
-		"list",
-		"set-role",
-		"ban",
-		"impersonate",
-		"delete",
-		"set-password",
-	],
-	session: ["list", "revoke", "delete"],
-});
-
 export const roles = {
 	user: userRole,
 	admin: adminRole,
-	superadmin: superadminRole,
 };
