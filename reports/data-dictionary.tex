@@ -1,0 +1,266 @@
+\subsubsection{Data Dictionary}
+
+This data dictionary documents the structure of the ModLearn relational database on a table-by-table basis. Following common data-dictionary practice, each table records the attribute name, human-readable description, data type, important constraints, and references to related tables. The dictionary should also be kept aligned with the implemented schema whenever the database changes.
+
+\begingroup
+\small
+\renewcommand{\arraystretch}{1.15}
+
+\newcommand{\ddheader}{
+\toprule
+\textbf{Attribute Name} & \textbf{Description} & \textbf{Data Type} & \textbf{Constraints} & \textbf{References} \\
+\midrule
+\endfirsthead
+\toprule
+\textbf{Attribute Name} & \textbf{Description} & \textbf{Data Type} & \textbf{Constraints} & \textbf{References} \\
+\midrule
+\endhead
+\bottomrule
+\endfoot
+}
+
+\paragraph{Table: User}
+\begin{longtable}{L{2.6cm}L{4.5cm}L{2.1cm}L{3.3cm}L{2.2cm}}
+\ddheader
+id & Unique identifier of each user. & Text & Primary key, not null & -- \\
+name & Full name of the user. & Text & Not null & -- \\
+email & Email address used by the user account. & Text & Not null, unique & -- \\
+emailVerified & Indicates whether the email address has been verified. & Boolean & Not null, default false & -- \\
+image & Profile image URL or path. & Text & Nullable & -- \\
+createdAt & Date and time when the user record was created. & Timestamp & Not null, default now & -- \\
+updatedAt & Date and time when the user record was last updated. & Timestamp & Not null, auto update & -- \\
+username & System username of the user. & Text & Unique, nullable & -- \\
+displayUsername & Display name shown publicly in the platform. & Text & Nullable & -- \\
+role & Role of the user, such as learner or administrator. & Text & Nullable & -- \\
+banned & Indicates whether the user account is banned. & Boolean & Default false & -- \\
+banReason & Reason for account ban. & Text & Nullable & -- \\
+banExpires & Date and time when the ban expires. & Timestamp & Nullable & -- \\
+\end{longtable}
+
+\paragraph{Table: Session}
+\begin{longtable}{L{2.6cm}L{4.5cm}L{2.1cm}L{3.3cm}L{2.2cm}}
+\ddheader
+id & Unique identifier of the session. & Text & Primary key, not null & -- \\
+expiresAt & Session expiration date and time. & Timestamp & Not null & -- \\
+token & Unique token used for session authentication. & Text & Not null, unique & -- \\
+createdAt & Date and time when the session was created. & Timestamp & Not null, default now & -- \\
+updatedAt & Date and time when the session was last updated. & Timestamp & Not null, auto update & -- \\
+ipAddress & IP address of the client creating the session. & Text & Nullable & -- \\
+userAgent & Browser or device agent string. & Text & Nullable & -- \\
+userId & User who owns the session. & Text & Not null, foreign key & User.id \\
+impersonatedBy & User or actor that impersonated the session owner, if applicable. & Text & Nullable & -- \\
+\end{longtable}
+
+\paragraph{Table: Account}
+\begin{longtable}{L{2.6cm}L{4.5cm}L{2.1cm}L{3.3cm}L{2.2cm}}
+\ddheader
+id & Unique identifier of the linked account. & Text & Primary key, not null & -- \\
+accountId & Identifier assigned by the authentication provider. & Text & Not null & -- \\
+providerId & Authentication provider name or identifier. & Text & Not null & -- \\
+userId & User who owns the linked account. & Text & Not null, foreign key & User.id \\
+accessToken & Access token issued by the provider. & Text & Nullable & -- \\
+refreshToken & Refresh token issued by the provider. & Text & Nullable & -- \\
+idToken & Identity token issued by the provider. & Text & Nullable & -- \\
+accessTokenExpiresAt & Expiration date and time of the access token. & Timestamp & Nullable & -- \\
+refreshTokenExpiresAt & Expiration date and time of the refresh token. & Timestamp & Nullable & -- \\
+scope & Access scope granted by the provider. & Text & Nullable & -- \\
+password & Stored password or credential field when applicable. & Text & Nullable & -- \\
+createdAt & Date and time when the linked account was created. & Timestamp & Not null, default now & -- \\
+updatedAt & Date and time when the linked account was last updated. & Timestamp & Not null, auto update & -- \\
+\end{longtable}
+
+\paragraph{Table: Verification}
+\begin{longtable}{L{2.6cm}L{4.5cm}L{2.1cm}L{3.3cm}L{2.2cm}}
+\ddheader
+id & Unique identifier of the verification record. & Text & Primary key, not null & -- \\
+identifier & Identifier used in the verification flow. & Text & Not null & -- \\
+value & Verification value or token. & Text & Not null & -- \\
+expiresAt & Expiration date and time of the verification record. & Timestamp & Not null & -- \\
+createdAt & Date and time when the verification record was created. & Timestamp & Not null, default now & -- \\
+updatedAt & Date and time when the verification record was last updated. & Timestamp & Not null, default now, auto update & -- \\
+\end{longtable}
+
+\paragraph{Table: Category}
+\begin{longtable}{L{2.6cm}L{4.5cm}L{2.1cm}L{3.3cm}L{2.2cm}}
+\ddheader
+id & Unique identifier of the category. & UUID & Primary key, not null & -- \\
+title & Category name used for course classification. & Text & Not null & -- \\
+description & Description of the category. & Text & Nullable & -- \\
+slug & URL-friendly identifier of the category. & Text & Unique, nullable & -- \\
+\end{longtable}
+
+\paragraph{Table: Course}
+\begin{longtable}{L{2.6cm}L{4.5cm}L{2.1cm}L{3.3cm}L{2.2cm}}
+\ddheader
+id & Unique identifier of the course. & UUID & Primary key, not null & -- \\
+creatorId & User who created or manages the course. & Text & Not null, foreign key & User.id \\
+title & Course title. & Text & Not null & -- \\
+description & General description of the course. & Text & Nullable & -- \\
+thumbnailImageId & File used as the course thumbnail image. & UUID & Nullable, foreign key & File.id \\
+isPublished & Indicates whether the course is published. & Boolean & Not null, default false & -- \\
+publishedAt & Date and time when the course was published. & Timestamp & Nullable & -- \\
+isAvailable & Indicates whether the course is currently available to users. & Boolean & Not null, default true & -- \\
+isDeleted & Indicates whether the course is soft deleted. & Boolean & Not null, default false & -- \\
+deletedAt & Date and time when the course was marked deleted. & Timestamp & Nullable & -- \\
+createdAt & Date and time when the course record was created. & Timestamp & Not null, default now & -- \\
+updatedAt & Date and time when the course record was last updated. & Timestamp & Not null, default now, auto update & -- \\
+\end{longtable}
+
+\paragraph{Table: CourseLesson}
+\begin{longtable}{L{2.6cm}L{4.5cm}L{2.1cm}L{3.3cm}L{2.2cm}}
+\ddheader
+id & Unique identifier of the lesson. & UUID & Primary key, not null & -- \\
+courseId & Course to which the lesson belongs. & UUID & Not null, foreign key & Course.id \\
+lessonOrder & Ordering number of the lesson within the course. & Integer & Not null, unique within course & -- \\
+title & Lesson title. & Text & Not null & -- \\
+description & Lesson description or summary. & Text & Nullable & -- \\
+thumbnailImageId & File used as the lesson thumbnail image. & UUID & Nullable, foreign key & File.id \\
+duration & Lesson duration. & BigInt & Nullable & -- \\
+releaseDate & Planned or actual release date of the lesson. & Date & Nullable & -- \\
+fileId & Media file used by the lesson. & UUID & Nullable, foreign key & File.id \\
+addedAt & Date and time when the lesson was added to the course. & Timestamp & Not null, default now & -- \\
+createdAt & Date and time when the lesson record was created. & Timestamp & Not null, default now & -- \\
+updatedAt & Date and time when the lesson record was last updated. & Timestamp & Not null, default now, auto update & -- \\
+\end{longtable}
+
+\paragraph{Table: CourseCategory}
+\begin{longtable}{L{2.6cm}L{4.5cm}L{2.1cm}L{3.3cm}L{2.2cm}}
+\ddheader
+id & Unique identifier of the course-category link. & UUID & Primary key, not null & -- \\
+courseId & Course in the relationship. & UUID & Not null, foreign key, unique pair & Course.id \\
+categoryId & Category in the relationship. & UUID & Not null, foreign key, unique pair & Category.id \\
+\end{longtable}
+
+\paragraph{Table: CoursePricing}
+\begin{longtable}{L{2.6cm}L{4.5cm}L{2.1cm}L{3.3cm}L{2.2cm}}
+\ddheader
+id & Unique identifier of the pricing record. & UUID & Primary key, not null & -- \\
+courseId & Course to which the price applies. & UUID & Not null, foreign key & Course.id \\
+price & Price amount for the course. & Decimal(10,2) & Not null & -- \\
+currency & Currency code of the price. & Text & Not null & -- \\
+effectiveFrom & Start date and time when the price becomes active. & Timestamp & Not null & -- \\
+effectiveTo & End date and time when the price stops being active. & Timestamp & Nullable & -- \\
+createdBy & User who created the pricing record. & Text & Not null, foreign key & User.id \\
+createdAt & Date and time when the pricing record was created. & Timestamp & Not null, default now & -- \\
+\end{longtable}
+
+\paragraph{Table: File}
+\begin{longtable}{L{2.6cm}L{4.5cm}L{2.1cm}L{3.3cm}L{2.2cm}}
+\ddheader
+id & Unique identifier of the file metadata record. & UUID & Primary key, not null & -- \\
+uploaderId & User who uploaded the file. & Text & Not null, foreign key & User.id \\
+uploadedAt & Date and time when the file was uploaded. & Timestamp & Not null, default now & -- \\
+name & Original file name. & Text & Not null & -- \\
+size & File size. & BigInt & Not null & -- \\
+mimeType & MIME type of the file. & Text & Not null & -- \\
+extension & File extension. & Text & Not null & -- \\
+checksum & Checksum used for file integrity. & Text & Not null & -- \\
+isDeleted & Indicates whether the file is soft deleted. & Boolean & Not null, default false & -- \\
+deletedAt & Date and time when the file was marked deleted. & Timestamp & Nullable & -- \\
+\end{longtable}
+
+\paragraph{Table: Storage}
+\begin{longtable}{L{2.6cm}L{4.5cm}L{2.1cm}L{3.3cm}L{2.2cm}}
+\ddheader
+id & Unique identifier of the storage record. & UUID & Primary key, not null & -- \\
+fileId & File metadata record linked to the stored object. & UUID & Not null, foreign key & File.id \\
+storageProvider & Name of the storage provider. & Text & Not null & -- \\
+bucket & Storage bucket or container name. & Text & Nullable & -- \\
+storageKey & Object key or path in the storage system. & Text & Not null & -- \\
+cdnUrl & Public or CDN access URL for the file. & Text & Nullable & -- \\
+\end{longtable}
+
+\paragraph{Table: Order}
+\begin{longtable}{L{2.6cm}L{4.5cm}L{2.1cm}L{3.3cm}L{2.2cm}}
+\ddheader
+id & Unique identifier of the order. & UUID & Primary key, not null & -- \\
+userId & User who placed the order. & Text & Not null, foreign key & User.id \\
+totalAmount & Total amount charged in the order. & Decimal(10,2) & Not null & -- \\
+currency & Currency code of the order. & Text & Not null & -- \\
+itemType & Type of item being purchased. & Enum & Not null, values defined by cart item enum & -- \\
+courseId & Course associated with the order, when applicable. & UUID & Nullable, foreign key & Course.id \\
+status & Current order status. & Enum & Not null, values: PENDING, PAID, FAILED, REFUNDED & -- \\
+createdAt & Date and time when the order was created. & Timestamp & Not null, default now & -- \\
+updatedAt & Date and time when the order was last updated. & Timestamp & Not null, default now, auto update & -- \\
+\end{longtable}
+
+\paragraph{Table: Payment}
+\begin{longtable}{L{2.6cm}L{4.5cm}L{2.1cm}L{3.3cm}L{2.2cm}}
+\ddheader
+id & Unique identifier of the payment record. & UUID & Primary key, not null & -- \\
+orderId & Order paid by this payment record. & UUID & Not null, foreign key & Order.id \\
+providerTransactionId & Transaction identifier from the payment provider. & Text & Not null & -- \\
+provider & Name of the payment provider. & Text & Not null & -- \\
+amount & Amount processed in the payment. & Decimal(10,2) & Not null & -- \\
+currency & Currency code of the payment. & Text & Not null & -- \\
+status & Current payment status. & Enum & Not null, values: INITIATED, SUCCESS, FAILED & -- \\
+paidAt & Date and time when the payment was completed. & Timestamp & Nullable & -- \\
+failureReason & Explanation of payment failure, if any. & Text & Nullable & -- \\
+\end{longtable}
+
+\paragraph{Table: CoursePurchase}
+\begin{longtable}{L{2.6cm}L{4.5cm}L{2.1cm}L{3.3cm}L{2.2cm}}
+\ddheader
+id & Unique identifier of the purchase record. & UUID & Primary key, not null & -- \\
+courseId & Purchased course. & UUID & Not null, foreign key & Course.id \\
+userId & User who purchased the course. & Text & Not null, foreign key, unique pair & User.id \\
+purchasedAt & Date and time when the course was purchased. & Timestamp & Not null, default now & -- \\
+price & Purchase price recorded at transaction time. & Decimal(10,2) & Not null & -- \\
+status & Current purchase status. & Text & Not null & -- \\
+orderId & Source order related to the purchase. & UUID & Nullable, foreign key & Order.id \\
+\end{longtable}
+
+\paragraph{Table: UserLibrary}
+\begin{longtable}{L{2.6cm}L{4.5cm}L{2.1cm}L{3.3cm}L{2.2cm}}
+\ddheader
+id & Unique identifier of the library entry. & UUID & Primary key, not null & -- \\
+userId & User who owns the library entry. & Text & Not null, foreign key, unique pair & User.id \\
+courseId & Course granted to the user library. & UUID & Not null, foreign key, unique pair & Course.id \\
+orderId & Order from which the library access originated. & UUID & Not null, foreign key & Order.id \\
+acquiredAt & Date and time when access was granted. & Timestamp & Not null, default now & -- \\
+expiresAt & Date and time when access expires, if limited. & Timestamp & Nullable & -- \\
+\end{longtable}
+
+\paragraph{Table: WatchProgress}
+\begin{longtable}{L{2.6cm}L{4.5cm}L{2.1cm}L{3.3cm}L{2.2cm}}
+\ddheader
+id & Unique identifier of the watch-progress record. & UUID & Primary key, not null & -- \\
+courseId & Course associated with the progress record. & UUID & Not null, foreign key & Course.id \\
+courseLessonId & Lesson associated with the progress record. & UUID & Not null, foreign key, unique pair with userId & CourseLesson.id \\
+userId & User whose progress is being tracked. & Text & Not null, foreign key, unique pair with courseLessonId & User.id \\
+lastPosition & Last playback position reached by the learner. & BigInt & Not null & -- \\
+duration & Full lesson duration used for progress calculation. & BigInt & Not null & -- \\
+isCompleted & Indicates whether the lesson was completed. & Boolean & Not null, default false & -- \\
+updatedAt & Date and time when the progress record was last updated. & Timestamp & Not null, default now, auto update & -- \\
+deviceType & Device category used during viewing. & Text & Nullable & -- \\
+\end{longtable}
+
+\paragraph{Table: CourseLessonView}
+\begin{longtable}{L{2.6cm}L{4.5cm}L{2.1cm}L{3.3cm}L{2.2cm}}
+\ddheader
+id & Unique identifier of the lesson-view record. & UUID & Primary key, not null & -- \\
+courseLessonId & Lesson viewed in the event record. & UUID & Not null, foreign key & CourseLesson.id \\
+userId & User who viewed the lesson, when authenticated. & Text & Nullable, foreign key & User.id \\
+sessionId & Session associated with the view event. & Text & Nullable, foreign key & Session.id \\
+viewedAt & Date and time when the lesson was viewed. & Timestamp & Not null, default now & -- \\
+watchDuration & Duration watched during the view event. & BigInt & Default 0 & -- \\
+deviceType & Device category used for the lesson view. & Text & Nullable & -- \\
+\end{longtable}
+
+\paragraph{Table: CourseReview}
+\begin{longtable}{L{2.6cm}L{4.5cm}L{2.1cm}L{3.3cm}L{2.2cm}}
+\ddheader
+id & Unique identifier of the review. & UUID & Primary key, not null & -- \\
+courseId & Course being reviewed. & UUID & Not null, foreign key, unique pair with userId & Course.id \\
+userId & User who submitted the review. & Text & Not null, foreign key, unique pair with courseId & User.id \\
+rating & Numeric rating submitted by the user. & Integer & Not null, check 1 to 5 & -- \\
+comment & Written review comment. & Text & Nullable & -- \\
+isVisible & Indicates whether the review is visible publicly. & Boolean & Not null, default true & -- \\
+hiddenAt & Date and time when the review was hidden. & Timestamp & Nullable & -- \\
+hiddenBy & User who moderated or hid the review. & Text & Nullable, foreign key & User.id \\
+moderationReason & Reason for hiding or moderating the review. & Text & Nullable & -- \\
+createdAt & Date and time when the review was created. & Timestamp & Not null, default now & -- \\
+updatedAt & Date and time when the review was last updated. & Timestamp & Not null, default now, auto update & -- \\
+\end{longtable}
+
+\endgroup
