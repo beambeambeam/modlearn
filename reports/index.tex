@@ -5,6 +5,12 @@
 \usepackage[T1]{fontenc}
 \usepackage[utf8]{inputenc}
 \usepackage{setspace}
+\usepackage{array}
+\usepackage{booktabs}
+\usepackage{tabularx}
+
+\newcolumntype{Y}{>{\raggedright\arraybackslash}X}
+\newcolumntype{L}[1]{>{\raggedright\arraybackslash}p{#1}}
 
 \title{modlearn}
 \author{}
@@ -35,5 +41,28 @@ The specific objectives of the project are as follows:
     \item To provide users with an easy way to browse, select, and watch learning materials online.
     \item To create a responsive and organized system that supports effective learning and future platform growth.
 \end{enumerate}
+
+\section{Requirement}
+
+\subsection{Requirement Summary}
+
+ModLearn is a web-based digital learning platform intended to support the discovery, acquisition, access, and continued consumption of structured online course content. The platform is expected to serve both public users and authenticated learners while also providing controlled administrative capabilities for maintaining the course catalog, lessons, classifications, pricing, reviews, and reporting data.
+
+From the learner perspective, the system is expected to provide a complete learning-access flow. Users should be able to discover available courses, review course information, obtain access through valid ownership, continue lessons from previous progress, and receive discovery support through recommendation and continue-watching features. The system is therefore not limited to one-time page access; it must support continuity across repeated visits and sessions.
+
+From the operational perspective, the platform must enable authorized administrators to manage the structure and release state of learning content. This includes maintaining courses, lessons, categories, associated media assets, monetization settings, moderation actions, and analytics views. Administrative behavior must remain separated from public or learner behavior through role-based access control and controlled access boundaries.
+
+\subsection{Stakeholders and Scope}
+
+\begin{tabularx}{\textwidth}{L{3cm}Y}
+\toprule
+\textbf{Stakeholder} & \textbf{Primary concern} \\
+\midrule
+Public visitor & Discover visible courses and inspect public course information \\
+Learner & Access owned content, resume progress, and interact with course feedback features \\
+Administrator & Maintain content, pricing, classifications, media, moderation, and analytics \\
+System owner & Ensure the platform supports controlled delivery, monetization, and operational oversight \\
+\bottomrule
+\end{tabularx}
 
 \end{document}
