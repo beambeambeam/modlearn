@@ -161,3 +161,271 @@ Database structure diagram will be inserted here.
 }
 }
 \end{center}
+
+\subsubsection{Database Structure Description}
+
+This subsection presents the important relationships in the ModLearn database. Each relationship is shown as a separate figure so the structure is easier to read.
+
+\begin{enumerate}
+    \item \textbf{User and Session}:
+    One user can have many sessions, while each session belongs to one user.
+\end{enumerate}
+
+\begin{center}
+\begin{tikzpicture}[
+    every node/.style={font=\small},
+    entity/.style={draw, rectangle, minimum width=3cm, minimum height=1.1cm, align=center},
+    rel/.style={draw, diamond, aspect=2, align=center, inner sep=1pt},
+]
+\node[entity] (user) {User};
+\node[rel, right=1.8cm of user] (has) {has};
+\node[entity, right=1.8cm of has] (session) {Session};
+\draw (user) -- node[above] {1} node[below] {1} (has);
+\draw (has) -- node[above] {m} node[below] {1} (session);
+\end{tikzpicture}
+
+\vspace{0.2cm}
+\textbf{Figure 2.3.1} Relationship between \textbf{User} and \textbf{Session}
+\end{center}
+
+\begin{enumerate}
+    \setcounter{enumi}{1}
+    \item \textbf{User and Account}:
+    One user can link many accounts, while each account belongs to one user.
+\end{enumerate}
+
+\begin{center}
+\begin{tikzpicture}[
+    every node/.style={font=\small},
+    entity/.style={draw, rectangle, minimum width=3cm, minimum height=1.1cm, align=center},
+    rel/.style={draw, diamond, aspect=2, align=center, inner sep=1pt},
+]
+\node[entity] (user) {User};
+\node[rel, right=1.8cm of user] (links) {links};
+\node[entity, right=1.8cm of links] (account) {Account};
+\draw (user) -- node[above] {1} node[below] {1} (links);
+\draw (links) -- node[above] {m} node[below] {1} (account);
+\end{tikzpicture}
+
+\vspace{0.2cm}
+\textbf{Figure 2.3.2} Relationship between \textbf{User} and \textbf{Account}
+\end{center}
+
+\begin{enumerate}
+    \setcounter{enumi}{2}
+    \item \textbf{User and Course}:
+    One user can create many courses, while each course is created by one user.
+\end{enumerate}
+
+\begin{center}
+\begin{tikzpicture}[
+    every node/.style={font=\small},
+    entity/.style={draw, rectangle, minimum width=3cm, minimum height=1.1cm, align=center},
+    rel/.style={draw, diamond, aspect=2, align=center, inner sep=1pt},
+]
+\node[entity] (user) {User};
+\node[rel, right=1.8cm of user] (creates) {creates};
+\node[entity, right=1.8cm of creates] (course) {Course};
+\draw (user) -- node[above] {1} node[below] {1} (creates);
+\draw (creates) -- node[above] {m} node[below] {1} (course);
+\end{tikzpicture}
+
+\vspace{0.2cm}
+\textbf{Figure 2.3.3} Relationship between \textbf{User} and \textbf{Course}
+\end{center}
+
+\begin{enumerate}
+    \setcounter{enumi}{3}
+    \item \textbf{Course and CourseLesson}:
+    One course can contain many lessons, while each lesson belongs to one course.
+\end{enumerate}
+
+\begin{center}
+\begin{tikzpicture}[
+    every node/.style={font=\small},
+    entity/.style={draw, rectangle, minimum width=3cm, minimum height=1.1cm, align=center},
+    rel/.style={draw, diamond, aspect=2, align=center, inner sep=1pt},
+]
+\node[entity] (course) {Course};
+\node[rel, right=1.8cm of course] (contains) {contains};
+\node[entity, right=1.8cm of contains] (lesson) {CourseLesson};
+\draw (course) -- node[above] {1} node[below] {1} (contains);
+\draw (contains) -- node[above] {m} node[below] {1} (lesson);
+\end{tikzpicture}
+
+\vspace{0.2cm}
+\textbf{Figure 2.3.4} Relationship between \textbf{Course} and \textbf{CourseLesson}
+\end{center}
+
+\begin{enumerate}
+    \setcounter{enumi}{4}
+    \item \textbf{Course, Category, and CourseCategory}:
+    Courses and categories are connected through the \textbf{CourseCategory} table to represent a many-to-many relationship.
+\end{enumerate}
+
+\begin{center}
+\begin{tikzpicture}[
+    every node/.style={font=\small},
+    entity/.style={draw, rectangle, minimum width=3cm, minimum height=1.1cm, align=center},
+    rel/.style={draw, diamond, aspect=2, align=center, inner sep=1pt},
+]
+\node[entity] (course) {Course};
+\node[rel, right=1.5cm of course] (mapsa) {maps by};
+\node[entity, right=1.5cm of mapsa] (junction) {CourseCategory};
+\node[rel, right=1.5cm of junction] (mapsb) {maps to};
+\node[entity, right=1.5cm of mapsb] (category) {Category};
+\draw (course) -- node[above] {m} node[below] {1} (mapsa);
+\draw (mapsa) -- node[above] {m} node[below] {1} (junction);
+\draw (junction) -- node[above] {1} node[below] {m} (mapsb);
+\draw (mapsb) -- node[above] {1} node[below] {m} (category);
+\end{tikzpicture}
+
+\vspace{0.2cm}
+\textbf{Figure 2.3.5} Relationship between \textbf{Course}, \textbf{CourseCategory}, and \textbf{Category}
+\end{center}
+
+\begin{enumerate}
+    \setcounter{enumi}{5}
+    \item \textbf{User and Order}:
+    One user can place many orders, while each order belongs to one user.
+\end{enumerate}
+
+\begin{center}
+\begin{tikzpicture}[
+    every node/.style={font=\small},
+    entity/.style={draw, rectangle, minimum width=3cm, minimum height=1.1cm, align=center},
+    rel/.style={draw, diamond, aspect=2, align=center, inner sep=1pt},
+]
+\node[entity] (user) {User};
+\node[rel, right=1.8cm of user] (places) {places};
+\node[entity, right=1.8cm of places] (order) {Order};
+\draw (user) -- node[above] {1} node[below] {1} (places);
+\draw (places) -- node[above] {m} node[below] {1} (order);
+\end{tikzpicture}
+
+\vspace{0.2cm}
+\textbf{Figure 2.3.6} Relationship between \textbf{User} and \textbf{Order}
+\end{center}
+
+\begin{enumerate}
+    \setcounter{enumi}{6}
+    \item \textbf{Order and Payment}:
+    One order can have one or more payment records depending on the transaction process.
+\end{enumerate}
+
+\begin{center}
+\begin{tikzpicture}[
+    every node/.style={font=\small},
+    entity/.style={draw, rectangle, minimum width=3cm, minimum height=1.1cm, align=center},
+    rel/.style={draw, diamond, aspect=2, align=center, inner sep=1pt},
+]
+\node[entity] (order) {Order};
+\node[rel, right=1.8cm of order] (paidby) {paid by};
+\node[entity, right=1.8cm of paidby] (payment) {Payment};
+\draw (order) -- node[above] {1} node[below] {1} (paidby);
+\draw (paidby) -- node[above] {m} node[below] {1} (payment);
+\end{tikzpicture}
+
+\vspace{0.2cm}
+\textbf{Figure 2.3.7} Relationship between \textbf{Order} and \textbf{Payment}
+\end{center}
+
+\begin{enumerate}
+    \setcounter{enumi}{7}
+    \item \textbf{User, CoursePurchase, and UserLibrary}:
+    Purchase records and library records are used to grant access to courses that a user has acquired.
+\end{enumerate}
+
+\begin{center}
+\begin{tikzpicture}[
+    every node/.style={font=\small},
+    entity/.style={draw, rectangle, minimum width=2.8cm, minimum height=1.1cm, align=center},
+    rel/.style={draw, diamond, aspect=2, align=center, inner sep=1pt},
+]
+\node[entity] (user) {User};
+\node[rel, right=1.2cm of user] (acquires) {acquires};
+\node[entity, right=1.2cm of acquires] (purchase) {CoursePurchase};
+\node[rel, right=1.2cm of purchase] (grants) {grants};
+\node[entity, right=1.2cm of grants] (library) {UserLibrary};
+\draw (user) -- node[above] {1} node[below] {1} (acquires);
+\draw (acquires) -- node[above] {m} node[below] {1} (purchase);
+\draw (purchase) -- node[above] {1} node[below] {0..1} (grants);
+\draw (grants) -- node[above] {1} node[below] {1} (library);
+\end{tikzpicture}
+
+\vspace{0.2cm}
+\textbf{Figure 2.3.8} Relationship between \textbf{User}, \textbf{CoursePurchase}, and \textbf{UserLibrary}
+\end{center}
+
+\begin{enumerate}
+    \setcounter{enumi}{8}
+    \item \textbf{User and WatchProgress}:
+    One user can have many watch-progress records, while each watch-progress record belongs to one user.
+\end{enumerate}
+
+\begin{center}
+\begin{tikzpicture}[
+    every node/.style={font=\small},
+    entity/.style={draw, rectangle, minimum width=3cm, minimum height=1.1cm, align=center},
+    rel/.style={draw, diamond, aspect=2, align=center, inner sep=1pt},
+]
+\node[entity] (user) {User};
+\node[rel, right=1.8cm of user] (tracks) {tracks};
+\node[entity, right=1.8cm of tracks] (progress) {WatchProgress};
+\draw (user) -- node[above] {1} node[below] {1} (tracks);
+\draw (tracks) -- node[above] {m} node[below] {1} (progress);
+\end{tikzpicture}
+
+\vspace{0.2cm}
+\textbf{Figure 2.3.9} Relationship between \textbf{User} and \textbf{WatchProgress}
+\end{center}
+
+\begin{enumerate}
+    \setcounter{enumi}{9}
+    \item \textbf{CourseLesson and CourseLessonView}:
+    One lesson can have many view records, while each view record refers to one lesson.
+\end{enumerate}
+
+\begin{center}
+\begin{tikzpicture}[
+    every node/.style={font=\small},
+    entity/.style={draw, rectangle, minimum width=3cm, minimum height=1.1cm, align=center},
+    rel/.style={draw, diamond, aspect=2, align=center, inner sep=1pt},
+]
+\node[entity] (lesson) {CourseLesson};
+\node[rel, right=1.8cm of lesson] (views) {viewed in};
+\node[entity, right=1.8cm of views] (lessonview) {CourseLessonView};
+\draw (lesson) -- node[above] {1} node[below] {1} (views);
+\draw (views) -- node[above] {m} node[below] {1} (lessonview);
+\end{tikzpicture}
+
+\vspace{0.2cm}
+\textbf{Figure 2.3.10} Relationship between \textbf{CourseLesson} and \textbf{CourseLessonView}
+\end{center}
+
+\begin{enumerate}
+    \setcounter{enumi}{10}
+    \item \textbf{User, CourseReview, and Course}:
+    Users can submit reviews for courses, and each review belongs to one user and one course.
+\end{enumerate}
+
+\begin{center}
+\begin{tikzpicture}[
+    every node/.style={font=\small},
+    entity/.style={draw, rectangle, minimum width=2.8cm, minimum height=1.1cm, align=center},
+    rel/.style={draw, diamond, aspect=2, align=center, inner sep=1pt},
+]
+\node[entity] (user) {User};
+\node[rel, right=1.2cm of user] (writes) {writes};
+\node[entity, right=1.2cm of writes] (review) {CourseReview};
+\node[rel, right=1.2cm of review] (for) {for};
+\node[entity, right=1.2cm of for] (course) {Course};
+\draw (user) -- node[above] {1} node[below] {1} (writes);
+\draw (writes) -- node[above] {m} node[below] {1} (review);
+\draw (review) -- node[above] {m} node[below] {1} (for);
+\draw (for) -- node[above] {1} node[below] {1} (course);
+\end{tikzpicture}
+
+\vspace{0.2cm}
+\textbf{Figure 2.3.11} Relationship between \textbf{User}, \textbf{CourseReview}, and \textbf{Course}
+\end{center}
