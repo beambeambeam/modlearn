@@ -1,0 +1,169 @@
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage[a4paper,margin=1in]{geometry}
+\usepackage[dvipsnames]{xcolor}
+\usepackage{array}
+\usepackage{booktabs}
+\usepackage{enumitem}
+\usepackage{hyperref}
+\usepackage{longtable}
+\usepackage{tabularx}
+\usepackage[most]{tcolorbox}
+
+\hypersetup{
+	colorlinks=true,
+	linkcolor=MidnightBlue,
+	urlcolor=MidnightBlue
+}
+
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{0.5em}
+\pagestyle{plain}
+
+\newcolumntype{Y}{>{\raggedright\arraybackslash}X}
+\newcolumntype{L}[1]{>{\raggedright\arraybackslash}p{#1}}
+
+\newtcolorbox{summarybox}{
+	colback=gray!6,
+	colframe=gray!35,
+	boxrule=0.5pt,
+	arc=3mm,
+	left=4mm,
+	right=4mm,
+	top=2mm,
+	bottom=2mm
+}
+
+\title{\textbf{ModLearn Functional Requirements}}
+\author{}
+
+\begin{document}
+\maketitle
+
+\section*{Functional Requirement Summary}
+\begin{tabularx}{\textwidth}{L{2.2cm}Y}
+\toprule
+\textbf{Group} & \textbf{Scope} \\
+\midrule
+FR-01 & User authentication and profile access \\
+FR-02 & Course catalog and public browsing \\
+FR-03 & Category and classification management \\
+FR-04 & Course, lesson, and media administration \\
+FR-05 & Purchase and owned-library access control \\
+FR-06 & Watch progress and continue-watching flow \\
+FR-07 & Ratings, reviews, and review moderation \\
+FR-08 & Personalized discovery and analytics \\
+\bottomrule
+\end{tabularx}
+
+\section*{Detailed Functional Requirements}
+\renewcommand{\arraystretch}{1.2}
+\begin{longtable}{L{1.6cm}L{7.6cm}L{2.4cm}L{2.0cm}}
+\toprule
+\textbf{ID} & \textbf{Requirement Statement} & \textbf{Rationale} & \textbf{Verify} \\
+\midrule
+\endfirsthead
+\toprule
+\textbf{ID} & \textbf{Requirement Statement} & \textbf{Rationale} & \textbf{Verify} \\
+\midrule
+\endhead
+\bottomrule
+\endfoot
+
+\multicolumn{4}{l}{\textbf{FR-01 User Authentication and Profile Access}} \\
+\midrule
+FR-01.1 & The system shall allow a new user to create an account using email and password credentials. & Establishes a primary onboarding path. & Test \\
+FR-01.2 & The system shall authenticate a registered user before granting access to protected features. & Protects user-specific resources. & Test \\
+FR-01.3 & The system shall allow an authenticated user to sign out from an active session. & Supports session control and privacy. & Test \\
+FR-01.4 & The system shall maintain authenticated sessions using secure, server-managed session state. & Preserves login continuity across requests. & Inspection and test \\
+FR-01.5 & The system shall support username, display name, and profile image data for each user account. & Provides basic identity management. & Inspection and test \\
+FR-01.6 & The system shall restrict admin-only operations to users assigned the admin role. & Enforces role-based authorization. & Test \\
+
+\midrule
+\multicolumn{4}{l}{\textbf{FR-02 Course Catalog and Public Browsing}} \\
+\midrule
+FR-02.1 & The system shall present a public list of courses that are both published and available. & Ensures only releasable content is visible. & Test \\
+FR-02.2 & The system shall provide a public course detail view for a course that is both published and available. & Supports course discovery before access. & Test \\
+FR-02.3 & The system shall provide a public list of lessons belonging to a published and available course. & Allows users to inspect course structure. & Test \\
+FR-02.4 & The system shall support filtering or searching course listings using request parameters supported by the catalog API. & Enables scalable content discovery. & Test \\
+FR-02.5 & The system shall provide a public listing of popular courses based on recorded usage data. & Improves content discovery. & Analysis and test \\
+
+\midrule
+\multicolumn{4}{l}{\textbf{FR-03 Category and Classification Management}} \\
+\midrule
+FR-03.1 & The system shall provide a public list of categories available for browsing. & Supports structured navigation. & Test \\
+FR-03.2 & The system shall allow an administrator to create a category record. & Supports content organization. & Test \\
+FR-03.3 & The system shall allow an administrator to update mutable category data. & Supports maintenance of taxonomy data. & Test \\
+FR-03.4 & The system shall allow an administrator to delete a category record. & Supports taxonomy cleanup. & Test \\
+FR-03.5 & The system shall allow an administrator to assign one or more categories to a course. & Connects catalog browsing to content structure. & Test \\
+
+\midrule
+\multicolumn{4}{l}{\textbf{FR-04 Course, Lesson, and Media Administration}} \\
+\midrule
+FR-04.1 & The system shall allow an administrator to create a course container. & Establishes managed learning content. & Test \\
+FR-04.2 & The system shall allow an administrator to update course metadata, including title and descriptive fields. & Supports content maintenance. & Test \\
+FR-04.3 & The system shall allow an administrator to set the publish state of a course. & Separates draft and released content. & Test \\
+FR-04.4 & The system shall allow an administrator to set the availability state of a course independently from publish state. & Supports release and access control rules. & Test \\
+FR-04.5 & The system shall allow an administrator to add lessons to a course. & Supports multi-lesson course delivery. & Test \\
+FR-04.6 & The system shall allow an administrator to update lesson metadata. & Supports lesson maintenance. & Test \\
+FR-04.7 & The system shall allow an administrator to reorder lessons within a course. & Preserves intended learning sequence. & Test \\
+FR-04.8 & The system shall allow an administrator to remove a lesson from a course. & Supports content lifecycle management. & Test \\
+FR-04.9 & The system shall allow an administrator to generate signed upload requests for media files. & Supports controlled media ingestion. & Test \\
+FR-04.10 & The system shall allow an administrator to generate signed download URLs for stored files. & Supports controlled media retrieval. & Test \\
+FR-04.11 & The system shall allow an administrator to delete file metadata and backing object references. & Supports storage governance. & Test \\
+
+\midrule
+\multicolumn{4}{l}{\textbf{FR-05 Purchase and Owned-Library Access Control}} \\
+\midrule
+FR-05.1 & The system shall allow an authenticated user to purchase an eligible course. & Provides a monetization path. & Test \\
+FR-05.2 & The system shall record payment success before granting owned-library access to a purchased course. & Prevents unauthorized entitlement. & Test \\
+FR-05.3 & The system shall provide the signed-in user with a list of owned library items. & Supports post-purchase access. & Test \\
+FR-05.4 & The system shall provide the signed-in user with owned course details for a course in the user library. & Supports direct consumption of owned content. & Test \\
+FR-05.5 & The system shall verify whether the signed-in user has access to a requested course or lesson before protected delivery. & Enforces entitlement rules. & Test \\
+FR-05.6 & The system shall allow authorized pricing administrators to create and update course pricing windows. & Supports controlled pricing changes. & Test \\
+
+\midrule
+\multicolumn{4}{l}{\textbf{FR-06 Watch Progress and Continue-Watching Flow}} \\
+\midrule
+FR-06.1 & The system shall save watch-progress state for an authenticated user and lesson. & Enables resume behavior. & Test \\
+FR-06.2 & The system shall allow an authenticated user to mark lesson progress as completed. & Supports completion tracking. & Test \\
+FR-06.3 & The system shall return the saved resume position for a requested lesson when progress exists. & Supports seamless continuation. & Test \\
+FR-06.4 & The system shall return the next resume target within a course for an authenticated user. & Supports course continuation. & Test \\
+FR-06.5 & The system shall return the next auto-play lesson candidate within a course when available. & Supports continuous viewing flow. & Test \\
+FR-06.6 & The system shall provide a continue-watching list for the signed-in user. & Improves return-user experience. & Test \\
+
+\midrule
+\multicolumn{4}{l}{\textbf{FR-07 Ratings, Reviews, and Review Moderation}} \\
+\midrule
+FR-07.1 & The system shall provide public review listings for a course only when the course is published and available. & Prevents exposure of unreleased content feedback. & Test \\
+FR-07.2 & The system shall provide public review summary metrics for a course. & Supports trust and discovery. & Test \\
+FR-07.3 & The system shall allow an authenticated user with active ownership to create or update one review for a course. & Restricts reviews to legitimate learners. & Test \\
+FR-07.4 & The system shall allow an authenticated user to delete the user's own review. & Supports user control over submitted feedback. & Test \\
+FR-07.5 & The system shall allow an administrator to list reviews across moderation states. & Supports review governance. & Test \\
+FR-07.6 & The system shall allow an administrator to hide a review from public responses. & Supports moderation actions. & Test \\
+FR-07.7 & The system shall allow an administrator to restore a hidden review to public visibility. & Supports reversible moderation. & Test \\
+FR-07.8 & The system shall allow an administrator to permanently delete a review. & Supports policy enforcement. & Test \\
+
+\midrule
+\multicolumn{4}{l}{\textbf{FR-08 Personalized Discovery and Analytics}} \\
+\midrule
+FR-08.1 & The system shall provide personalized course recommendations for an authenticated user. & Improves relevance of discovery. & Test \\
+FR-08.2 & The system shall provide popular recommendation candidates for an authenticated user. & Supports discovery using aggregate demand. & Analysis and test \\
+FR-08.3 & The system shall provide recently added recommendation candidates for an authenticated user. & Supports freshness-based discovery. & Test \\
+FR-08.4 & The system shall provide administrators with overview analytics for a selected reporting window. & Supports operational monitoring. & Test \\
+FR-08.5 & The system shall provide administrators with per-course performance analytics. & Supports content evaluation. & Test \\
+FR-08.6 & The system shall provide administrators with lesson engagement analytics, including completion and drop-off indicators. & Supports learning-flow analysis. & Test \\
+FR-08.7 & The system shall provide administrators with lesson view analytics and view-session analytics. & Supports usage analysis and reporting. & Test \\
+
+\end{longtable}
+
+\section*{Source Requirement-Writing}
+\begin{enumerate}[leftmargin=1.5em]
+	\item IEEE Standards Association, \emph{ISO/IEC/IEEE 29148 overview}: \href{https://standards.ieee.org/ieee/802.1Q/6937/}{standards.ieee.org}
+	\item NASA, \emph{Appendix C: How to Write a Good Requirement}: \href{https://www.nasa.gov/reference/appendix-c-how-to-write-a-good-requirement/}{nasa.gov}
+	\item INCOSE Requirement Working Group, \emph{Guide to Writing Requirements v4 Overview}: \href{https://www.incose.org/docs/default-source/working-groups/requirements-wg/shared_gtwr/gtwrv4overview120923a.pdf}{incose.org}
+\end{enumerate}
+
+\end{document}
