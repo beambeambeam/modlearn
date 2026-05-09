@@ -1,0 +1,540 @@
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage[a4paper,margin=1in]{geometry}
+\usepackage[dvipsnames]{xcolor}
+\usepackage{array}
+\usepackage{booktabs}
+\usepackage{enumitem}
+\usepackage{hyperref}
+\usepackage{longtable}
+\usepackage{tabularx}
+\usepackage[most]{tcolorbox}
+\usepackage{listings}
+
+\hypersetup{
+	colorlinks=true,
+	linkcolor=MidnightBlue,
+	urlcolor=MidnightBlue
+}
+
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{0.5em}
+\pagestyle{plain}
+
+\newcolumntype{Y}{>{\raggedright\arraybackslash}X}
+\newcolumntype{L}[1]{>{\raggedright\arraybackslash}p{#1}}
+\newcommand{\code}[1]{\texttt{\detokenize{#1}}}
+
+\newtcolorbox{summarybox}{
+	colback=gray!6,
+	colframe=gray!35,
+	boxrule=0.5pt,
+	arc=2mm,
+	left=4mm,
+	right=4mm,
+	top=2mm,
+	bottom=2mm
+}
+
+\lstdefinestyle{sqlstyle}{
+	basicstyle=\ttfamily\small,
+	breaklines=true,
+	frame=single,
+	framerule=0.4pt,
+	rulecolor=\color{gray!40},
+	backgroundcolor=\color{gray!5},
+	keywordstyle=\color{MidnightBlue},
+	commentstyle=\color{OliveGreen},
+	showstringspaces=false
+}
+
+\title{\textbf{ModLearn Database Design}}
+\author{}
+\date{}
+
+\begin{document}
+\maketitle
+
+\section*{1. Requirement Summary}
+ModLearn is a learning platform that must support a complete content lifecycle rather than only a static course catalog. The database therefore needs to serve six major responsibilities at the same time:
+
+\begin{itemize}[leftmargin=1.5em]
+	\item identity and access control for public users, learners, and administrators;
+	\item course authoring and release management;
+	\item media storage references for thumbnails and lesson files;
+	\item monetization and entitlement control for course ownership;
+	\item learner activity tracking for progress, view history, and recommendations;
+	\item operational reporting for analytics and review moderation.
+\end{itemize}
+
+The implemented schema in the server already reflects these responsibilities. Instead of storing everything in a few large tables, the design separates business domains into focused relations with explicit foreign keys, uniqueness constraints, and indexes. This allows the application to answer common product questions such as:
+
+\begin{itemize}[leftmargin=1.5em]
+	\item Which courses are public and currently purchasable?
+	\item Which lessons belong to a course and in what order should they appear?
+	\item What is the active price for a course at the current time?
+	\item Has a specific user purchased and unlocked a course?
+	\item Where should a learner resume watching?
+	\item Which lessons or courses are popular, completed, or underperforming?
+\end{itemize}
+
+\begin{summarybox}
+\textbf{Design objective:} keep transactional correctness for purchases and access control, while also preserving event-style data for viewing analytics and recommendation features.
+\end{summarybox}
+
+\section*{2. Design Overview}
+The database is designed as a relational PostgreSQL-style schema implemented with Drizzle ORM. The current implementation contains 19 main tables and 3 database enums.
+
+\begin{tabularx}{\textwidth}{L{3.1cm}Y}
+\toprule
+\textbf{Domain} & \textbf{Tables} \\
+\midrule
+Authentication & user, session, account, verification \\
+Catalog and taxonomy & category, course, course\_lesson, course\_category \\
+Media & file, storage \\
+Commerce & course\_pricing, order, payment, course\_purchase, user\_library \\
+Learning activity & watch\_progress, course\_lesson\_view \\
+Feedback & course\_review \\
+\bottomrule
+\end{tabularx}
+
+The overall design follows a modular pattern:
+
+\begin{itemize}[leftmargin=1.5em]
+	\item \textbf{master data tables} store relatively stable entities such as users, categories, courses, and files;
+	\item \textbf{bridge tables} model many-to-many or ownership relationships such as course\_category and user\_library;
+	\item \textbf{transaction tables} record business events such as orders, payments, purchases, and reviews;
+	\item \textbf{activity tables} preserve granular usage data such as watch progress and lesson views for analytics and recommendation logic.
+\end{itemize}
+
+\section*{3. Conceptual Data Model}
+\subsection*{3.1 Main Business Entities}
+\begin{itemize}[leftmargin=1.5em]
+	\item A \textbf{user} can authenticate, purchase courses, write reviews, watch lessons, and appear in analytics.
+	\item A \textbf{course} is the main learning product. It is created by a user, may belong to multiple categories, may have multiple lessons, may have multiple price windows over time, and may receive many reviews.
+	\item A \textbf{course lesson} is a child entity of a course with strict ordering and optional linked media.
+	\item A \textbf{file} represents uploaded metadata, while \textbf{storage} stores the physical location and provider-specific object key.
+	\item An \textbf{order} and its \textbf{payment} record the commercial transaction.
+	\item A \textbf{course purchase} records the completed purchase fact, while \textbf{user library} records active learner entitlement.
+	\item \textbf{watch progress} stores resumable state per learner and lesson.
+	\item \textbf{course lesson view} stores granular viewing events for analytics and recommendation scoring.
+	\item A \textbf{course review} stores one learner opinion per course together with moderation state.
+\end{itemize}
+
+\subsection*{3.2 Relationship Summary}
+\begin{tabularx}{\textwidth}{L{3.2cm}L{2.0cm}Y}
+\toprule
+\textbf{Relationship} & \textbf{Cardinality} & \textbf{Meaning} \\
+\midrule
+user to course & 1:N & One creator can author many courses. \\
+course to course\_lesson & 1:N & One course contains many lessons. \\
+course to category & M:N & A course can be classified into multiple categories. \\
+course to course\_pricing & 1:N & One course can have multiple pricing windows over time. \\
+user to order & 1:N & One learner can place many orders. \\
+order to payment & 1:N & An order can have multiple payment attempts or records. \\
+user to user\_library & 1:N & One user can own many course entitlements. \\
+course to user\_library & 1:N & One course can appear in many learner libraries. \\
+user to watch\_progress & 1:N & One learner can have progress entries across many lessons. \\
+course\_lesson to course\_lesson\_view & 1:N & One lesson can generate many view events. \\
+course to course\_review & 1:N & One course can receive many reviews. \\
+user to course\_review & 1:N & One learner can write at most one review per course. \\
+\bottomrule
+\end{tabularx}
+
+\section*{4. Logical Schema and Table Design}
+\subsection*{4.1 Authentication and Identity}
+\begin{longtable}{L{2.6cm}L{3.0cm}L{9.0cm}}
+\toprule
+\textbf{Table} & \textbf{Primary key} & \textbf{Purpose and important fields} \\
+\midrule
+\endfirsthead
+\toprule
+\textbf{Table} & \textbf{Primary key} & \textbf{Purpose and important fields} \\
+\midrule
+\endhead
+\bottomrule
+\endfoot
+user & id (text) & Stores core identity, email, username, displayUsername, role, image, and ban status. Email and username are unique. This table is the parent for most user-owned data. \\
+session & id (text) & Stores active session state with expiresAt, token, userId, IP address, and user agent. token is unique and userId is indexed for fast session lookup. \\
+account & id (text) & Stores provider-specific authentication or credential data such as providerId, accountId, access token, refresh token, and password hash. \\
+verification & id (text) & Stores verification tokens or values with expiry time for email verification or related flows. \\
+\end{longtable}
+
+\subsection*{4.2 Catalog and Taxonomy}
+\begin{longtable}{L{2.6cm}L{3.0cm}L{9.0cm}}
+\toprule
+\textbf{Table} & \textbf{Primary key} & \textbf{Purpose and important fields} \\
+\midrule
+\endfirsthead
+\toprule
+\textbf{Table} & \textbf{Primary key} & \textbf{Purpose and important fields} \\
+\midrule
+\endhead
+\bottomrule
+\endfoot
+category & id (uuid) & Stores reusable taxonomy labels for browsing and recommendation affinity. slug is unique and indexed for friendly lookup. \\
+course & id (uuid) & Stores creatorId, title, description, thumbnailImageId, publish state, availability state, soft-delete flags, and timestamps. It is the main catalog entity. \\
+course\_lesson & id (uuid) & Stores lessonOrder, title, description, duration, releaseDate, fileId, thumbnailImageId, and timestamps. Unique constraint on (courseId, lessonOrder) preserves sequence integrity. \\
+course\_category & id (uuid) & Bridge table connecting courses to categories. Unique constraint on (courseId, categoryId) prevents duplicate classification. \\
+course\_pricing & id (uuid) & Stores price windows with price, currency, effectiveFrom, effectiveTo, createdBy, and createdAt. This supports price history rather than a single mutable price field. \\
+\end{longtable}
+
+\subsection*{4.3 Media}
+\begin{longtable}{L{2.6cm}L{3.0cm}L{9.0cm}}
+\toprule
+\textbf{Table} & \textbf{Primary key} & \textbf{Purpose and important fields} \\
+\midrule
+\endfirsthead
+\toprule
+\textbf{Table} & \textbf{Primary key} & \textbf{Purpose and important fields} \\
+\midrule
+\endhead
+\bottomrule
+\endfoot
+file & id (uuid) & Stores uploaderId, filename, size, mimeType, extension, checksum, and soft-delete state. This is metadata only, not the binary object itself. \\
+storage & id (uuid) & Stores provider, bucket, storageKey, and cdnUrl for physical retrieval. Splitting storage from file allows provider migration or multiple storage strategies. \\
+\end{longtable}
+
+\subsection*{4.4 Commerce and Entitlement}
+\begin{longtable}{L{2.6cm}L{3.0cm}L{9.0cm}}
+\toprule
+\textbf{Table} & \textbf{Primary key} & \textbf{Purpose and important fields} \\
+\midrule
+\endfirsthead
+\toprule
+\textbf{Table} & \textbf{Primary key} & \textbf{Purpose and important fields} \\
+\midrule
+\endhead
+\bottomrule
+\endfoot
+order & id (uuid) & Records a purchase intent with userId, totalAmount, currency, itemType, courseId, and status. Status uses an enum with values such as PENDING, PAID, FAILED, and REFUNDED. \\
+payment & id (uuid) & Records payment-provider details, amount, providerTransactionId, provider, status, paidAt, and optional failureReason. This isolates gateway concerns from the order itself. \\
+course\_purchase & id (uuid) & Records the successful purchase fact for one user and one course. Unique (userId, courseId) prevents duplicate ownership rows. \\
+user\_library & id (uuid) & Records learner entitlement to access a course, linked to the originating order. expiresAt supports future subscription or temporary-access use cases. \\
+\end{longtable}
+
+\subsection*{4.5 Learning Activity and Feedback}
+\begin{longtable}{L{2.6cm}L{3.0cm}L{9.0cm}}
+\toprule
+\textbf{Table} & \textbf{Primary key} & \textbf{Purpose and important fields} \\
+\midrule
+\endfirsthead
+\toprule
+\textbf{Table} & \textbf{Primary key} & \textbf{Purpose and important fields} \\
+\midrule
+\endhead
+\bottomrule
+\endfoot
+watch\_progress & id (uuid) & Stores userId, courseId, courseLessonId, lastPosition, duration, isCompleted, updatedAt, and deviceType. Unique (userId, courseLessonId) ensures only one resumable progress row per learner per lesson. \\
+course\_lesson\_view & id (uuid) & Stores event-style lesson viewing data with viewedAt, watchDuration, userId, and sessionId. This is useful for popularity, engagement, and view-session analytics. \\
+course\_review & id (uuid) & Stores rating, comment, visibility state, moderation fields, and timestamps. Unique (courseId, userId) enforces one review per learner per course. Rating is constrained to the range 1 to 5. \\
+\end{longtable}
+
+\section*{5. Integrity Constraints and Business Rules}
+The design includes several strong data-quality rules directly in the database schema.
+
+\subsection*{5.1 Referential Integrity}
+\begin{itemize}[leftmargin=1.5em]
+	\item Foreign keys connect almost every child table to its parent entity.
+	\item Cascading delete is used where child records have no meaning without the parent, such as sessions for a user, lessons for a course, and watch progress for a deleted lesson.
+	\item Set-null delete is used where historical business records should survive even if a referenced optional object disappears, such as a course thumbnail image or a moderated-by user account.
+\end{itemize}
+
+\subsection*{5.2 Uniqueness Constraints}
+\begin{itemize}[leftmargin=1.5em]
+	\item \code{user.email} and \code{user.username} prevent duplicate identities.
+	\item \code{(courseId, lessonOrder)} in \code{course_lesson} prevents duplicate positions inside a course.
+	\item \code{(courseId, categoryId)} in \code{course_category} prevents duplicate category assignment.
+	\item \code{(userId, courseId)} in \code{course_purchase} and \code{user_library} prevents duplicate ownership and duplicate entitlement.
+	\item \code{(courseId, userId)} in \code{course_review} ensures one learner has one current review per course.
+	\item \code{(userId, courseLessonId)} in \code{watch_progress} guarantees a single resumable progress record per lesson.
+\end{itemize}
+
+\subsection*{5.3 Domain Constraints}
+\begin{itemize}[leftmargin=1.5em]
+	\item Review rating uses a database check so values must remain between 1 and 5.
+	\item Order status and payment status use enums, reducing invalid textual states.
+	\item Effective pricing windows are additionally validated in service logic to prevent overlapping active ranges for the same course.
+	\item Watch-progress writes clamp position to lesson duration and treat 95\% or greater completion as completed state.
+\end{itemize}
+
+\section*{6. Normalization Discussion}
+The schema is mostly normalized to third normal form.
+
+\begin{itemize}[leftmargin=1.5em]
+	\item \textbf{First normal form:} all tables use atomic attributes and explicit primary keys.
+	\item \textbf{Second normal form:} non-key attributes depend on the whole key because bridge-table relationships are modeled explicitly rather than embedding arrays.
+	\item \textbf{Third normal form:} descriptive attributes stay with their owning entities. For example, category text stays in \code{category}, storage location stays in \code{storage}, and payment-provider details stay in \code{payment}.
+\end{itemize}
+
+This normalization is important for ModLearn because the same entities participate in many workflows. A course may appear in catalog browsing, purchase, review, recommendation, and analytics queries. If the design duplicated course metadata across those tables, update anomalies and inconsistent behavior would become likely.
+
+At the same time, the design makes a deliberate tradeoff by storing both \code{course_purchase} and \code{user_library}. This is not accidental duplication. These tables represent different business meanings:
+
+\begin{itemize}[leftmargin=1.5em]
+	\item \code{course_purchase} is the historical commercial fact that the learner bought the course;
+	\item \code{user_library} is the entitlement view that determines whether access is currently granted.
+\end{itemize}
+
+This separation is useful because future features such as refunds, time-limited access, gifting, bundles, or subscription-derived access can change entitlement rules without destroying purchase history.
+
+\section*{7. Interface and Query Demo}
+This section maps application goals to the real query patterns used by the service layer. The examples below are written in SQL-like form for presentation clarity, but they correspond closely to the implemented Drizzle ORM logic.
+
+\subsection*{7.1 Public Course Listing}
+\textbf{Goal:} show only visible, non-deleted, available courses, optionally filtered by title and category.
+
+\begin{lstlisting}[style=sqlstyle,language=SQL]
+SELECT c.id, c.title, c.description, c.published_at
+FROM course c
+WHERE c.is_deleted = false
+  AND c.is_published = true
+  AND c.is_available = true
+  AND c.title ILIKE '%search%'
+  AND EXISTS (
+    SELECT 1
+    FROM course_category cc
+    WHERE cc.course_id = c.id
+      AND cc.category_id IN (...)
+  )
+ORDER BY c.published_at DESC;
+\end{lstlisting}
+
+\textbf{Why the design supports this well:}
+\begin{itemize}[leftmargin=1.5em]
+	\item publish state, availability state, and soft-delete state are separate fields;
+	\item classification is normalized through \code{course_category};
+	\item indexing exists for creator, publish state, and delete state, which reduces catalog scan cost.
+\end{itemize}
+
+\subsection*{7.2 Resolve Active Course Price}
+\textbf{Goal:} find the price that is valid at the current time, not just the latest inserted row.
+
+\begin{lstlisting}[style=sqlstyle,language=SQL]
+SELECT price, currency
+FROM course_pricing
+WHERE course_id = :courseId
+  AND effective_from <= NOW()
+  AND (effective_to IS NULL OR effective_to > NOW())
+ORDER BY effective_from DESC, created_at DESC
+LIMIT 1;
+\end{lstlisting}
+
+\textbf{Why this matters:}
+\begin{itemize}[leftmargin=1.5em]
+	\item pricing changes become auditable;
+	\item future promotional windows can be prepared before activation;
+	\item the user sees the correct price for the current time boundary.
+\end{itemize}
+
+\subsection*{7.3 Purchase and Ownership Check}
+\textbf{Goal:} prevent duplicate purchase and grant access only after successful payment.
+
+\begin{lstlisting}[style=sqlstyle,language=SQL]
+SELECT 1
+FROM course_purchase
+WHERE user_id = :userId
+  AND course_id = :courseId;
+\end{lstlisting}
+
+\begin{lstlisting}[style=sqlstyle,language=SQL]
+INSERT INTO course_purchase (course_id, user_id, price, status, order_id)
+VALUES (:courseId, :userId, :price, 'PAID', :orderId);
+
+INSERT INTO user_library (user_id, course_id, order_id)
+VALUES (:userId, :courseId, :orderId);
+\end{lstlisting}
+
+\textbf{Why the design supports the business goal:}
+\begin{itemize}[leftmargin=1.5em]
+	\item order and payment tables preserve transaction history;
+	\item course\_purchase prevents duplicate ownership by unique constraint;
+	\item user\_library gives a direct entitlement table for fast access checks in learner-facing APIs.
+\end{itemize}
+
+\subsection*{7.4 Resume Learning}
+\textbf{Goal:} save progress idempotently and return the latest resume point.
+
+\begin{lstlisting}[style=sqlstyle,language=SQL]
+INSERT INTO watch_progress (
+  user_id, course_id, course_lesson_id,
+  last_position, duration, is_completed, device_type
+)
+VALUES (...)
+ON CONFLICT (user_id, course_lesson_id)
+DO UPDATE SET
+  course_id = EXCLUDED.course_id,
+  last_position = EXCLUDED.last_position,
+  duration = EXCLUDED.duration,
+  is_completed = EXCLUDED.is_completed,
+  device_type = EXCLUDED.device_type,
+  updated_at = NOW();
+\end{lstlisting}
+
+\begin{lstlisting}[style=sqlstyle,language=SQL]
+SELECT *
+FROM watch_progress
+WHERE user_id = :userId
+  AND course_id = :courseId
+ORDER BY updated_at DESC, id DESC
+LIMIT 1;
+\end{lstlisting}
+
+\textbf{Why this is effective:}
+\begin{itemize}[leftmargin=1.5em]
+	\item the unique key turns progress saving into an upsert instead of duplicate inserts;
+	\item \code{updatedAt} provides a stable way to find the most recently touched lesson;
+	\item storing \code{duration} with each progress record preserves the context used to compute completion percentage.
+\end{itemize}
+
+\subsection*{7.5 Review Summary for Public Course Detail}
+\textbf{Goal:} show average rating and rating distribution from visible reviews only.
+
+\begin{lstlisting}[style=sqlstyle,language=SQL]
+SELECT
+  course_id,
+  AVG(rating) AS average_rating,
+  COUNT(id) AS rating_count,
+  SUM(CASE WHEN rating = 1 THEN 1 ELSE 0 END) AS one_star,
+  SUM(CASE WHEN rating = 2 THEN 1 ELSE 0 END) AS two_star,
+  SUM(CASE WHEN rating = 3 THEN 1 ELSE 0 END) AS three_star,
+  SUM(CASE WHEN rating = 4 THEN 1 ELSE 0 END) AS four_star,
+  SUM(CASE WHEN rating = 5 THEN 1 ELSE 0 END) AS five_star
+FROM course_review
+WHERE course_id IN (...)
+  AND is_visible = true
+GROUP BY course_id;
+\end{lstlisting}
+
+\textbf{Why this aligns with product goals:}
+\begin{itemize}[leftmargin=1.5em]
+	\item moderation does not destroy history because visibility is toggled instead of physically deleting the review;
+	\item course detail pages can compute trust signals without loading every raw review row;
+	\item the composite review indexes are matched to course and visibility filters.
+\end{itemize}
+
+\subsection*{7.6 Personalized Recommendation}
+\textbf{Goal:} recommend unseen lessons by combining category affinity with popularity.
+
+\begin{lstlisting}[style=sqlstyle,language=SQL]
+WITH affinity_by_category AS (
+  SELECT cc.category_id, COUNT(*) AS weight
+  FROM course_category cc
+  WHERE cc.course_id IN (:watchedCourseIds)
+  GROUP BY cc.category_id
+)
+SELECT cl.id,
+       COALESCE(SUM(a.weight), 0) AS affinity_score,
+       COUNT(clv.id) AS popularity_score
+FROM course_lesson cl
+JOIN course c ON c.id = cl.course_id
+LEFT JOIN course_category cc ON cc.course_id = c.id
+LEFT JOIN affinity_by_category a ON a.category_id = cc.category_id
+LEFT JOIN course_lesson_view clv ON clv.course_lesson_id = cl.id
+WHERE c.is_deleted = false
+  AND c.is_published = true
+  AND c.is_available = true
+  AND cl.id NOT IN (:watchedLessonIds)
+GROUP BY cl.id, c.id
+ORDER BY affinity_score DESC, popularity_score DESC, cl.created_at DESC
+LIMIT :limit;
+\end{lstlisting}
+
+\textbf{Why this is a strong demonstration query:}
+\begin{itemize}[leftmargin=1.5em]
+	\item it combines transactional catalog data with learner activity data;
+	\item it uses normalized categories to infer taste rather than hard-coding recommendation groups;
+	\item it falls back to popularity if a learner has too little history.
+\end{itemize}
+
+\section*{8. Optimization Discussion}
+\subsection*{8.1 Existing Optimization Choices}
+The current design already includes several solid optimization decisions.
+
+\begin{itemize}[leftmargin=1.5em]
+	\item \textbf{Composite indexes match real filters.} Examples include:
+	\begin{itemize}[leftmargin=1.5em]
+		\item \code{course_published_idx} on \code{(isPublished, publishedAt)};
+		\item \code{courseLesson_order_idx} on \code{(courseId, lessonOrder)};
+		\item \code{courseReview_courseId_visible_createdAt_idx} on \code{(courseId, isVisible, createdAt)};
+		\item \code{watchProgress_completed_idx} on \code{(userId, isCompleted)}.
+	\end{itemize}
+	\item \textbf{Bridge tables prevent repeated string matching.} Category membership is resolved by indexed joins rather than storing comma-separated values.
+	\item \textbf{Upsert-based progress saving avoids cleanup queries.} The unique progress key means the application never needs to delete stale duplicates.
+	\item \textbf{Soft delete is used selectively.} Courses and files keep deletion state for safety and traceability, while purely dependent children can still be cascade-deleted.
+	\item \textbf{Time-window pricing is queryable.} Sorting by \code{effectiveFrom DESC, createdAt DESC} makes current-price lookup deterministic.
+\end{itemize}
+
+\subsection*{8.2 Why These Choices Are Data-Backed}
+The service layer proves that the indexes are not theoretical:
+
+\begin{itemize}[leftmargin=1.5em]
+	\item course listing filters by \code{isDeleted}, \code{isPublished}, \code{isAvailable}, category existence, and title search;
+	\item review pages aggregate by \code{courseId} and visibility;
+	\item entitlement checks query \code{userLibrary} repeatedly by \code{userId}, \code{courseId}, and \code{expiresAt};
+	\item recommendation queries group by \code{courseLessonView} and join through \code{courseCategory};
+	\item analytics queries repeatedly filter by date ranges on \code{viewedAt}, \code{createdAt}, and \code{updatedAt}.
+\end{itemize}
+
+In other words, the schema is aligned to actual workload categories:
+
+\begin{itemize}[leftmargin=1.5em]
+	\item \textbf{OLTP-style reads and writes} for sign-in, purchase, review, and progress updates;
+	\item \textbf{range and aggregate queries} for analytics and recommendation;
+	\item \textbf{policy checks} for publication, ownership, moderation, and access control.
+\end{itemize}
+
+\subsection*{8.3 Recommended Next Optimizations}
+The design is already credible, but several improvements would make it scale better.
+
+\begin{itemize}[leftmargin=1.5em]
+	\item Add an index on \code{user_library(user_id, course_id, expires_at)} because entitlement checks always filter by user and course and then test expiry.
+	\item Add an index on \code{watch_progress(user_id, course_id, updated_at)} because course-resume queries ask for the most recently updated lesson within one course.
+	\item Consider a trigram or full-text search index for course title search if catalog size grows, because \texttt{ILIKE '\%term\%'} will degrade on large datasets.
+	\item Consider a partial index on visible reviews only, for example on \code{course_review(course_id, created_at)} where \code{is_visible = true}, because public review pages ignore hidden rows.
+	\item Consider summary tables or materialized views for analytics dashboards if reporting windows become large. The current design computes aggregates on demand, which is correct for small to medium workloads but can become expensive under heavy traffic.
+	\item Add database-level protection against overlapping pricing windows, potentially using an exclusion constraint if the design remains PostgreSQL-specific. Right now overlap prevention is implemented in service logic, which is good but not fully race-proof under high concurrency.
+\end{itemize}
+
+\subsection*{8.4 Tradeoff Assessment}
+\begin{tabularx}{\textwidth}{L{3.4cm}Y}
+\toprule
+\textbf{Design choice} & \textbf{Tradeoff} \\
+\midrule
+Separate purchase and library tables & More tables to maintain, but much clearer separation between payment history and access entitlement. \\
+Store event-style lesson views & More storage volume, but enables analytics and recommendation quality that summary-only tracking cannot provide. \\
+Soft delete for courses and files & Slightly more query filtering, but safer operations and better auditability. \\
+Pricing windows instead of one price column & More complex queries, but necessary for promotions, history, and future scheduling. \\
+\bottomrule
+\end{tabularx}
+
+\section*{9. Presentation Walkthrough Suggestion}
+If this document is presented live, the clearest narrative sequence is:
+
+\begin{enumerate}[leftmargin=1.5em]
+	\item start from the learner journey: browse, buy, unlock, watch, review;
+	\item show how each step maps to a small set of tables;
+	\item demonstrate one entitlement query and one resume-progress upsert;
+	\item finish with optimization discussion tied to actual indexes and future growth.
+\end{enumerate}
+
+This flow is effective because it keeps the explanation mapped to business goals rather than presenting the schema as an isolated technical artifact.
+
+\section*{10. Conclusion}
+The ModLearn database design is strong because it models the platform as a set of related domains rather than a single course table with many overloaded fields. The schema supports correctness in transactional features such as authentication, pricing, purchase, and access control, while also preserving activity data needed for recommendations and analytics.
+
+The most important strengths are:
+
+\begin{itemize}[leftmargin=1.5em]
+	\item clear separation between catalog, commerce, entitlement, and activity data;
+	\item appropriate use of uniqueness constraints and foreign keys;
+	\item time-aware pricing design;
+	\item resumable progress implemented with an efficient upsert pattern;
+	\item review moderation and analytics capability designed into the schema, not added as an afterthought.
+\end{itemize}
+
+The main improvement areas are targeted indexing for entitlement and resume queries, stronger database-level pricing-window enforcement, and eventual pre-aggregation for large analytics workloads. Even without those improvements, the current schema is already well aligned with the platform requirements and provides a solid foundation for future growth.
+
+\end{document}
