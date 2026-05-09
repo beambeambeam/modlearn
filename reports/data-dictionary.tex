@@ -1,6 +1,6 @@
 \subsubsection{Data Dictionary}
 
-This data dictionary documents the structure of the ModLearn relational database on a table-by-table basis. Following common data-dictionary practice, each table records the attribute name, human-readable description, data type, important constraints, and references to related tables. The dictionary should also be kept aligned with the implemented schema whenever the database changes.
+This data dictionary documents the structure of the ModLearn relational database on a table-by-table basis.
 
 \begingroup
 \small
@@ -261,6 +261,52 @@ hiddenBy & User who moderated or hid the review. & Text & Nullable, foreign key 
 moderationReason & Reason for hiding or moderating the review. & Text & Nullable & -- \\
 createdAt & Date and time when the review was created. & Timestamp & Not null, default now & -- \\
 updatedAt & Date and time when the review was last updated. & Timestamp & Not null, default now, auto update & -- \\
+\end{longtable}
+
+\subsubsection{Data Type and Constraint Summary}
+
+\paragraph{Data Type Summary}
+\begin{longtable}{L{2.5cm}L{7.1cm}L{4.1cm}}
+\toprule
+\textbf{Data Type} & \textbf{Usage} & \textbf{Example Attributes} \\
+\midrule
+\endfirsthead
+\toprule
+\textbf{Data Type} & \textbf{Usage} & \textbf{Example Attributes} \\
+\midrule
+\endhead
+\bottomrule
+\endfoot
+Text & Used for general string data such as names, titles, comments, emails, tokens, role labels, and provider identifiers. & name, email, title, comment, token, role \\
+UUID & Used for unique identifiers in content, media, commerce, and analytics tables. & course.id, file.id, order.id \\
+Integer & Used for whole-number values that do not require very large storage. & lessonOrder, rating \\
+BigInt & Used for large numeric values such as file size, duration, watch duration, and playback position. & size, duration, lastPosition, watchDuration \\
+Decimal(10,2) & Used for monetary values where decimal precision must be preserved. & price, totalAmount, amount \\
+Boolean & Used for true-or-false status fields. & isPublished, isDeleted, isCompleted, isVisible, emailVerified \\
+Timestamp & Used for date and time values related to creation, updates, uploads, purchases, views, and expiration. & createdAt, updatedAt, uploadedAt, viewedAt, expiresAt \\
+Date & Used when only the calendar date is needed without time details. & releaseDate \\
+Enum & Used for controlled values in workflow-related fields. & order status, payment status, cart item type \\
+\end{longtable}
+
+\paragraph{Constraint Summary}
+\begin{longtable}{L{3cm}L{6.8cm}L{3.9cm}}
+\toprule
+\textbf{Constraint} & \textbf{Purpose} & \textbf{Example} \\
+\midrule
+\endfirsthead
+\toprule
+\textbf{Constraint} & \textbf{Purpose} & \textbf{Example} \\
+\midrule
+\endhead
+\bottomrule
+\endfoot
+Primary key & Ensures that each row in a table has a unique identity. & user.id, course.id \\
+Foreign key & Connects one table to another and preserves relational consistency. & session.userId references user.id \\
+Not null & Ensures that a required field cannot be left empty. & course.title, order.userId \\
+Unique & Prevents duplicate values in fields that must remain distinct. & user.email, session.token \\
+Composite unique & Prevents duplicate relationship records across more than one column. & one review per user per course \\
+Default value & Automatically assigns an initial value when none is provided. & isPublished default false, createdAt default now \\
+Check constraint & Restricts values to a valid range or rule. & rating must be between 1 and 5 \\
 \end{longtable}
 
 \endgroup
