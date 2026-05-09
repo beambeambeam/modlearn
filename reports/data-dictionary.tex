@@ -309,4 +309,21 @@ Default value & Automatically assigns an initial value when none is provided. & 
 Check constraint & Restricts values to a valid range or rule. & rating must be between 1 and 5 \\
 \end{longtable}
 
+\paragraph{Enum Value Summary}
+\begin{longtable}{L{3.3cm}L{5.8cm}L{4.6cm}}
+\toprule
+\textbf{Enum Name} & \textbf{Allowed Values} & \textbf{Usage} \\
+\midrule
+\endfirsthead
+\toprule
+\textbf{Enum Name} & \textbf{Allowed Values} & \textbf{Usage} \\
+\midrule
+\endhead
+\bottomrule
+\endfoot
+cart\_item\_type & COURSE & Used to identify the kind of item stored in an order record. \\
+order\_status & PENDING, PAID, FAILED, REFUNDED & Used to track the state of an order in the purchase workflow. \\
+payment\_status & INITIATED, SUCCESS, FAILED & Used to track the state of a payment transaction. \\
+\end{longtable}
+
 \endgroup
