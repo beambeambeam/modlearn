@@ -148,9 +148,11 @@ NFR-11 & The system shall provide API discoverability and integration support th
 NFR-12 & The system shall preserve operational availability by initializing required backend dependencies, including storage resources, before normal media operations are performed. & Inspection and test \\
 \end{longtable}
 
-\subsection{Database Structure}
+\subsection{Database Design}
 
 The database structure of ModLearn is designed as a relational database management system (RDBMS) to support the main operations of the platform in a consistent and organized manner. This database stores information required by the software, beginning with user and authentication data and extending to course content, lesson structure, categories, media files, pricing records, purchases, learning progress, and course reviews.
+
+\subsubsection{Entity Relationship}
 
 \begin{center}
 \fbox{
@@ -162,7 +164,7 @@ Database structure diagram will be inserted here.
 }
 \end{center}
 
-\subsubsection{Database Structure Description}
+\subsubsection{Relationship}
 
 This subsection presents the important relationships in the ModLearn database. Each relationship is shown as a separate figure so the structure is easier to read.
 
@@ -270,10 +272,10 @@ This subsection presents the important relationships in the ModLearn database. E
     rel/.style={draw, diamond, aspect=2, align=center, inner sep=1pt},
 ]
 \node[entity] (course) {Course};
-\node[rel, right=1.5cm of course] (mapsa) {maps by};
-\node[entity, right=1.5cm of mapsa] (junction) {CourseCategory};
-\node[rel, right=1.5cm of junction] (mapsb) {maps to};
-\node[entity, right=1.5cm of mapsb] (category) {Category};
+\node[rel, right=1.0cm of course] (mapsa) {maps by};
+\node[entity, right=1.0cm of mapsa] (junction) {CourseCategory};
+\node[rel, right=1.0cm of junction] (mapsb) {maps to};
+\node[entity, right=1.0cm of mapsb] (category) {Category};
 \draw (course) -- node[above] {m} node[below] {1} (mapsa);
 \draw (mapsa) -- node[above] {m} node[below] {1} (junction);
 \draw (junction) -- node[above] {1} node[below] {m} (mapsb);

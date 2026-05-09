@@ -1,0 +1,32 @@
+\contentsline {section}{\numberline {1}Requirement}{2}{}%
+\contentsline {subsection}{\numberline {1.1}Requirement Summary}{2}{}%
+\contentsline {subsection}{\numberline {1.2}Stakeholders and Scope}{2}{}%
+\contentsline {section}{\numberline {2}System Design}{2}{}%
+\contentsline {subsection}{\numberline {2.1}Functional Requirement}{2}{}%
+\contentsline {subsection}{\numberline {2.2}Non-functional requirements}{8}{}%
+\contentsline {subsection}{\numberline {2.3}Database Design}{9}{}%
+\contentsline {subsubsection}{\numberline {2.3.1}Entity Relationship}{9}{}%
+\contentsline {subsubsection}{\numberline {2.3.2}Relationship}{9}{}%
+\contentsline {subsubsection}{\numberline {2.3.3}Data Dictionary}{11}{}%
+\contentsline {paragraph}{Table: User}{11}{}%
+\contentsline {paragraph}{Table: Session}{12}{}%
+\contentsline {paragraph}{Table: Account}{12}{}%
+\contentsline {paragraph}{Table: Verification}{13}{}%
+\contentsline {paragraph}{Table: Category}{13}{}%
+\contentsline {paragraph}{Table: Course}{14}{}%
+\contentsline {paragraph}{Table: CourseLesson}{14}{}%
+\contentsline {paragraph}{Table: CourseCategory}{15}{}%
+\contentsline {paragraph}{Table: CoursePricing}{15}{}%
+\contentsline {paragraph}{Table: File}{16}{}%
+\contentsline {paragraph}{Table: Storage}{16}{}%
+\contentsline {paragraph}{Table: Order}{17}{}%
+\contentsline {paragraph}{Table: Payment}{17}{}%
+\contentsline {paragraph}{Table: CoursePurchase}{18}{}%
+\contentsline {paragraph}{Table: UserLibrary}{18}{}%
+\contentsline {paragraph}{Table: WatchProgress}{19}{}%
+\contentsline {paragraph}{Table: CourseLessonView}{19}{}%
+\contentsline {paragraph}{Table: CourseReview}{20}{}%
+\contentsline {subsubsection}{\numberline {2.3.4}Data Type and Constraint Summary}{21}{}%
+\contentsline {paragraph}{Data Type Summary}{21}{}%
+\contentsline {paragraph}{Constraint Summary}{21}{}%
+\contentsline {paragraph}{Enum Value Summary}{22}{}%
