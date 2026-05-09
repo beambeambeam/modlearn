@@ -107,16 +107,9 @@ describe("category router", () => {
 			email: "category-router-admin-2@example.com",
 			role: "admin",
 		});
-		const superadmin = await createTestUser(testDb.client, {
-			email: "category-router-superadmin@example.com",
-			role: "superadmin",
-		});
 
 		const adminCaller = createCaller(
 			makeAuthenticatedContext(admin.id, "admin", { db: testDb.db })
-		);
-		const superadminCaller = createCaller(
-			makeAuthenticatedContext(superadmin.id, "superadmin", { db: testDb.db })
 		);
 
 		const c1 = await adminCaller.category.adminCreate({
@@ -149,13 +142,13 @@ describe("category router", () => {
 			})
 		);
 
-		const updated = await superadminCaller.category.adminUpdate({
+		const updated = await adminCaller.category.adminUpdate({
 			id: c1.id,
 			patch: { title: "Updated" },
 		});
 		expect(updated.title).toBe("Updated");
 
-		const deleted = await superadminCaller.category.adminDelete({
+		const deleted = await adminCaller.category.adminDelete({
 			id: c1.id,
 		});
 		expect(deleted.deleted).toBe(true);

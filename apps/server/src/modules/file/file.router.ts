@@ -23,7 +23,7 @@ export const fileRouter = router({
 			tags: ["File Admin"],
 			summary: "Create File Upload Request",
 			description:
-				"Requires admin or superadmin role. Creates signed upload details and file metadata.",
+				"Requires admin role. Creates signed upload details and file metadata.",
 		})
 		.input(fileAdminCreateUploadRequestInputSchema)
 		.output(fileAdminCreateUploadRequestOutputSchema)
@@ -46,7 +46,7 @@ export const fileRouter = router({
 			tags: ["File Admin"],
 			summary: "Create File Download URL",
 			description:
-				"Requires admin or superadmin role. Returns a signed download URL for a file.",
+				"Requires admin role. Returns a signed download URL for a file.",
 		})
 		.input(fileAdminByIdInputSchema)
 		.output(fileAdminGetDownloadUrlOutputSchema)
@@ -66,7 +66,7 @@ export const fileRouter = router({
 			tags: ["File Admin"],
 			summary: "Delete File",
 			description:
-				"Requires admin or superadmin role. Deletes file metadata and backing object reference.",
+				"Requires admin role. Deletes file metadata and backing object reference.",
 		})
 		.input(fileAdminByIdInputSchema)
 		.output(fileAdminDeleteOutputSchema)
