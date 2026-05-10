@@ -8,11 +8,14 @@ export const Route = createFileRoute("/_admin-layout")({
 		const session = await authClient.getSession();
 
 		if (!session.data) {
-		  redirect({ to: "/login", throw: true });
+			redirect({ to: "/login", throw: true });
 		}
 
-		if (session.data?.user.role !== "admin" && session.data?.user.role !== "superadmin") {
-		  redirect({ to: "/dashboard", throw: true });
+		if (
+			session.data?.user.role !== "admin" &&
+			session.data?.user.role !== "superadmin"
+		) {
+			redirect({ to: "/dashboard", throw: true });
 		}
 
 		return { session };
