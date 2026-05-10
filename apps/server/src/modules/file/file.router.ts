@@ -11,60 +11,71 @@ import {
 	fileAdminGetDownloadUrlOutputSchema,
 } from "@/modules/file/file.validators";
 import { adminProcedure, router } from "@/orpc";
+import { withRpcErrorHandling } from "@/orpc/error-mapper";
+import { errorGroups } from "@/orpc/errors";
 
 export const fileRouter = router({
 	adminCreateUploadRequest: adminProcedure
+		.errors(errorGroups.badRequest)
 		.route({
 			method: "POST",
 			path: "/rpc/file/adminCreateUploadRequest",
 			tags: ["File Admin"],
 			summary: "Create File Upload Request",
 			description:
-				"Requires admin or superadmin role. Creates signed upload details and file metadata.",
+				"Requires admin role. Creates signed upload details and file metadata.",
 		})
 		.input(fileAdminCreateUploadRequestInputSchema)
 		.output(fileAdminCreateUploadRequestOutputSchema)
-		.handler(({ context, input }) => {
-			return createFileUploadRequest({
-				db: context.db,
-				input: {
-					...input,
-					uploaderId: context.session.user.id,
-				},
-			});
-		}),
+		.handler(
+			withRpcErrorHandling(({ context, input }) => {
+				return createFileUploadRequest({
+					db: context.db,
+					input: {
+						...input,
+						uploaderId: context.session.user.id,
+					},
+				});
+			})
+		),
 	adminGetDownloadUrl: adminProcedure
+		.errors(errorGroups.notFound)
 		.route({
 			method: "POST",
 			path: "/rpc/file/adminGetDownloadUrl",
 			tags: ["File Admin"],
 			summary: "Create File Download URL",
 			description:
-				"Requires admin or superadmin role. Returns a signed download URL for a file.",
+				"Requires admin role. Returns a signed download URL for a file.",
 		})
 		.input(fileAdminByIdInputSchema)
 		.output(fileAdminGetDownloadUrlOutputSchema)
-		.handler(({ context, input }) => {
-			return createFileDownloadUrl({
-				db: context.db,
-				fileId: input.fileId,
-			});
-		}),
+		.handler(
+			withRpcErrorHandling(({ context, input }) => {
+				return createFileDownloadUrl({
+					db: context.db,
+					fileId: input.fileId,
+				});
+			})
+		),
 	adminDelete: adminProcedure
+		.errors(errorGroups.notFound)
 		.route({
 			method: "POST",
 			path: "/rpc/file/adminDelete",
 			tags: ["File Admin"],
 			summary: "Delete File",
 			description:
-				"Requires admin or superadmin role. Deletes file metadata and backing object reference.",
+				"Requires admin role. Deletes file metadata and backing object reference.",
 		})
 		.input(fileAdminByIdInputSchema)
 		.output(fileAdminDeleteOutputSchema)
-		.handler(({ context, input }) => {
-			return deleteFile({
-				db: context.db,
-				fileId: input.fileId,
-			});
-		}),
+		.handler(
+			withRpcErrorHandling(({ context, input }) => {
+				return deleteFile({
+					db: context.db,
+					fileId: input.fileId,
+				});
+			})
+		),
 });

@@ -128,20 +128,13 @@ describe("file router", () => {
 		).rejects.toThrow(expect.objectContaining({ code: "BAD_REQUEST" }));
 	});
 
-	it("allows admin and superadmin to create upload URL, get download URL, and delete", async () => {
+	it("allows admin to create upload URL, get download URL, and delete", async () => {
 		const admin = await createTestUser(testDb.client, {
 			email: "file-router-admin@example.com",
 			role: "admin",
 		});
-		const superadmin = await createTestUser(testDb.client, {
-			email: "file-router-superadmin@example.com",
-			role: "superadmin",
-		});
 		const adminCaller = createCaller(
 			makeAuthenticatedContext(admin.id, "admin", { db: testDb.db })
-		);
-		const superadminCaller = createCaller(
-			makeAuthenticatedContext(superadmin.id, "superadmin", { db: testDb.db })
 		);
 
 		const upload = await adminCaller.file.adminCreateUploadRequest({
@@ -163,7 +156,7 @@ describe("file router", () => {
 		expect(download.downloadUrl).toBeDefined();
 		expect(download.expiresAt).toBeNull();
 
-		const deleted = await superadminCaller.file.adminDelete({
+		const deleted = await adminCaller.file.adminDelete({
 			fileId: upload.fileId,
 		});
 		expect(deleted.fileId).toBe(upload.fileId);

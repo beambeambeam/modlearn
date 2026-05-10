@@ -10,22 +10,21 @@ import {
 	uuid,
 } from "drizzle-orm/pg-core";
 import { session, user } from "./auth";
-import { content } from "./content";
-import { playlist } from "./playlist";
+import { course, courseLesson } from "./course";
 
 export const watchProgress = pgTable(
 	"watch_progress",
 	{
 		id: uuid("id").primaryKey().defaultRandom(),
-		contentId: uuid("content_id")
+		courseId: uuid("course_id")
 			.notNull()
-			.references(() => content.id, { onDelete: "cascade" }),
+			.references(() => course.id, { onDelete: "cascade" }),
+		courseLessonId: uuid("course_lesson_id")
+			.notNull()
+			.references(() => courseLesson.id, { onDelete: "cascade" }),
 		userId: text("user_id")
 			.notNull()
 			.references(() => user.id, { onDelete: "cascade" }),
-		playlistId: uuid("playlist_id").references(() => playlist.id, {
-			onDelete: "set null",
-		}),
 		lastPosition: bigint("last_position", { mode: "number" }).notNull(),
 		duration: bigint("duration", { mode: "number" }).notNull(),
 		isCompleted: boolean("is_completed").default(false).notNull(),
@@ -37,22 +36,23 @@ export const watchProgress = pgTable(
 	},
 	(table) => [
 		index("watchProgress_userId_idx").on(table.userId),
-		index("watchProgress_contentId_idx").on(table.contentId),
-		unique("watchProgress_userContent_unique").on(
+		index("watchProgress_courseId_idx").on(table.courseId),
+		index("watchProgress_courseLessonId_idx").on(table.courseLessonId),
+		unique("watchProgress_userCourseLesson_unique").on(
 			table.userId,
-			table.contentId
+			table.courseLessonId
 		),
 		index("watchProgress_completed_idx").on(table.userId, table.isCompleted),
 	]
 );
 
-export const contentView = pgTable(
-	"content_view",
+export const courseLessonView = pgTable(
+	"course_lesson_view",
 	{
 		id: uuid("id").primaryKey().defaultRandom(),
-		contentId: uuid("content_id")
+		courseLessonId: uuid("course_lesson_id")
 			.notNull()
-			.references(() => content.id, { onDelete: "cascade" }),
+			.references(() => courseLesson.id, { onDelete: "cascade" }),
 		userId: text("user_id").references(() => user.id, {
 			onDelete: "set null",
 		}),
@@ -66,39 +66,42 @@ export const contentView = pgTable(
 		deviceType: text("device_type"),
 	},
 	(table) => [
-		index("contentView_contentId_idx").on(table.contentId),
-		index("contentView_userId_idx").on(table.userId),
-		index("contentView_viewedAt_idx").on(table.viewedAt),
-		index("contentView_sessionId_idx").on(table.sessionId),
+		index("courseLessonView_courseLessonId_idx").on(table.courseLessonId),
+		index("courseLessonView_userId_idx").on(table.userId),
+		index("courseLessonView_viewedAt_idx").on(table.viewedAt),
+		index("courseLessonView_sessionId_idx").on(table.sessionId),
 	]
 );
 
 export const watchProgressRelations = relations(watchProgress, ({ one }) => ({
-	content: one(content, {
-		fields: [watchProgress.contentId],
-		references: [content.id],
+	course: one(course, {
+		fields: [watchProgress.courseId],
+		references: [course.id],
+	}),
+	courseLesson: one(courseLesson, {
+		fields: [watchProgress.courseLessonId],
+		references: [courseLesson.id],
 	}),
 	user: one(user, {
 		fields: [watchProgress.userId],
 		references: [user.id],
 	}),
-	playlist: one(playlist, {
-		fields: [watchProgress.playlistId],
-		references: [playlist.id],
-	}),
 }));
 
-export const contentViewRelations = relations(contentView, ({ one }) => ({
-	content: one(content, {
-		fields: [contentView.contentId],
-		references: [content.id],
-	}),
-	user: one(user, {
-		fields: [contentView.userId],
-		references: [user.id],
-	}),
-	session: one(session, {
-		fields: [contentView.sessionId],
-		references: [session.id],
-	}),
-}));
+export const courseLessonViewRelations = relations(
+	courseLessonView,
+	({ one }) => ({
+		courseLesson: one(courseLesson, {
+			fields: [courseLessonView.courseLessonId],
+			references: [courseLesson.id],
+		}),
+		user: one(user, {
+			fields: [courseLessonView.userId],
+			references: [user.id],
+		}),
+		session: one(session, {
+			fields: [courseLessonView.sessionId],
+			references: [session.id],
+		}),
+	})
+);

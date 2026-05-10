@@ -1,0 +1,1004 @@
+\section{System Design}
+
+\subsection{Functional Requirement}
+
+Functional requirements describe what the system must do. They define the features, services, and behaviors that ModLearn must provide for public users, learners, and administrators.
+
+\begin{tabularx}{\textwidth}{L{2.2cm}Y}
+\toprule
+\textbf{Group} & \textbf{Scope} \\
+\midrule
+FR-01 & User authentication and profile access \\
+FR-02 & Course catalog and public browsing \\
+FR-03 & Category and classification management \\
+FR-04 & Course, lesson, and media administration \\
+FR-05 & Purchase and owned-library access control \\
+FR-06 & Watch progress and continue-watching flow \\
+FR-07 & Ratings, reviews, and review moderation \\
+FR-08 & Personalized discovery and analytics \\
+\bottomrule
+\end{tabularx}
+
+\renewcommand{\arraystretch}{1.2}
+\begin{longtable}{L{1.6cm}L{7.6cm}L{2.4cm}L{2.0cm}}
+\toprule
+\textbf{ID} & \textbf{Requirement Statement} & \textbf{Rationale} & \textbf{Verify} \\
+\midrule
+\endfirsthead
+\toprule
+\textbf{ID} & \textbf{Requirement Statement} & \textbf{Rationale} & \textbf{Verify} \\
+\midrule
+\endhead
+\bottomrule
+\endfoot
+
+\multicolumn{4}{l}{\textbf{FR-01 User Authentication and Profile Access}} \\
+\midrule
+FR-01.1 & The system shall allow a new user to create an account using email and password credentials. & Establishes a primary onboarding path. & Test \\
+FR-01.2 & The system shall authenticate a registered user before granting access to protected features. & Protects user-specific resources. & Test \\
+FR-01.3 & The system shall allow an authenticated user to sign out from an active session. & Supports session control and privacy. & Test \\
+FR-01.4 & The system shall maintain authenticated sessions using secure, server-managed session state. & Preserves login continuity across requests. & Inspection and test \\
+FR-01.5 & The system shall support username, display name, and profile image data for each user account. & Provides basic identity management. & Inspection and test \\
+FR-01.6 & The system shall restrict admin-only operations to users assigned the admin role. & Enforces role-based authorization. & Test \\
+
+\midrule
+\multicolumn{4}{l}{\textbf{FR-02 Course Catalog and Public Browsing}} \\
+\midrule
+FR-02.1 & The system shall present a public list of courses that are both published and available. & Ensures only releasable content is visible. & Test \\
+FR-02.2 & The system shall provide a public course detail view for a course that is both published and available. & Supports course discovery before access. & Test \\
+FR-02.3 & The system shall provide a public list of lessons belonging to a published and available course. & Allows users to inspect course structure. & Test \\
+FR-02.4 & The system shall support filtering or searching course listings using request parameters supported by the catalog API. & Enables scalable content discovery. & Test \\
+FR-02.5 & The system shall provide a public listing of popular courses based on recorded usage data. & Improves content discovery. & Analysis and test \\
+
+\midrule
+\multicolumn{4}{l}{\textbf{FR-03 Category and Classification Management}} \\
+\midrule
+FR-03.1 & The system shall provide a public list of categories available for browsing. & Supports structured navigation. & Test \\
+FR-03.2 & The system shall allow an administrator to create a category record. & Supports content organization. & Test \\
+FR-03.3 & The system shall allow an administrator to update mutable category data. & Supports maintenance of taxonomy data. & Test \\
+FR-03.4 & The system shall allow an administrator to delete a category record. & Supports taxonomy cleanup. & Test \\
+FR-03.5 & The system shall allow an administrator to assign one or more categories to a course. & Connects catalog browsing to content structure. & Test \\
+
+\midrule
+\multicolumn{4}{l}{\textbf{FR-04 Course, Lesson, and Media Administration}} \\
+\midrule
+FR-04.1 & The system shall allow an administrator to create a course container. & Establishes managed learning content. & Test \\
+FR-04.2 & The system shall allow an administrator to update course metadata, including title and descriptive fields. & Supports content maintenance. & Test \\
+FR-04.3 & The system shall allow an administrator to set the publish state of a course. & Separates draft and released content. & Test \\
+FR-04.4 & The system shall allow an administrator to set the availability state of a course independently from publish state. & Supports release and access control rules. & Test \\
+FR-04.5 & The system shall allow an administrator to add lessons to a course. & Supports multi-lesson course delivery. & Test \\
+FR-04.6 & The system shall allow an administrator to update lesson metadata. & Supports lesson maintenance. & Test \\
+FR-04.7 & The system shall allow an administrator to reorder lessons within a course. & Preserves intended learning sequence. & Test \\
+FR-04.8 & The system shall allow an administrator to remove a lesson from a course. & Supports content lifecycle management. & Test \\
+FR-04.9 & The system shall allow an administrator to generate signed upload requests for media files. & Supports controlled media ingestion. & Test \\
+FR-04.10 & The system shall allow an administrator to generate signed download URLs for stored files. & Supports controlled media retrieval. & Test \\
+FR-04.11 & The system shall allow an administrator to delete file metadata and backing object references. & Supports storage governance. & Test \\
+
+\midrule
+\multicolumn{4}{l}{\textbf{FR-05 Purchase and Owned-Library Access Control}} \\
+\midrule
+FR-05.1 & The system shall allow an authenticated user to purchase an eligible course. & Provides a monetization path. & Test \\
+FR-05.2 & The system shall record payment success before granting owned-library access to a purchased course. & Prevents unauthorized entitlement. & Test \\
+FR-05.3 & The system shall provide the signed-in user with a list of owned library items. & Supports post-purchase access. & Test \\
+FR-05.4 & The system shall provide the signed-in user with owned course details for a course in the user library. & Supports direct consumption of owned content. & Test \\
+FR-05.5 & The system shall verify whether the signed-in user has access to a requested course or lesson before protected delivery. & Enforces entitlement rules. & Test \\
+FR-05.6 & The system shall allow authorized pricing administrators to create and update course pricing windows. & Supports controlled pricing changes. & Test \\
+
+\midrule
+\multicolumn{4}{l}{\textbf{FR-06 Watch Progress and Continue-Watching Flow}} \\
+\midrule
+FR-06.1 & The system shall save watch-progress state for an authenticated user and lesson. & Enables resume behavior. & Test \\
+FR-06.2 & The system shall allow an authenticated user to mark lesson progress as completed. & Supports completion tracking. & Test \\
+FR-06.3 & The system shall return the saved resume position for a requested lesson when progress exists. & Supports seamless continuation. & Test \\
+FR-06.4 & The system shall return the next resume target within a course for an authenticated user. & Supports course continuation. & Test \\
+FR-06.5 & The system shall return the next auto-play lesson candidate within a course when available. & Supports continuous viewing flow. & Test \\
+FR-06.6 & The system shall provide a continue-watching list for the signed-in user. & Improves return-user experience. & Test \\
+
+\midrule
+\multicolumn{4}{l}{\textbf{FR-07 Ratings, Reviews, and Review Moderation}} \\
+\midrule
+FR-07.1 & The system shall provide public review listings for a course only when the course is published and available. & Prevents exposure of unreleased content feedback. & Test \\
+FR-07.2 & The system shall provide public review summary metrics for a course. & Supports trust and discovery. & Test \\
+FR-07.3 & The system shall allow an authenticated user with active ownership to create or update one review for a course. & Restricts reviews to legitimate learners. & Test \\
+FR-07.4 & The system shall allow an authenticated user to delete the user's own review. & Supports user control over submitted feedback. & Test \\
+FR-07.5 & The system shall allow an administrator to list reviews across moderation states. & Supports review governance. & Test \\
+FR-07.6 & The system shall allow an administrator to hide a review from public responses. & Supports moderation actions. & Test \\
+FR-07.7 & The system shall allow an administrator to restore a hidden review to public visibility. & Supports reversible moderation. & Test \\
+FR-07.8 & The system shall allow an administrator to permanently delete a review. & Supports policy enforcement. & Test \\
+
+\midrule
+\multicolumn{4}{l}{\textbf{FR-08 Personalized Discovery and Analytics}} \\
+\midrule
+FR-08.1 & The system shall provide personalized course recommendations for an authenticated user. & Improves relevance of discovery. & Test \\
+FR-08.2 & The system shall provide popular recommendation candidates for an authenticated user. & Supports discovery using aggregate demand. & Analysis and test \\
+FR-08.3 & The system shall provide recently added recommendation candidates for an authenticated user. & Supports freshness-based discovery. & Test \\
+FR-08.4 & The system shall provide administrators with overview analytics for a selected reporting window. & Supports operational monitoring. & Test \\
+FR-08.5 & The system shall provide administrators with per-course performance analytics. & Supports content evaluation. & Test \\
+FR-08.6 & The system shall provide administrators with lesson engagement analytics, including completion and drop-off indicators. & Supports learning-flow analysis. & Test \\
+FR-08.7 & The system shall provide administrators with lesson view analytics and view-session analytics. & Supports usage analysis and reporting. & Test \\
+
+\end{longtable}
+
+\subsection{Non-functional requirements}
+
+The non-functional requirements of ModLearn define the quality attributes that the system must satisfy in addition to its functional behavior.
+
+\begin{longtable}{L{1.7cm}L{10.1cm}L{2.0cm}}
+\toprule
+\textbf{ID} & \textbf{Requirement Statement} & \textbf{Verify} \\
+\midrule
+\endfirsthead
+\toprule
+\textbf{ID} & \textbf{Requirement Statement} & \textbf{Verify} \\
+\midrule
+\endhead
+\bottomrule
+\endfoot
+NFR-01 & The system shall protect protected learner and administrator operations through authenticated session handling and role-based authorization. & Inspection and test \\
+NFR-02 & The system shall validate request inputs and response structures consistently at the application boundary to reduce invalid or unsafe data exchange. & Inspection and test \\
+NFR-03 & The system shall restrict cross-origin access according to configured server policy and shall allow only approved origins, headers, and methods. & Inspection and test \\
+NFR-04 & The system shall provide controlled file access through signed upload and download operations rather than unrestricted direct storage access. & Inspection and test \\
+NFR-05 & The system shall maintain data integrity through relational constraints, unique keys, foreign keys, and domain validation rules within the database schema. & Inspection and test \\
+NFR-06 & The system shall support continuity and acceptable response behavior for repeated learning activity such as course browsing, lesson resume, and continue-watching flows. & Test \\
+NFR-07 & The system shall remain usable across common desktop and mobile screen sizes through a responsive web interface. & Test \\
+NFR-08 & The system shall be maintainable through modular separation of concerns across authentication, routing, service logic, validation, and persistence layers. & Inspection \\
+NFR-09 & The system shall support extensibility so that additional modules, routes, and data features can be added without redesigning the entire platform structure. & Inspection \\
+NFR-10 & The system shall provide implementation-level testability through automated tests for core modules, routers, services, and storage behavior. & Inspection and test \\
+NFR-11 & The system shall provide API discoverability and integration support through generated OpenAPI documentation for exposed service routes. & Inspection and test \\
+NFR-12 & The system shall preserve operational availability by initializing required backend dependencies, including storage resources, before normal media operations are performed. & Inspection and test \\
+\end{longtable}
+
+\subsection{Database Design}
+
+In this project, the database uses a relational PostgreSQL schema implemented through Drizzle ORM. It stores authentication, course, media, commerce, progress, analytics, and review data needed by the ModLearn platform.
+
+\subsubsection{Entity Relationship Diagram (ERD)}
+
+\noindent
+The full ERD shows how the schema is divided into authentication, course management, commerce, media, progress tracking, analytics, and review moderation. The placeholder below is reserved for the complete diagram of the implemented tables.
+
+\begin{center}
+\fbox{
+\parbox[c][6cm][c]{0.8\textwidth}{
+\centering
+[Image Placeholder] \\
+Full ModLearn relational schema diagram will be inserted here.
+}
+}
+\end{center}
+
+\subsubsection{Relationship Description}
+
+This subsection highlights the main one-to-many and many-to-many relationships in the implemented schema.
+
+\begin{enumerate}
+    \item \textbf{User and Session}:
+    One user can have many sessions, while each session belongs to exactly one user through \texttt{session.userId}.
+\end{enumerate}
+
+\begin{center}
+\begin{tikzpicture}[
+    every node/.style={font=\small},
+    entity/.style={draw, rectangle, minimum width=3cm, minimum height=1.1cm, align=center},
+    rel/.style={draw, diamond, aspect=2, align=center, inner sep=1pt},
+]
+\node[entity] (user) {User};
+\node[rel, right=1.8cm of user] (has) {has};
+\node[entity, right=1.8cm of has] (session) {Session};
+\draw (user) -- node[above] {1} node[below] {1} (has);
+\draw (has) -- node[above] {m} node[below] {1} (session);
+\end{tikzpicture}
+
+\vspace{0.2cm}
+\textbf{Figure 2.3.1} Relationship between \textbf{User} and \textbf{Session}
+\end{center}
+
+\begin{enumerate}
+    \setcounter{enumi}{1}
+    \item \textbf{User and Account}:
+    One user can link many accounts, while each linked account belongs to exactly one user through \texttt{account.userId}.
+\end{enumerate}
+
+\begin{center}
+\begin{tikzpicture}[
+    every node/.style={font=\small},
+    entity/.style={draw, rectangle, minimum width=3cm, minimum height=1.1cm, align=center},
+    rel/.style={draw, diamond, aspect=2, align=center, inner sep=1pt},
+]
+\node[entity] (user) {User};
+\node[rel, right=1.8cm of user] (links) {links};
+\node[entity, right=1.8cm of links] (account) {Account};
+\draw (user) -- node[above] {1} node[below] {1} (links);
+\draw (links) -- node[above] {m} node[below] {1} (account);
+\end{tikzpicture}
+
+\vspace{0.2cm}
+\textbf{Figure 2.3.2} Relationship between \textbf{User} and \textbf{Account}
+\end{center}
+
+\begin{enumerate}
+    \setcounter{enumi}{2}
+    \item \textbf{User and Course}:
+    One user can create many courses, while each course is created by exactly one user through \texttt{course.creatorId}.
+\end{enumerate}
+
+\begin{center}
+\begin{tikzpicture}[
+    every node/.style={font=\small},
+    entity/.style={draw, rectangle, minimum width=3cm, minimum height=1.1cm, align=center},
+    rel/.style={draw, diamond, aspect=2, align=center, inner sep=1pt},
+]
+\node[entity] (user) {User};
+\node[rel, right=1.8cm of user] (creates) {creates};
+\node[entity, right=1.8cm of creates] (course) {Course};
+\draw (user) -- node[above] {1} node[below] {1} (creates);
+\draw (creates) -- node[above] {m} node[below] {1} (course);
+\end{tikzpicture}
+
+\vspace{0.2cm}
+\textbf{Figure 2.3.3} Relationship between \textbf{User} and \textbf{Course}
+\end{center}
+
+\begin{enumerate}
+    \setcounter{enumi}{3}
+    \item \textbf{Course and CourseLesson}:
+    One course can contain many lessons, while each lesson belongs to exactly one course through \texttt{course\_lesson.courseId}. Lesson order is additionally constrained to be unique within the same course.
+\end{enumerate}
+
+\begin{center}
+\begin{tikzpicture}[
+    every node/.style={font=\small},
+    entity/.style={draw, rectangle, minimum width=3cm, minimum height=1.1cm, align=center},
+    rel/.style={draw, diamond, aspect=2, align=center, inner sep=1pt},
+]
+\node[entity] (course) {Course};
+\node[rel, right=1.8cm of course] (contains) {contains};
+\node[entity, right=1.8cm of contains] (lesson) {CourseLesson};
+\draw (course) -- node[above] {1} node[below] {1} (contains);
+\draw (contains) -- node[above] {m} node[below] {1} (lesson);
+\end{tikzpicture}
+
+\vspace{0.2cm}
+\textbf{Figure 2.3.4} Relationship between \textbf{Course} and \textbf{CourseLesson}
+\end{center}
+
+\begin{enumerate}
+    \setcounter{enumi}{4}
+    \item \textbf{Course, Category, and CourseCategory}:
+    Courses and categories form a many-to-many relationship implemented through the junction table \textbf{CourseCategory}. A course can be assigned to many categories, and a category can classify many courses.
+\end{enumerate}
+
+\begin{center}
+\begin{tikzpicture}[
+    every node/.style={font=\small},
+    entity/.style={draw, rectangle, minimum width=3cm, minimum height=1.1cm, align=center},
+    rel/.style={draw, diamond, aspect=2, align=center, inner sep=1pt},
+]
+\node[entity] (course) {Course};
+\node[rel, right=1.0cm of course] (mapsa) {maps by};
+\node[entity, right=1.0cm of mapsa] (junction) {CourseCategory};
+\node[rel, right=1.0cm of junction] (mapsb) {maps to};
+\node[entity, right=1.0cm of mapsb] (category) {Category};
+\draw (course) -- node[above] {1} node[below] {1} (mapsa);
+\draw (mapsa) -- node[above] {m} node[below] {1} (junction);
+\draw (junction) -- node[above] {1} node[below] {m} (mapsb);
+\draw (mapsb) -- node[above] {1} node[below] {1} (category);
+\end{tikzpicture}
+
+\vspace{0.2cm}
+\textbf{Figure 2.3.5} Relationship between \textbf{Course}, \textbf{CourseCategory}, and \textbf{Category}
+\end{center}
+
+\begin{enumerate}
+    \setcounter{enumi}{5}
+    \item \textbf{User and Order}:
+    One user can place many orders, while each order belongs to exactly one user through \texttt{order.userId}.
+\end{enumerate}
+
+\begin{center}
+\begin{tikzpicture}[
+    every node/.style={font=\small},
+    entity/.style={draw, rectangle, minimum width=3cm, minimum height=1.1cm, align=center},
+    rel/.style={draw, diamond, aspect=2, align=center, inner sep=1pt},
+]
+\node[entity] (user) {User};
+\node[rel, right=1.8cm of user] (places) {places};
+\node[entity, right=1.8cm of places] (order) {Order};
+\draw (user) -- node[above] {1} node[below] {1} (places);
+\draw (places) -- node[above] {m} node[below] {1} (order);
+\end{tikzpicture}
+
+\vspace{0.2cm}
+\textbf{Figure 2.3.6} Relationship between \textbf{User} and \textbf{Order}
+\end{center}
+
+\begin{enumerate}
+    \setcounter{enumi}{6}
+    \item \textbf{Order and Payment}:
+    One order can have many payment records, while each payment record belongs to exactly one order through \texttt{payment.orderId}. This allows the system to record retries or multiple provider-side payment attempts.
+\end{enumerate}
+
+\begin{center}
+\begin{tikzpicture}[
+    every node/.style={font=\small},
+    entity/.style={draw, rectangle, minimum width=3cm, minimum height=1.1cm, align=center},
+    rel/.style={draw, diamond, aspect=2, align=center, inner sep=1pt},
+]
+\node[entity] (order) {Order};
+\node[rel, right=1.8cm of order] (paidby) {paid by};
+\node[entity, right=1.8cm of paidby] (payment) {Payment};
+\draw (order) -- node[above] {1} node[below] {1} (paidby);
+\draw (paidby) -- node[above] {m} node[below] {1} (payment);
+\end{tikzpicture}
+
+\vspace{0.2cm}
+\textbf{Figure 2.3.7} Relationship between \textbf{Order} and \textbf{Payment}
+\end{center}
+
+\begin{enumerate}
+    \setcounter{enumi}{7}
+    \item \textbf{User and CoursePurchase}:
+    One user can have many purchase records, while each \textbf{CoursePurchase} row belongs to exactly one user and exactly one course. The pair \texttt{(userId, courseId)} is unique so a user cannot hold duplicate purchase rows for the same course.
+\end{enumerate}
+
+\begin{center}
+\begin{tikzpicture}[
+    every node/.style={font=\small},
+    entity/.style={draw, rectangle, minimum width=2.8cm, minimum height=1.1cm, align=center},
+    rel/.style={draw, diamond, aspect=2, align=center, inner sep=1pt},
+]
+\node[entity] (user) {User};
+\node[rel, right=1.2cm of user] (acquires) {acquires};
+\node[entity, right=1.2cm of acquires] (purchase) {CoursePurchase};
+\draw (user) -- node[above] {1} node[below] {1} (acquires);
+\draw (acquires) -- node[above] {m} node[below] {1} (purchase);
+\end{tikzpicture}
+
+\vspace{0.2cm}
+\textbf{Figure 2.3.8} Relationship between \textbf{User} and \textbf{CoursePurchase}
+\end{center}
+
+\begin{enumerate}
+    \setcounter{enumi}{8}
+    \item \textbf{User and UserLibrary}:
+    One user can have many library entries, while each \textbf{UserLibrary} row belongs to exactly one user and exactly one course. The pair \texttt{(userId, courseId)} is unique so the same course cannot be granted twice in the active library.
+\end{enumerate}
+
+\begin{center}
+\begin{tikzpicture}[
+    every node/.style={font=\small},
+    entity/.style={draw, rectangle, minimum width=2.8cm, minimum height=1.1cm, align=center},
+    rel/.style={draw, diamond, aspect=2, align=center, inner sep=1pt},
+]
+\node[entity] (user) {User};
+\node[rel, right=1.2cm of user] (owns) {owns};
+\node[entity, right=1.2cm of owns] (library) {UserLibrary};
+\draw (user) -- node[above] {1} node[below] {1} (owns);
+\draw (owns) -- node[above] {m} node[below] {1} (library);
+\end{tikzpicture}
+
+\vspace{0.2cm}
+\textbf{Figure 2.3.9} Relationship between \textbf{User} and \textbf{UserLibrary}
+\end{center}
+
+\begin{enumerate}
+    \setcounter{enumi}{9}
+    \item \textbf{User and WatchProgress}:
+    One user can have many watch-progress records, while each watch-progress record belongs to exactly one user. The pair \texttt{(userId, courseLessonId)} is unique so one learner has at most one progress row per lesson.
+\end{enumerate}
+
+\begin{center}
+\begin{tikzpicture}[
+    every node/.style={font=\small},
+    entity/.style={draw, rectangle, minimum width=3cm, minimum height=1.1cm, align=center},
+    rel/.style={draw, diamond, aspect=2, align=center, inner sep=1pt},
+]
+\node[entity] (user) {User};
+\node[rel, right=1.8cm of user] (tracks) {tracks};
+\node[entity, right=1.8cm of tracks] (progress) {WatchProgress};
+\draw (user) -- node[above] {1} node[below] {1} (tracks);
+\draw (tracks) -- node[above] {m} node[below] {1} (progress);
+\end{tikzpicture}
+
+\vspace{0.2cm}
+\textbf{Figure 2.3.10} Relationship between \textbf{User} and \textbf{WatchProgress}
+\end{center}
+
+\begin{enumerate}
+    \setcounter{enumi}{10}
+    \item \textbf{CourseLesson and CourseLessonView}:
+    One lesson can have many view records, while each view record refers to exactly one lesson through \texttt{course\_lesson\_view.courseLessonId}. This relationship supports lesson-level analytics and playback monitoring.
+\end{enumerate}
+
+\begin{center}
+\begin{tikzpicture}[
+    every node/.style={font=\small},
+    entity/.style={draw, rectangle, minimum width=3cm, minimum height=1.1cm, align=center},
+    rel/.style={draw, diamond, aspect=2, align=center, inner sep=1pt},
+]
+\node[entity] (lesson) {CourseLesson};
+\node[rel, right=1.8cm of lesson] (views) {viewed in};
+\node[entity, right=1.8cm of views] (lessonview) {CourseLessonView};
+\draw (lesson) -- node[above] {1} node[below] {1} (views);
+\draw (views) -- node[above] {m} node[below] {1} (lessonview);
+\end{tikzpicture}
+
+\vspace{0.2cm}
+\textbf{Figure 2.3.11} Relationship between \textbf{CourseLesson} and \textbf{CourseLessonView}
+\end{center}
+
+\begin{enumerate}
+    \setcounter{enumi}{11}
+    \item \textbf{User, CourseReview, and Course}:
+    Users can submit reviews for courses, and each review belongs to exactly one user and exactly one course. The pair \texttt{(courseId, userId)} is unique, so each user can submit at most one review per course.
+\end{enumerate}
+
+\begin{center}
+\begin{tikzpicture}[
+    every node/.style={font=\small},
+    entity/.style={draw, rectangle, minimum width=2.8cm, minimum height=1.1cm, align=center},
+    rel/.style={draw, diamond, aspect=2, align=center, inner sep=1pt},
+]
+\node[entity] (user) {User};
+\node[rel, right=1.2cm of user] (writes) {writes};
+\node[entity, right=1.2cm of writes] (review) {CourseReview};
+\node[rel, right=1.2cm of review] (for) {for};
+\node[entity, right=1.2cm of for] (course) {Course};
+\draw (user) -- node[above] {1} node[below] {1} (writes);
+\draw (writes) -- node[above] {m} node[below] {1} (review);
+\draw (review) -- node[above] {m} node[below] {1} (for);
+\draw (for) -- node[above] {1} node[below] {1} (course);
+\end{tikzpicture}
+
+\vspace{0.2cm}
+\textbf{Figure 2.3.12} Relationship between \textbf{User}, \textbf{CourseReview}, and \textbf{Course}
+\end{center}
+
+\begin{enumerate}
+    \setcounter{enumi}{12}
+    \item \textbf{File and Storage}:
+    One file metadata record can be associated with many storage rows, while each storage row belongs to exactly one file. In practice the system commonly uses one active storage object per file, but the schema allows more than one storage row when needed.
+\end{enumerate}
+
+\begin{center}
+\begin{tikzpicture}[
+    every node/.style={font=\small},
+    entity/.style={draw, rectangle, minimum width=3cm, minimum height=1.1cm, align=center},
+    rel/.style={draw, diamond, aspect=2, align=center, inner sep=1pt},
+]
+\node[entity] (file) {File};
+\node[rel, right=1.8cm of file] (stores) {stored by};
+\node[entity, right=1.8cm of stores] (storage) {Storage};
+\draw (file) -- node[above] {1} node[below] {1} (stores);
+\draw (stores) -- node[above] {m} node[below] {1} (storage);
+\end{tikzpicture}
+
+\vspace{0.2cm}
+\textbf{Figure 2.3.13} Relationship between \textbf{File} and \textbf{Storage}
+\end{center}
+
+\begin{enumerate}
+    \setcounter{enumi}{13}
+    \item \textbf{Course and CoursePricing}:
+    One course can have many pricing rows across different effective time windows, while each \textbf{CoursePricing} row belongs to exactly one course. This allows historical and future pricing to be recorded without overwriting past values.
+\end{enumerate}
+
+\begin{center}
+\begin{tikzpicture}[
+    every node/.style={font=\small},
+    entity/.style={draw, rectangle, minimum width=3cm, minimum height=1.1cm, align=center},
+    rel/.style={draw, diamond, aspect=2, align=center, inner sep=1pt},
+]
+\node[entity] (course) {Course};
+\node[rel, right=1.8cm of course] (priced) {priced by};
+\node[entity, right=1.8cm of priced] (pricing) {CoursePricing};
+\draw (course) -- node[above] {1} node[below] {1} (priced);
+\draw (priced) -- node[above] {m} node[below] {1} (pricing);
+\end{tikzpicture}
+
+\vspace{0.2cm}
+\textbf{Figure 2.3.14} Relationship between \textbf{Course} and \textbf{CoursePricing}
+\end{center}
+
+\noindent
+Overall, the schema mainly uses one-to-many relationships for operational data and uses explicit junction or linking tables where duplicate business relationships must be prevented.
+
+\subsubsection{Attributes, Keys, and Constraints}
+
+\noindent
+The schema uses primary keys, foreign keys, unique rules, check constraints, enums, and timestamps to keep data consistent. Table \ref{tab:db-key-summary} summarizes the main design rules.
+
+\begingroup
+\small
+\renewcommand{\arraystretch}{1.15}
+
+\begin{longtable}{L{2.4cm}L{2.0cm}L{3.1cm}L{3.4cm}L{4.0cm}}
+\caption{Key attribute, key, and constraint summary for the ModLearn database.}\label{tab:db-key-summary}\\
+\toprule
+\textbf{Table} & \textbf{Primary Key} & \textbf{Important Foreign Keys} & \textbf{Critical Attributes} & \textbf{Important Constraints / Rules} \\
+\midrule
+\endfirsthead
+\toprule
+\textbf{Table} & \textbf{Primary Key} & \textbf{Important Foreign Keys} & \textbf{Critical Attributes} & \textbf{Important Constraints / Rules} \\
+\midrule
+\endhead
+\bottomrule
+\endfoot
+User & \texttt{id} & -- & \texttt{email}, \texttt{username}, \texttt{role}, \texttt{banned} & \texttt{email} unique; \texttt{username} unique and nullable \\
+Session & \texttt{id} & \texttt{userId} $\rightarrow$ User & \texttt{token}, \texttt{expiresAt} & \texttt{token} unique; each session belongs to one user \\
+Account & \texttt{id} & \texttt{userId} $\rightarrow$ User & \texttt{accountId}, \texttt{providerId} & many accounts may be linked to one user \\
+Course & \texttt{id} & \texttt{creatorId} $\rightarrow$ User; \texttt{thumbnailImageId} $\rightarrow$ File & \texttt{title}, \texttt{isPublished}, \texttt{isAvailable}, \texttt{isDeleted} & soft-delete fields coexist with FK-based child cleanup \\
+CourseLesson & \texttt{id} & \texttt{courseId} $\rightarrow$ Course; optional file references & \texttt{lessonOrder}, \texttt{title}, \texttt{releaseDate} & \texttt{(courseId, lessonOrder)} unique; one lesson order position per course \\
+CourseCategory & \texttt{id} & \texttt{courseId} $\rightarrow$ Course; \texttt{categoryId} $\rightarrow$ Category & relationship pair only & \texttt{(courseId, categoryId)} unique; one category assignment pair per course \\
+CoursePricing & \texttt{id} & \texttt{courseId} $\rightarrow$ Course; \texttt{createdBy} $\rightarrow$ User & \texttt{price}, \texttt{currency}, \texttt{effectiveFrom}, \texttt{effectiveTo} & pricing windows are time-based; creator deletion is restricted \\
+Order & \texttt{id} & \texttt{userId} $\rightarrow$ User; optional \texttt{courseId} $\rightarrow$ Course & \texttt{totalAmount}, \texttt{currency}, \texttt{itemType}, \texttt{status} & uses \texttt{cart\_item\_type} and \texttt{order\_status} enums \\
+Payment & \texttt{id} & \texttt{orderId} $\rightarrow$ Order & \texttt{provider}, \texttt{providerTransactionId}, \texttt{amount}, \texttt{status} & uses \texttt{payment\_status} enum; provider lookup indexed by \texttt{(provider, providerTransactionId)} \\
+CoursePurchase & \texttt{id} & \texttt{courseId} $\rightarrow$ Course; \texttt{userId} $\rightarrow$ User; optional \texttt{orderId} $\rightarrow$ Order & \texttt{price}, \texttt{status}, \texttt{purchasedAt} & \texttt{(userId, courseId)} unique; one purchase row per user-course pair \\
+UserLibrary & \texttt{id} & \texttt{userId} $\rightarrow$ User; \texttt{courseId} $\rightarrow$ Course; \texttt{orderId} $\rightarrow$ Order & \texttt{acquiredAt}, \texttt{expiresAt} & \texttt{(userId, courseId)} unique; one active library row per user-course pair \\
+WatchProgress & \texttt{id} & \texttt{courseId} $\rightarrow$ Course; \texttt{courseLessonId} $\rightarrow$ CourseLesson; \texttt{userId} $\rightarrow$ User & \texttt{lastPosition}, \texttt{duration}, \texttt{isCompleted} & \texttt{(userId, courseLessonId)} unique; one progress row per user and lesson \\
+CourseReview & \texttt{id} & \texttt{courseId} $\rightarrow$ Course; \texttt{userId} $\rightarrow$ User; optional \texttt{hiddenBy} $\rightarrow$ User & \texttt{rating}, \texttt{comment}, \texttt{isVisible} & \texttt{(courseId, userId)} unique; rating constrained to 1 through 5; one review per user-course pair \\
+\end{longtable}
+
+\paragraph{Data Type Summary}
+\begin{longtable}{L{2.5cm}L{7.1cm}L{4.1cm}}
+\toprule
+\textbf{Data Type} & \textbf{Usage} & \textbf{Example Attributes} \\
+\midrule
+\endfirsthead
+\toprule
+\textbf{Data Type} & \textbf{Usage} & \textbf{Example Attributes} \\
+\midrule
+\endhead
+\bottomrule
+\endfoot
+Text & Used for general string data such as names, titles, comments, emails, tokens, role labels, provider identifiers, and status text not modeled as enums. & \texttt{name}, \texttt{email}, \texttt{title}, \texttt{comment}, \texttt{provider} \\
+UUID & Used for identifiers in content, media, commerce, and analytics tables. & \texttt{course.id}, \texttt{file.id}, \texttt{order.id} \\
+Integer & Used for whole-number values such as lesson order and review rating. & \texttt{lessonOrder}, \texttt{rating} \\
+BigInt & Used for large numeric values such as file size, duration, watch duration, and playback position. & \texttt{size}, \texttt{duration}, \texttt{lastPosition}, \texttt{watchDuration} \\
+Decimal(10,2) & Used for monetary values where decimal precision must be preserved. & \texttt{price}, \texttt{totalAmount}, \texttt{amount} \\
+Boolean & Used for true-or-false state fields. & \texttt{isPublished}, \texttt{isDeleted}, \texttt{isCompleted}, \texttt{isVisible}, \texttt{emailVerified} \\
+Timestamp & Used for creation, update, upload, purchase, pricing, moderation, and expiration time fields. Some columns are timezone-aware in the schema. & \texttt{createdAt}, \texttt{updatedAt}, \texttt{uploadedAt}, \texttt{effectiveFrom}, \texttt{expiresAt} \\
+Date & Used when only the calendar date is needed. & \texttt{releaseDate} \\
+Enum & Used for controlled workflow values. & \texttt{cart\_item\_type}, \texttt{order\_status}, \texttt{payment\_status} \\
+\end{longtable}
+
+\paragraph{Constraint Summary}
+\begin{longtable}{L{3cm}L{6.8cm}L{3.9cm}}
+\toprule
+\textbf{Constraint} & \textbf{Purpose} & \textbf{Example} \\
+\midrule
+\endfirsthead
+\toprule
+\textbf{Constraint} & \textbf{Purpose} & \textbf{Example} \\
+\midrule
+\endhead
+\bottomrule
+\endfoot
+Primary key & Ensures that each row in a table has a unique identity. & \texttt{user.id}, \texttt{course.id} \\
+Foreign key & Connects one table to another and preserves relational consistency. & \texttt{session.userId} references \texttt{user.id} \\
+Not null & Ensures that required fields cannot be omitted. & \texttt{course.title}, \texttt{order.userId} \\
+Unique & Prevents duplicate values in fields that must remain distinct. & \texttt{user.email}, \texttt{session.token} \\
+Composite unique & Prevents duplicate relationship rows across more than one column. & one review per user per course; one lesson order per course \\
+Default value & Automatically assigns an initial value when none is provided. & \texttt{isPublished} default false; \texttt{createdAt} default now \\
+Check constraint & Restricts values to a valid range or rule. & \texttt{courseReview.rating} must be between 1 and 5 \\
+\end{longtable}
+
+\paragraph{Enum Value Summary}
+\begin{longtable}{L{3.3cm}L{5.8cm}L{4.6cm}}
+\toprule
+\textbf{Enum Name} & \textbf{Allowed Values} & \textbf{Usage} \\
+\midrule
+\endfirsthead
+\toprule
+\textbf{Enum Name} & \textbf{Allowed Values} & \textbf{Usage} \\
+\midrule
+\endhead
+\bottomrule
+\endfoot
+\texttt{cart\_item\_type} & COURSE & Identifies the kind of item represented in an order row. \\
+\texttt{order\_status} & PENDING, PAID, FAILED, REFUNDED & Tracks the state of an order in the purchase workflow. \\
+\texttt{payment\_status} & INITIATED, SUCCESS, FAILED & Tracks the state of a payment transaction. \\
+\end{longtable}
+\endgroup
+
+\subsubsection{Normalization}
+
+\noindent
+Normalization is used to reduce redundancy, improve consistency, and avoid update anomalies. In practice, the ModLearn schema mainly follows the first three normal forms, which are usually sufficient for transactional systems.
+
+\begingroup
+\small
+\renewcommand{\arraystretch}{1.15}
+\begin{longtable}{L{2.1cm}L{4.3cm}L{7.0cm}}
+\toprule
+\textbf{Normal Form} & \textbf{Meaning} & \textbf{Applied in This Project} \\
+\midrule
+\endfirsthead
+\toprule
+\textbf{Normal Form} & \textbf{Meaning} & \textbf{Applied in This Project} \\
+\midrule
+\endhead
+\bottomrule
+\endfoot
+1NF & Each column stores atomic values and each row represents one record. & Lessons, categories, payments, purchases, progress rows, and reviews are stored as separate rows instead of repeated fields inside a single course or user record. \\
+2NF & Non-key attributes depend on the whole key. & Linking tables such as \textbf{CourseCategory}, and composite uniqueness rules such as \texttt{(courseId, lessonOrder)} or \texttt{(courseId, userId)}, keep relationship-specific data tied to the correct key. \\
+3NF & Non-key attributes depend only on the key, not on other non-key attributes. & Pricing, payments, purchases, library access, file storage, progress tracking, and review moderation are separated into dedicated tables instead of being merged into \textbf{Course}, \textbf{User}, or \textbf{Order}. \\
+\end{longtable}
+\endgroup
+
+\noindent
+In this project, this normalization approach keeps the schema easier to maintain and supports cleaner updates across catalog, commerce, and learning workflows.
+
+\subsubsection{Data Dictionary}
+
+\noindent
+This data dictionary summarizes the implemented tables and columns.
+
+\begingroup
+\small
+\renewcommand{\arraystretch}{1.15}
+
+\newcommand{\ddheader}{
+\toprule
+\textbf{Attribute Name} & \textbf{Description} & \textbf{Data Type} & \textbf{Constraints} & \textbf{References} \\
+\midrule
+\endfirsthead
+\toprule
+\textbf{Attribute Name} & \textbf{Description} & \textbf{Data Type} & \textbf{Constraints} & \textbf{References} \\
+\midrule
+\endhead
+\bottomrule
+\endfoot
+}
+
+\paragraph{Table: User}
+\begin{longtable}{L{2.6cm}L{4.5cm}L{2.1cm}L{3.3cm}L{2.2cm}}
+\ddheader
+id & Unique identifier of each user. & Text & Primary key, not null & -- \\
+name & Full name of the user. & Text & Not null & -- \\
+email & Email address used by the user account. & Text & Not null, unique & -- \\
+emailVerified & Indicates whether the email address has been verified. & Boolean & Not null, default false & -- \\
+image & Profile image URL or path. & Text & Nullable & -- \\
+createdAt & Date and time when the user record was created. & Timestamp & Not null, default now & -- \\
+updatedAt & Date and time when the user record was last updated by application or ORM behavior. & Timestamp & Not null, updated automatically by application or ORM behavior & -- \\
+username & System username of the user. & Text & Unique, nullable & -- \\
+displayUsername & Display name shown publicly in the platform. & Text & Nullable & -- \\
+role & Role assigned to the user, such as learner or administrator. & Text & Nullable & -- \\
+banned & Indicates whether the user account is banned. & Boolean & Nullable, default false & -- \\
+banReason & Reason for account ban. & Text & Nullable & -- \\
+banExpires & Date and time when the ban expires. & Timestamp & Nullable & -- \\
+\end{longtable}
+
+\paragraph{Table: Session}
+\begin{longtable}{L{2.6cm}L{4.5cm}L{2.1cm}L{3.3cm}L{2.2cm}}
+\ddheader
+id & Unique identifier of the session. & Text & Primary key, not null & -- \\
+expiresAt & Session expiration date and time. & Timestamp & Not null & -- \\
+token & Unique token used for session authentication. & Text & Not null, unique & -- \\
+createdAt & Date and time when the session was created. & Timestamp & Not null, default now & -- \\
+updatedAt & Date and time when the session record was last updated by application or ORM behavior. & Timestamp & Not null, updated automatically by application or ORM behavior & -- \\
+ipAddress & IP address of the client creating the session. & Text & Nullable & -- \\
+userAgent & Browser or device agent string. & Text & Nullable & -- \\
+userId & User who owns the session. & Text & Not null, foreign key & User.id \\
+impersonatedBy & User or actor that impersonated the session owner, if applicable. & Text & Nullable & -- \\
+\end{longtable}
+
+\paragraph{Table: Account}
+\begin{longtable}{L{2.6cm}L{4.5cm}L{2.1cm}L{3.3cm}L{2.2cm}}
+\ddheader
+id & Unique identifier of the linked account. & Text & Primary key, not null & -- \\
+accountId & Identifier assigned by the authentication provider. & Text & Not null & -- \\
+providerId & Authentication provider name or identifier. & Text & Not null & -- \\
+userId & User who owns the linked account. & Text & Not null, foreign key & User.id \\
+accessToken & Access token issued by the provider. & Text & Nullable & -- \\
+refreshToken & Refresh token issued by the provider. & Text & Nullable & -- \\
+idToken & Identity token issued by the provider. & Text & Nullable & -- \\
+accessTokenExpiresAt & Expiration date and time of the access token. & Timestamp & Nullable & -- \\
+refreshTokenExpiresAt & Expiration date and time of the refresh token. & Timestamp & Nullable & -- \\
+scope & Access scope granted by the provider. & Text & Nullable & -- \\
+password & Stored password or credential field when applicable. & Text & Nullable & -- \\
+createdAt & Date and time when the linked account was created. & Timestamp & Not null, default now & -- \\
+updatedAt & Date and time when the linked account was last updated by application or ORM behavior. & Timestamp & Not null, updated automatically by application or ORM behavior & -- \\
+\end{longtable}
+
+\paragraph{Table: Verification}
+\begin{longtable}{L{2.6cm}L{4.5cm}L{2.1cm}L{3.3cm}L{2.2cm}}
+\ddheader
+id & Unique identifier of the verification record. & Text & Primary key, not null & -- \\
+identifier & Identifier used in the verification flow. & Text & Not null & -- \\
+value & Verification value or token. & Text & Not null & -- \\
+expiresAt & Expiration date and time of the verification record. & Timestamp & Not null & -- \\
+createdAt & Date and time when the verification record was created. & Timestamp & Not null, default now & -- \\
+updatedAt & Date and time when the verification record was last updated by application or ORM behavior. & Timestamp & Not null, default now, updated automatically by application or ORM behavior & -- \\
+\end{longtable}
+
+\paragraph{Table: Category}
+\begin{longtable}{L{2.6cm}L{4.5cm}L{2.1cm}L{3.3cm}L{2.2cm}}
+\ddheader
+id & Unique identifier of the category. & UUID & Primary key, not null & -- \\
+title & Category name used for course classification. & Text & Not null & -- \\
+description & Description of the category. & Text & Nullable & -- \\
+slug & URL-friendly identifier of the category. & Text & Unique, nullable & -- \\
+\end{longtable}
+
+\paragraph{Table: Course}
+\begin{longtable}{L{2.6cm}L{4.5cm}L{2.1cm}L{3.3cm}L{2.2cm}}
+\ddheader
+id & Unique identifier of the course. & UUID & Primary key, not null & -- \\
+creatorId & User who created or manages the course. & Text & Not null, foreign key & User.id \\
+title & Course title. & Text & Not null & -- \\
+description & General description of the course. & Text & Nullable & -- \\
+thumbnailImageId & File used as the course thumbnail image. & UUID & Nullable, foreign key & File.id \\
+isPublished & Indicates whether the course is published. & Boolean & Not null, default false & -- \\
+publishedAt & Date and time when the course was published. & Timestamp & Nullable & -- \\
+isAvailable & Indicates whether the course is currently available to users. & Boolean & Not null, default true & -- \\
+isDeleted & Indicates whether the course is soft deleted. & Boolean & Not null, default false & -- \\
+deletedAt & Date and time when the course was marked deleted. & Timestamp & Nullable & -- \\
+createdAt & Date and time when the course record was created. & Timestamp & Not null, default now & -- \\
+updatedAt & Date and time when the course record was last updated by application or ORM behavior. & Timestamp & Not null, updated automatically by application or ORM behavior & -- \\
+\end{longtable}
+
+\paragraph{Table: CourseLesson}
+\begin{longtable}{L{2.6cm}L{4.5cm}L{2.1cm}L{3.3cm}L{2.2cm}}
+\ddheader
+id & Unique identifier of the lesson. & UUID & Primary key, not null & -- \\
+courseId & Course to which the lesson belongs. & UUID & Not null, foreign key & Course.id \\
+lessonOrder & Ordering number of the lesson within the course. & Integer & Not null, unique within course & -- \\
+title & Lesson title. & Text & Not null & -- \\
+description & Lesson description or summary. & Text & Nullable & -- \\
+thumbnailImageId & File used as the lesson thumbnail image. & UUID & Nullable, foreign key & File.id \\
+duration & Lesson duration. & BigInt & Nullable & -- \\
+releaseDate & Planned or actual release date of the lesson. & Date & Nullable & -- \\
+fileId & Media file used by the lesson. & UUID & Nullable, foreign key & File.id \\
+addedAt & Date and time when the lesson was added to the course. & Timestamp & Not null, default now & -- \\
+createdAt & Date and time when the lesson record was created. & Timestamp & Not null, default now & -- \\
+updatedAt & Date and time when the lesson record was last updated by application or ORM behavior. & Timestamp & Not null, updated automatically by application or ORM behavior & -- \\
+\end{longtable}
+
+\paragraph{Table: CourseCategory}
+\begin{longtable}{L{2.6cm}L{4.5cm}L{2.1cm}L{3.3cm}L{2.2cm}}
+\ddheader
+id & Unique identifier of the course-category link. & UUID & Primary key, not null & -- \\
+courseId & Course in the relationship. & UUID & Not null, foreign key, unique pair & Course.id \\
+categoryId & Category in the relationship. & UUID & Not null, foreign key, unique pair & Category.id \\
+\end{longtable}
+
+\paragraph{Table: CoursePricing}
+\begin{longtable}{L{2.6cm}L{4.5cm}L{2.1cm}L{3.3cm}L{2.2cm}}
+\ddheader
+id & Unique identifier of the pricing record. & UUID & Primary key, not null & -- \\
+courseId & Course to which the price applies. & UUID & Not null, foreign key & Course.id \\
+price & Price amount for the course. & Decimal(10,2) & Not null & -- \\
+currency & Currency code of the price. & Text & Not null & -- \\
+effectiveFrom & Start date and time when the price becomes active. & Timestamp & Not null & -- \\
+effectiveTo & End date and time when the price stops being active. & Timestamp & Nullable & -- \\
+createdBy & User who created the pricing record. & Text & Not null, foreign key & User.id \\
+createdAt & Date and time when the pricing record was created. & Timestamp & Not null, default now & -- \\
+\end{longtable}
+
+\paragraph{Table: File}
+\begin{longtable}{L{2.6cm}L{4.5cm}L{2.1cm}L{3.3cm}L{2.2cm}}
+\ddheader
+id & Unique identifier of the file metadata record. & UUID & Primary key, not null & -- \\
+uploaderId & User who uploaded the file. & Text & Not null, foreign key & User.id \\
+uploadedAt & Date and time when the file was uploaded. & Timestamp & Not null, default now & -- \\
+name & Original file name. & Text & Not null & -- \\
+size & File size. & BigInt & Not null & -- \\
+mimeType & MIME type of the file. & Text & Not null & -- \\
+extension & File extension. & Text & Not null & -- \\
+checksum & Checksum used for file integrity. & Text & Not null & -- \\
+isDeleted & Indicates whether the file is soft deleted. & Boolean & Not null, default false & -- \\
+deletedAt & Date and time when the file was marked deleted. & Timestamp & Nullable & -- \\
+\end{longtable}
+
+\paragraph{Table: Storage}
+\begin{longtable}{L{2.6cm}L{4.5cm}L{2.1cm}L{3.3cm}L{2.2cm}}
+\ddheader
+id & Unique identifier of the storage record. & UUID & Primary key, not null & -- \\
+fileId & File metadata record linked to the stored object. & UUID & Not null, foreign key & File.id \\
+storageProvider & Name of the storage provider. & Text & Not null & -- \\
+bucket & Storage bucket or container name. & Text & Nullable & -- \\
+storageKey & Object key or path in the storage system. & Text & Not null & -- \\
+cdnUrl & Public or CDN access URL for the file. & Text & Nullable & -- \\
+\end{longtable}
+
+\paragraph{Table: Order}
+\begin{longtable}{L{2.6cm}L{4.5cm}L{2.1cm}L{3.3cm}L{2.2cm}}
+\ddheader
+id & Unique identifier of the order. & UUID & Primary key, not null & -- \\
+userId & User who placed the order. & Text & Not null, foreign key & User.id \\
+totalAmount & Total amount charged in the order. & Decimal(10,2) & Not null & -- \\
+currency & Currency code of the order. & Text & Not null & -- \\
+itemType & Type of item being purchased. & Enum & Not null, values defined by the cart item type enum & -- \\
+courseId & Course associated with the order, when applicable. & UUID & Nullable, foreign key & Course.id \\
+status & Current order status. & Enum & Not null, values: PENDING, PAID, FAILED, REFUNDED & -- \\
+createdAt & Date and time when the order was created. & Timestamp & Not null, default now & -- \\
+updatedAt & Date and time when the order was last updated by application or ORM behavior. & Timestamp & Not null, updated automatically by application or ORM behavior & -- \\
+\end{longtable}
+
+\paragraph{Table: Payment}
+\begin{longtable}{L{2.6cm}L{4.5cm}L{2.1cm}L{3.3cm}L{2.2cm}}
+\ddheader
+id & Unique identifier of the payment record. & UUID & Primary key, not null & -- \\
+orderId & Order paid by this payment record. & UUID & Not null, foreign key & Order.id \\
+providerTransactionId & Transaction identifier from the payment provider. & Text & Not null & -- \\
+provider & Name of the payment provider. & Text & Not null & -- \\
+amount & Amount processed in the payment. & Decimal(10,2) & Not null & -- \\
+currency & Currency code of the payment. & Text & Not null & -- \\
+status & Current payment status. & Enum & Not null, values: INITIATED, SUCCESS, FAILED & -- \\
+paidAt & Date and time when the payment was completed. & Timestamp & Nullable & -- \\
+failureReason & Explanation of payment failure, if any. & Text & Nullable & -- \\
+\end{longtable}
+
+\paragraph{Table: CoursePurchase}
+\begin{longtable}{L{2.6cm}L{4.5cm}L{2.1cm}L{3.3cm}L{2.2cm}}
+\ddheader
+id & Unique identifier of the purchase record. & UUID & Primary key, not null & -- \\
+courseId & Purchased course. & UUID & Not null, foreign key & Course.id \\
+userId & User who purchased the course. & Text & Not null, foreign key, unique pair & User.id \\
+purchasedAt & Date and time when the course was purchased. & Timestamp & Not null, default now & -- \\
+price & Purchase price recorded at transaction time. & Decimal(10,2) & Not null & -- \\
+status & Current purchase status. & Text & Not null & -- \\
+orderId & Source order related to the purchase. & UUID & Nullable, foreign key & Order.id \\
+\end{longtable}
+
+\paragraph{Table: UserLibrary}
+\begin{longtable}{L{2.6cm}L{4.5cm}L{2.1cm}L{3.3cm}L{2.2cm}}
+\ddheader
+id & Unique identifier of the library entry. & UUID & Primary key, not null & -- \\
+userId & User who owns the library entry. & Text & Not null, foreign key, unique pair & User.id \\
+courseId & Course granted to the user library. & UUID & Not null, foreign key, unique pair & Course.id \\
+orderId & Order from which the library access originated. & UUID & Not null, foreign key & Order.id \\
+acquiredAt & Date and time when access was granted. & Timestamp & Not null, default now & -- \\
+expiresAt & Date and time when access expires, if limited. & Timestamp & Nullable & -- \\
+\end{longtable}
+
+\paragraph{Table: WatchProgress}
+\begin{longtable}{L{2.6cm}L{4.5cm}L{2.1cm}L{3.3cm}L{2.2cm}}
+\ddheader
+id & Unique identifier of the watch-progress record. & UUID & Primary key, not null & -- \\
+courseId & Course associated with the progress record. & UUID & Not null, foreign key & Course.id \\
+courseLessonId & Lesson associated with the progress record. & UUID & Not null, foreign key, unique pair with userId & CourseLesson.id \\
+userId & User whose progress is being tracked. & Text & Not null, foreign key, unique pair with courseLessonId & User.id \\
+lastPosition & Last playback position reached by the learner. & BigInt & Not null & -- \\
+duration & Full lesson duration used for progress calculation. & BigInt & Not null & -- \\
+isCompleted & Indicates whether the lesson was completed. & Boolean & Not null, default false & -- \\
+updatedAt & Date and time when the progress record was last updated by application or ORM behavior. & Timestamp & Not null, default now, updated automatically by application or ORM behavior & -- \\
+deviceType & Device category used during viewing. & Text & Nullable & -- \\
+\end{longtable}
+
+\paragraph{Table: CourseLessonView}
+\begin{longtable}{L{2.6cm}L{4.5cm}L{2.1cm}L{3.3cm}L{2.2cm}}
+\ddheader
+id & Unique identifier of the lesson-view record. & UUID & Primary key, not null & -- \\
+courseLessonId & Lesson viewed in the event record. & UUID & Not null, foreign key & CourseLesson.id \\
+userId & User who viewed the lesson, when authenticated. & Text & Nullable, foreign key & User.id \\
+sessionId & Session associated with the view event. & Text & Nullable, foreign key & Session.id \\
+viewedAt & Date and time when the lesson was viewed. & Timestamp & Not null, default now & -- \\
+watchDuration & Duration watched during the view event. & BigInt & Nullable, default 0 & -- \\
+deviceType & Device category used for the lesson view. & Text & Nullable & -- \\
+\end{longtable}
+
+\paragraph{Table: CourseReview}
+\begin{longtable}{L{2.6cm}L{4.5cm}L{2.1cm}L{3.3cm}L{2.2cm}}
+\ddheader
+id & Unique identifier of the review. & UUID & Primary key, not null & -- \\
+courseId & Course being reviewed. & UUID & Not null, foreign key, unique pair with userId & Course.id \\
+userId & User who submitted the review. & Text & Not null, foreign key, unique pair with courseId & User.id \\
+rating & Numeric rating submitted by the user. & Integer & Not null, check 1 to 5 & -- \\
+comment & Written review comment. & Text & Nullable & -- \\
+isVisible & Indicates whether the review is visible publicly. & Boolean & Not null, default true & -- \\
+hiddenAt & Date and time when the review was hidden. & Timestamp & Nullable & -- \\
+hiddenBy & User who moderated or hid the review. & Text & Nullable, foreign key & User.id \\
+moderationReason & Reason for hiding or moderating the review. & Text & Nullable & -- \\
+createdAt & Date and time when the review was created. & Timestamp & Not null, default now & -- \\
+updatedAt & Date and time when the review was last updated by application or ORM behavior. & Timestamp & Not null, updated automatically by application or ORM behavior & -- \\
+\end{longtable}
+
+\endgroup
+
+\subsubsection{Index Design}
+
+\noindent
+This section summarizes the important indexes used in the schema and the query patterns they support.
+
+\begingroup
+\small
+\renewcommand{\arraystretch}{1.15}
+\begin{longtable}{L{4.3cm}L{2.6cm}L{6.3cm}}
+\toprule
+\textbf{Attribute} & \textbf{Type} & \textbf{Description} \\
+\midrule
+\endfirsthead
+\toprule
+\textbf{Attribute} & \textbf{Type} & \textbf{Description} \\
+\midrule
+\endhead
+\bottomrule
+\endfoot
+\texttt{session (userId)} & Single-column & Speeds up fetching all sessions that belong to one user. \\
+\texttt{account (userId)} & Single-column & Speeds up loading linked provider accounts for one user. \\
+\texttt{verification (identifier)} & Single-column & Speeds up verification lookups by identifier during auth flows. \\
+\texttt{category (slug)} & Single-column & Speeds up category lookup by URL slug. \\
+\texttt{course (creatorId)} & Single-column & Speeds up fetching courses created by a specific user. \\
+\texttt{course (isPublished, publishedAt)} & Composite & Speeds up course-list queries that filter published courses and sort or check publish time. \\
+\texttt{course (isDeleted)} & Single-column & Speeds up filtering out soft-deleted courses in admin or catalog queries. \\
+\texttt{courseLesson (courseId)} & Single-column & Speeds up fetching all lessons that belong to one course. \\
+\texttt{courseLesson (courseId, lessonOrder)} & Composite & Speeds up ordered lesson retrieval inside a course. \\
+\texttt{courseLesson (releaseDate)} & Single-column & Speeds up filtering lessons by release date. \\
+\texttt{courseCategory (courseId)} & Single-column & Speeds up finding all categories assigned to one course. \\
+\texttt{courseCategory (categoryId)} & Single-column & Speeds up finding all courses inside one category. \\
+\texttt{coursePricing (courseId)} & Single-column & Speeds up loading pricing rows for a specific course. \\
+\texttt{coursePricing (effectiveFrom, effectiveTo)} & Composite & Speeds up checking which pricing window is active at a given time. \\
+\texttt{file (uploaderId)} & Single-column & Speeds up fetching files uploaded by a specific user. \\
+\texttt{file (checksum)} & Single-column & Speeds up checksum-based file matching or integrity checks. \\
+\texttt{file (isDeleted)} & Single-column & Speeds up filtering soft-deleted and active file rows. \\
+\texttt{storage (fileId)} & Single-column & Speeds up finding storage metadata for one file. \\
+\texttt{storage (storageProvider, storageKey)} & Composite & Speeds up resolving stored objects by provider and object key. \\
+\texttt{order (userId)} & Single-column & Speeds up fetching order history for one user. \\
+\texttt{order (status)} & Single-column & Speeds up filtering orders by workflow status. \\
+\texttt{order (courseId)} & Single-column & Speeds up finding orders related to a specific course. \\
+\texttt{order (createdAt)} & Single-column & Speeds up date-based order history and reporting queries. \\
+\texttt{payment (orderId)} & Single-column & Speeds up loading payment rows for one order. \\
+\texttt{payment (provider, providerTransactionId)} & Composite & Speeds up payment reconciliation using provider transaction identifiers. \\
+\texttt{payment (status)} & Single-column & Speeds up filtering payments by success or failure state. \\
+\texttt{coursePurchase (userId)} & Single-column & Speeds up checking which courses a user has purchased. \\
+\texttt{coursePurchase (courseId)} & Single-column & Speeds up finding purchase rows for a specific course. \\
+\texttt{userLibrary (userId)} & Single-column & Speeds up fetching the owned-course library for one user. \\
+\texttt{userLibrary (courseId)} & Single-column & Speeds up checking which users have access to a course. \\
+\texttt{userLibrary (orderId)} & Single-column & Speeds up tracing library access back to the source order. \\
+\texttt{watchProgress (userId)} & Single-column & Speeds up resume-learning queries for one user. \\
+\texttt{watchProgress (courseId)} & Single-column & Speeds up progress lookup within a specific course. \\
+\texttt{watchProgress (courseLessonId)} & Single-column & Speeds up finding progress rows for one lesson. \\
+\texttt{watchProgress (userId, isCompleted)} & Composite & Speeds up filtering a user’s progress by completion state. \\
+\texttt{courseLessonView (courseLessonId)} & Single-column & Speeds up lesson-view analytics for one lesson. \\
+\texttt{courseLessonView (userId)} & Single-column & Speeds up finding view history for a specific user. \\
+\texttt{courseLessonView (viewedAt)} & Single-column & Speeds up time-based lesson-view reporting queries. \\
+\texttt{courseLessonView (sessionId)} & Single-column & Speeds up session-based lesson-view analysis. \\
+\texttt{courseReview (courseId)} & Single-column & Speeds up loading reviews for one course. \\
+\texttt{courseReview (userId)} & Single-column & Speeds up finding reviews written by one user. \\
+\texttt{courseReview (courseId, isVisible, createdAt)} & Composite & Speeds up public review listings that filter visible reviews and order them by time. \\
+\texttt{courseReview (courseId, rating)} & Composite & Speeds up rating-based review summaries for a course. \\
+\end{longtable}
+\endgroup
+
+\subsubsection{Referential Integrity}
+
+\noindent
+Foreign keys use three main delete actions. Table \ref{tab:ri-summary} summarizes where each action is used and why.
+
+\begingroup
+\small
+\renewcommand{\arraystretch}{1.15}
+\begin{longtable}{L{2.4cm}L{6.4cm}L{4.4cm}}
+\caption{Referential-integrity rules used in the ModLearn schema.}\label{tab:ri-summary}\\
+\toprule
+\textbf{Delete Action} & \textbf{Where Used} & \textbf{Reason} \\
+\midrule
+\endfirsthead
+\toprule
+\textbf{Delete Action} & \textbf{Where Used} & \textbf{Reason} \\
+\midrule
+\endhead
+\bottomrule
+\endfoot
+\texttt{CASCADE} & \texttt{session.userId}, \texttt{account.userId}, \texttt{course\_lesson.courseId}, \texttt{course\_category.courseId}, \texttt{course\_category.categoryId}, \texttt{course\_pricing.courseId}, \texttt{course\_purchase.courseId}, \texttt{course\_purchase.userId}, \texttt{user\_library.userId}, \texttt{user\_library.courseId}, \texttt{user\_library.orderId}, \texttt{watch\_progress.courseId}, \texttt{watch\_progress.courseLessonId}, \texttt{watch\_progress.userId}, \texttt{course\_lesson\_view.courseLessonId}, \texttt{payment.orderId}, \texttt{storage.fileId}, \texttt{course\_review.courseId}, \texttt{course\_review.userId} & remove child rows that have no meaning without the parent row \\
+\texttt{SET NULL} & \texttt{course.thumbnailImageId}, \texttt{courseLesson.thumbnailImageId}, \texttt{courseLesson.fileId}, \texttt{order.courseId}, \texttt{coursePurchase.orderId}, \texttt{courseLessonView.userId}, \texttt{courseLessonView.sessionId}, \texttt{courseReview.hiddenBy} & keep history or optional references while clearing the missing parent link \\
+\texttt{RESTRICT} & \texttt{coursePricing.createdBy} & keep pricing audit ownership valid \\
+\end{longtable}
+
+\begin{center}
+\begin{tabular}{L{2.7cm}L{8.8cm}}
+\toprule
+\textbf{Rule} & \textbf{Effect} \\
+\midrule
+\texttt{CASCADE} & Delete parent $\rightarrow$ automatically delete dependent rows. \\
+\texttt{SET NULL} & Delete parent $\rightarrow$ keep child row but clear the foreign key. \\
+\texttt{RESTRICT} & Delete parent $\rightarrow$ block deletion while dependent row exists. \\
+\bottomrule
+\end{tabular}
+\end{center}
+\endgroup
+
+\noindent
+Composite unique constraints work together with foreign keys to stop duplicate business relationships, such as duplicate course-category mappings, duplicate user-course ownership rows, duplicate progress rows for the same lesson, and duplicate reviews for the same course.

@@ -7,47 +7,47 @@ import { user } from "./schema/auth.js";
 async function seed() {
 	console.log("Seeding database...");
 
-	const superAdminEmail = "superadmin@example.com";
-	const superAdminPassword = "SuperAdmin123!";
-	const superAdminName = "Super Admin";
+	const adminEmail = "admin@example.com";
+	const adminPassword = "Admin123!";
+	const adminName = "Admin";
 
 	const existingUsers = await db
 		.select()
 		.from(user)
-		.where(eq(user.email, superAdminEmail))
+		.where(eq(user.email, adminEmail))
 		.limit(1);
 
 	if (existingUsers.length > 0) {
-		console.log("Super admin user already exists, updating role...");
+		console.log("Admin user already exists, updating role...");
 		await db
 			.update(user)
-			.set({ role: "superadmin" })
-			.where(eq(user.email, superAdminEmail));
-		console.log("Super admin role updated!");
+			.set({ role: "admin" })
+			.where(eq(user.email, adminEmail));
+		console.log("Admin role updated!");
 		return;
 	}
 
 	try {
 		const result = (await auth.api.signUpEmail({
 			body: {
-				email: superAdminEmail,
-				password: superAdminPassword,
-				name: superAdminName,
+				email: adminEmail,
+				password: adminPassword,
+				name: adminName,
 			},
 		})) as { user?: { id: string } };
 
 		if (result.user) {
 			await db
 				.update(user)
-				.set({ role: "superadmin", emailVerified: true })
+				.set({ role: "admin", emailVerified: true })
 				.where(eq(user.id, result.user.id));
 
-			console.log("Super admin user created successfully!");
-			console.log(`Email: ${superAdminEmail}`);
-			console.log(`Password: ${superAdminPassword}`);
+			console.log("Admin user created successfully!");
+			console.log(`Email: ${adminEmail}`);
+			console.log(`Password: ${adminPassword}`);
 		}
 	} catch (error) {
-		console.error("Error creating super admin user:", error);
+		console.error("Error creating admin user:", error);
 		throw toError(error);
 	}
 }

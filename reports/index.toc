@@ -1,0 +1,35 @@
+\contentsline {section}{\numberline {1}Requirement}{2}{}%
+\contentsline {subsection}{\numberline {1.1}Requirement Summary}{2}{}%
+\contentsline {subsection}{\numberline {1.2}Stakeholders and Scope}{2}{}%
+\contentsline {section}{\numberline {2}System Design}{2}{}%
+\contentsline {subsection}{\numberline {2.1}Functional Requirement}{2}{}%
+\contentsline {subsection}{\numberline {2.2}Non-functional requirements}{8}{}%
+\contentsline {subsection}{\numberline {2.3}Database Design}{9}{}%
+\contentsline {subsubsection}{\numberline {2.3.1}Entity Relationship Diagram (ERD)}{9}{}%
+\contentsline {subsubsection}{\numberline {2.3.2}Relationship Description}{9}{}%
+\contentsline {subsubsection}{\numberline {2.3.3}Attributes, Keys, and Constraints}{12}{}%
+\contentsline {paragraph}{Data Type Summary}{13}{}%
+\contentsline {paragraph}{Constraint Summary}{14}{}%
+\contentsline {paragraph}{Enum Value Summary}{14}{}%
+\contentsline {subsubsection}{\numberline {2.3.4}Normalization}{14}{}%
+\contentsline {subsubsection}{\numberline {2.3.5}Data Dictionary}{15}{}%
+\contentsline {paragraph}{Table: User}{15}{}%
+\contentsline {paragraph}{Table: Session}{16}{}%
+\contentsline {paragraph}{Table: Account}{16}{}%
+\contentsline {paragraph}{Table: Verification}{17}{}%
+\contentsline {paragraph}{Table: Category}{18}{}%
+\contentsline {paragraph}{Table: Course}{18}{}%
+\contentsline {paragraph}{Table: CourseLesson}{19}{}%
+\contentsline {paragraph}{Table: CourseCategory}{19}{}%
+\contentsline {paragraph}{Table: CoursePricing}{20}{}%
+\contentsline {paragraph}{Table: File}{20}{}%
+\contentsline {paragraph}{Table: Storage}{21}{}%
+\contentsline {paragraph}{Table: Order}{21}{}%
+\contentsline {paragraph}{Table: Payment}{22}{}%
+\contentsline {paragraph}{Table: CoursePurchase}{22}{}%
+\contentsline {paragraph}{Table: UserLibrary}{23}{}%
+\contentsline {paragraph}{Table: WatchProgress}{23}{}%
+\contentsline {paragraph}{Table: CourseLessonView}{24}{}%
+\contentsline {paragraph}{Table: CourseReview}{24}{}%
+\contentsline {subsubsection}{\numberline {2.3.6}Index Design}{25}{}%
+\contentsline {subsubsection}{\numberline {2.3.7}Referential Integrity}{27}{}%

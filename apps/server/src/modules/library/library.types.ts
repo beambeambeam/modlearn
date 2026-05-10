@@ -1,18 +1,18 @@
 import type { DbClient } from "@/lib/db/orm";
-import type { content, playlist, playlistEpisode } from "@/lib/db/schema";
+import type { course, courseLesson } from "@/lib/db/schema";
 
 export interface LibraryListMyItemsInput {
 	page?: number;
 	limit?: number;
 }
 
-export interface LibraryGetPlaylistCollectionInput {
-	playlistId: string;
+export interface LibraryGetCourseInput {
+	courseId: string;
 }
 
 export interface LibraryHasAccessInput {
-	contentId?: string;
-	playlistId?: string;
+	courseId?: string;
+	courseLessonId?: string;
 }
 
 export interface ListMyLibraryItemsParams {
@@ -21,10 +21,10 @@ export interface ListMyLibraryItemsParams {
 	input: LibraryListMyItemsInput;
 }
 
-export interface GetMyPlaylistCollectionParams {
+export interface GetMyCourseParams {
 	db: DbClient;
 	userId: string;
-	input: LibraryGetPlaylistCollectionInput;
+	input: LibraryGetCourseInput;
 }
 
 export interface HasLibraryAccessParams {
@@ -33,62 +33,48 @@ export interface HasLibraryAccessParams {
 	input: LibraryHasAccessInput;
 }
 
-type LibraryContentSummary = Pick<
-	typeof content.$inferSelect,
-	| "id"
-	| "title"
-	| "description"
-	| "duration"
-	| "releaseDate"
-	| "contentType"
-	| "thumbnailImageId"
->;
-
-type LibraryPlaylistSummary = Pick<
-	typeof playlist.$inferSelect,
+export type LibraryCourseSummary = Pick<
+	typeof course.$inferSelect,
 	| "id"
 	| "creatorId"
 	| "title"
 	| "description"
 	| "thumbnailImageId"
-	| "isSeries"
+	| "isPublished"
+	| "publishedAt"
+	| "isAvailable"
+	| "isDeleted"
+	| "deletedAt"
 	| "createdAt"
 	| "updatedAt"
 >;
 
-export interface LibraryPlaylistEpisode
-	extends Pick<
-		typeof playlistEpisode.$inferSelect,
-		| "id"
-		| "playlistId"
-		| "contentId"
-		| "episodeOrder"
-		| "seasonNumber"
-		| "episodeNumber"
-		| "title"
-		| "addedAt"
-	> {
-	content: LibraryContentSummary;
-}
+export type LibraryCourseLessonSummary = Pick<
+	typeof courseLesson.$inferSelect,
+	| "id"
+	| "courseId"
+	| "lessonOrder"
+	| "title"
+	| "description"
+	| "thumbnailImageId"
+	| "duration"
+	| "releaseDate"
+	| "fileId"
+	| "addedAt"
+	| "createdAt"
+	| "updatedAt"
+>;
 
-export interface LibraryContentItem {
-	type: "CONTENT";
+export interface LibraryCourseItem {
+	type: "COURSE";
 	acquiredAt: Date;
 	expiresAt: Date | null;
 	orderId: string;
-	content: LibraryContentSummary;
+	course: LibraryCourseSummary;
+	lessons: LibraryCourseLessonSummary[];
 }
 
-export interface LibraryPlaylistCollectionItem {
-	type: "PLAYLIST_COLLECTION";
-	acquiredAt: Date;
-	expiresAt: Date | null;
-	orderId: string;
-	playlist: LibraryPlaylistSummary;
-	episodes: LibraryPlaylistEpisode[];
-}
-
-export type LibraryItem = LibraryContentItem | LibraryPlaylistCollectionItem;
+export type LibraryItem = LibraryCourseItem;
 
 export interface LibraryListMyItemsResult {
 	items: LibraryItem[];
@@ -104,16 +90,23 @@ export interface LibraryHasAccessResult {
 	hasAccess: boolean;
 }
 
-export class LibraryPlaylistNotFoundError extends Error {
+export class LibraryCourseNotFoundError extends Error {
 	constructor() {
-		super("Playlist not found");
+		super("Course not found");
+		this.name = "LibraryCourseNotFoundError";
+	}
+}
+
+export class LibraryPlaylistNotFoundError extends LibraryCourseNotFoundError {
+	constructor() {
+		super();
 		this.name = "LibraryPlaylistNotFoundError";
 	}
 }
 
 export class LibraryAccessDeniedError extends Error {
 	constructor() {
-		super("You do not have access to this playlist");
+		super("You do not have access to this course");
 		this.name = "LibraryAccessDeniedError";
 	}
 }

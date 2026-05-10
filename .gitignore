@@ -62,8 +62,10 @@ temp
 /apps/server/AGENTS.md.bak
 /apps/server/CLAUDE.md
 /apps/server/CLAUDE.md.bak
-/apps/web/AGENTS.md
-/apps/web/AGENTS.md.bak
-/apps/web/CLAUDE.md
-/apps/web/CLAUDE.md.bak
 # END Ruler Generated Files
+
+*.aux
+*.fdb_latexmk
+*.fls
+*.pdf
+*.out

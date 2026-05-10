@@ -16,6 +16,8 @@ import {
 	categorySchema,
 } from "@/modules/category/category.validators";
 import { adminProcedure, publicProcedure, router } from "@/orpc";
+import { withRpcErrorHandling } from "@/orpc/error-mapper";
+import { errorGroups } from "@/orpc/errors";
 
 export const categoryRouter = router({
 	list: publicProcedure
@@ -29,13 +31,16 @@ export const categoryRouter = router({
 		})
 		.input(categoryListInputSchema.partial().optional())
 		.output(categoryListOutputSchema)
-		.handler(({ context, input }) => {
-			return listCategories({
-				db: context.db,
-				input: categoryListInputSchema.parse(input ?? {}),
-			});
-		}),
+		.handler(
+			withRpcErrorHandling(({ context, input }) => {
+				return listCategories({
+					db: context.db,
+					input: categoryListInputSchema.parse(input ?? {}),
+				});
+			})
+		),
 	getById: publicProcedure
+		.errors(errorGroups.notFound)
 		.route({
 			method: "POST",
 			path: "/rpc/category/getById",
@@ -46,61 +51,70 @@ export const categoryRouter = router({
 		})
 		.input(categoryByIdInputSchema)
 		.output(categorySchema)
-		.handler(({ context, input }) => {
-			return getCategoryById({
-				db: context.db,
-				input,
-			});
-		}),
+		.handler(
+			withRpcErrorHandling(({ context, input }) => {
+				return getCategoryById({
+					db: context.db,
+					input,
+				});
+			})
+		),
 	adminCreate: adminProcedure
+		.errors(errorGroups.conflict)
 		.route({
 			method: "POST",
 			path: "/rpc/category/adminCreate",
 			tags: ["Category Admin"],
 			summary: "Create Category",
-			description:
-				"Requires admin or superadmin role. Creates a new category record.",
+			description: "Requires admin role. Creates a new category record.",
 		})
 		.input(categoryAdminCreateInputSchema)
 		.output(categorySchema)
-		.handler(({ context, input }) => {
-			return createCategory({
-				db: context.db,
-				input,
-			});
-		}),
+		.handler(
+			withRpcErrorHandling(({ context, input }) => {
+				return createCategory({
+					db: context.db,
+					input,
+				});
+			})
+		),
 	adminUpdate: adminProcedure
+		.errors(errorGroups.notFoundConflict)
 		.route({
 			method: "POST",
 			path: "/rpc/category/adminUpdate",
 			tags: ["Category Admin"],
 			summary: "Update Category",
-			description:
-				"Requires admin or superadmin role. Updates mutable category fields.",
+			description: "Requires admin role. Updates mutable category fields.",
 		})
 		.input(categoryAdminUpdateInputSchema)
 		.output(categorySchema)
-		.handler(({ context, input }) => {
-			return updateCategory({
-				db: context.db,
-				input,
-			});
-		}),
+		.handler(
+			withRpcErrorHandling(({ context, input }) => {
+				return updateCategory({
+					db: context.db,
+					input,
+				});
+			})
+		),
 	adminDelete: adminProcedure
+		.errors(errorGroups.notFound)
 		.route({
 			method: "POST",
 			path: "/rpc/category/adminDelete",
 			tags: ["Category Admin"],
 			summary: "Delete Category",
 			description:
-				"Requires admin or superadmin role. Deletes a category and returns deletion metadata.",
+				"Requires admin role. Deletes a category and returns deletion metadata.",
 		})
 		.input(categoryAdminDeleteInputSchema)
 		.output(categoryDeleteOutputSchema)
-		.handler(({ context, input }) => {
-			return deleteCategory({
-				db: context.db,
-				input,
-			});
-		}),
+		.handler(
+			withRpcErrorHandling(({ context, input }) => {
+				return deleteCategory({
+					db: context.db,
+					input,
+				});
+			})
+		),
 });

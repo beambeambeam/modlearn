@@ -1,6 +1,6 @@
 import {
-	getPlaylistAutoPlayNext,
-	getPlaylistWatchProgressResume,
+	getCourseAutoPlayNext,
+	getCourseWatchProgressResume,
 	getWatchProgressResume,
 	listContinueWatching,
 	markWatchProgressCompleted,
@@ -8,21 +8,24 @@ import {
 } from "@/modules/watch-progress/watch-progress.service";
 import {
 	continueWatchingOutputSchema,
-	playlistAutoPlayNextOutputSchema,
-	playlistWatchProgressResumeOutputSchema,
+	courseAutoPlayNextOutputSchema,
+	courseWatchProgressResumeOutputSchema,
 	watchProgressContinueWatchingInputSchema,
 	watchProgressEnvelopeSchema,
-	watchProgressGetPlaylistAutoPlayNextInputSchema,
-	watchProgressGetPlaylistResumeInputSchema,
+	watchProgressGetCourseAutoPlayNextInputSchema,
+	watchProgressGetCourseResumeInputSchema,
 	watchProgressGetResumeInputSchema,
 	watchProgressMarkCompletedInputSchema,
 	watchProgressResumeOutputSchema,
 	watchProgressSaveInputSchema,
 } from "@/modules/watch-progress/watch-progress.validators";
 import { protectedProcedure, router } from "@/orpc";
+import { withRpcErrorHandling } from "@/orpc/error-mapper";
+import { errorGroups } from "@/orpc/errors";
 
 export const watchProgressRouter = router({
 	save: protectedProcedure
+		.errors(errorGroups.notFoundBadRequest)
 		.route({
 			method: "POST",
 			path: "/rpc/watchProgress/save",
@@ -33,95 +36,109 @@ export const watchProgressRouter = router({
 		})
 		.input(watchProgressSaveInputSchema)
 		.output(watchProgressEnvelopeSchema)
-		.handler(({ context, input }) => {
-			return saveWatchProgress({
-				db: context.db,
-				input: {
-					userId: context.session.user.id,
-					...input,
-				},
-			});
-		}),
+		.handler(
+			withRpcErrorHandling(({ context, input }) => {
+				return saveWatchProgress({
+					db: context.db,
+					input: {
+						userId: context.session.user.id,
+						...input,
+					},
+				});
+			})
+		),
 	markCompleted: protectedProcedure
+		.errors(errorGroups.notFoundBadRequest)
 		.route({
 			method: "POST",
 			path: "/rpc/watchProgress/markCompleted",
 			tags: ["Watch Progress User"],
 			summary: "Mark Watch Progress As Completed",
 			description:
-				"Requires authentication. Marks watch progress as completed for the specified item.",
+				"Requires authentication. Marks watch progress as completed for the specified lesson.",
 		})
 		.input(watchProgressMarkCompletedInputSchema)
 		.output(watchProgressEnvelopeSchema)
-		.handler(({ context, input }) => {
-			return markWatchProgressCompleted({
-				db: context.db,
-				input: {
-					userId: context.session.user.id,
-					...input,
-				},
-			});
-		}),
+		.handler(
+			withRpcErrorHandling(({ context, input }) => {
+				return markWatchProgressCompleted({
+					db: context.db,
+					input: {
+						userId: context.session.user.id,
+						...input,
+					},
+				});
+			})
+		),
 	getResume: protectedProcedure
+		.errors(errorGroups.notFound)
 		.route({
 			method: "POST",
 			path: "/rpc/watchProgress/getResume",
 			tags: ["Watch Progress User"],
 			summary: "Retrieve Watch Resume Position",
 			description:
-				"Requires authentication. Returns resume position for the specified content.",
+				"Requires authentication. Returns resume position for the specified lesson.",
 		})
 		.input(watchProgressGetResumeInputSchema)
 		.output(watchProgressResumeOutputSchema)
-		.handler(({ context, input }) => {
-			return getWatchProgressResume({
-				db: context.db,
-				input: {
-					userId: context.session.user.id,
-					...input,
-				},
-			});
-		}),
-	getPlaylistResume: protectedProcedure
+		.handler(
+			withRpcErrorHandling(({ context, input }) => {
+				return getWatchProgressResume({
+					db: context.db,
+					input: {
+						userId: context.session.user.id,
+						...input,
+					},
+				});
+			})
+		),
+	getCourseResume: protectedProcedure
+		.errors(errorGroups.notFound)
 		.route({
 			method: "POST",
-			path: "/rpc/watchProgress/getPlaylistResume",
+			path: "/rpc/watchProgress/getCourseResume",
 			tags: ["Watch Progress User"],
-			summary: "Retrieve Playlist Resume Target",
+			summary: "Retrieve Course Resume Target",
 			description:
-				"Requires authentication. Returns the next resume target within a playlist.",
+				"Requires authentication. Returns the next resume target within a course.",
 		})
-		.input(watchProgressGetPlaylistResumeInputSchema)
-		.output(playlistWatchProgressResumeOutputSchema)
-		.handler(({ context, input }) => {
-			return getPlaylistWatchProgressResume({
-				db: context.db,
-				input: {
-					userId: context.session.user.id,
-					...input,
-				},
-			});
-		}),
-	getPlaylistAutoPlayNext: protectedProcedure
+		.input(watchProgressGetCourseResumeInputSchema)
+		.output(courseWatchProgressResumeOutputSchema)
+		.handler(
+			withRpcErrorHandling(({ context, input }) => {
+				return getCourseWatchProgressResume({
+					db: context.db,
+					input: {
+						userId: context.session.user.id,
+						...input,
+					},
+				});
+			})
+		),
+	getCourseAutoPlayNext: protectedProcedure
+		.errors(errorGroups.notFound)
 		.route({
 			method: "POST",
-			path: "/rpc/watchProgress/getPlaylistAutoPlayNext",
+			path: "/rpc/watchProgress/getCourseAutoPlayNext",
 			tags: ["Watch Progress User"],
-			summary: "Retrieve Playlist Auto-Play Next Episode",
+			summary: "Retrieve Course Auto-Play Next Lesson",
 			description:
-				"Requires authentication. Returns the next episode candidate for playlist auto-play.",
+				"Requires authentication. Returns the next lesson candidate for course auto-play.",
 		})
-		.input(watchProgressGetPlaylistAutoPlayNextInputSchema)
-		.output(playlistAutoPlayNextOutputSchema)
-		.handler(({ context, input }) => {
-			return getPlaylistAutoPlayNext({
-				db: context.db,
-				input: {
-					userId: context.session.user.id,
-					...input,
-				},
-			});
-		}),
+		.input(watchProgressGetCourseAutoPlayNextInputSchema)
+		.output(courseAutoPlayNextOutputSchema)
+		.handler(
+			withRpcErrorHandling(({ context, input }) => {
+				return getCourseAutoPlayNext({
+					db: context.db,
+					input: {
+						userId: context.session.user.id,
+						...input,
+					},
+				});
+			})
+		),
 	continueWatching: protectedProcedure
 		.route({
 			method: "POST",
@@ -133,13 +150,15 @@ export const watchProgressRouter = router({
 		})
 		.input(watchProgressContinueWatchingInputSchema.optional())
 		.output(continueWatchingOutputSchema)
-		.handler(({ context, input }) => {
-			return listContinueWatching({
-				db: context.db,
-				input: {
-					userId: context.session.user.id,
-					...watchProgressContinueWatchingInputSchema.parse(input ?? {}),
-				},
-			});
-		}),
+		.handler(
+			withRpcErrorHandling(({ context, input }) => {
+				return listContinueWatching({
+					db: context.db,
+					input: {
+						userId: context.session.user.id,
+						...watchProgressContinueWatchingInputSchema.parse(input ?? {}),
+					},
+				});
+			})
+		),
 });

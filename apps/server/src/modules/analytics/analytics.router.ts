@@ -1,11 +1,17 @@
 import {
 	getAnalyticsOverview,
-	listContentViewsAnalytics,
+	listCourseLessonEngagementAnalytics,
+	listCoursePerformanceAnalytics,
+	listLessonViewsAnalytics,
 	listViewSessionsAnalytics,
 } from "@/modules/analytics/analytics.service";
 import {
-	analyticsContentViewsInputSchema,
-	analyticsContentViewsOutputSchema,
+	analyticsCourseLessonEngagementInputSchema,
+	analyticsCourseLessonEngagementOutputSchema,
+	analyticsCoursePerformanceInputSchema,
+	analyticsCoursePerformanceOutputSchema,
+	analyticsLessonViewsInputSchema,
+	analyticsLessonViewsOutputSchema,
 	analyticsOverviewInputSchema,
 	analyticsOverviewOutputSchema,
 	analyticsViewSessionsInputSchema,
@@ -21,7 +27,7 @@ export const analyticsRouter = router({
 			tags: ["Analytics Admin"],
 			summary: "Retrieve Analytics Overview Metrics",
 			description:
-				"Requires admin or superadmin role. Returns aggregated platform metrics for the requested window.",
+				"Requires admin role. Returns aggregated platform metrics for the requested window, optionally scoped to one course.",
 		})
 		.input(analyticsOverviewInputSchema.optional())
 		.output(analyticsOverviewOutputSchema)
@@ -31,21 +37,55 @@ export const analyticsRouter = router({
 				input: analyticsOverviewInputSchema.parse(input ?? {}),
 			});
 		}),
-	contentViews: adminProcedure
+	coursePerformance: adminProcedure
 		.route({
 			method: "POST",
-			path: "/rpc/analytics/contentViews",
+			path: "/rpc/analytics/coursePerformance",
 			tags: ["Analytics Admin"],
-			summary: "List Content View Analytics",
+			summary: "List Course Performance Analytics",
 			description:
-				"Requires admin or superadmin role. Returns per-content view analytics for the requested window and filters.",
+				"Requires admin role. Returns per-course analytics for the requested window and sort order.",
 		})
-		.input(analyticsContentViewsInputSchema.optional())
-		.output(analyticsContentViewsOutputSchema)
+		.input(analyticsCoursePerformanceInputSchema.optional())
+		.output(analyticsCoursePerformanceOutputSchema)
 		.handler(({ context, input }) => {
-			return listContentViewsAnalytics({
+			return listCoursePerformanceAnalytics({
 				db: context.db,
-				input: analyticsContentViewsInputSchema.parse(input ?? {}),
+				input: analyticsCoursePerformanceInputSchema.parse(input ?? {}),
+			});
+		}),
+	courseLessonEngagement: adminProcedure
+		.route({
+			method: "POST",
+			path: "/rpc/analytics/courseLessonEngagement",
+			tags: ["Analytics Admin"],
+			summary: "List Course Lesson Engagement Analytics",
+			description:
+				"Requires admin role. Returns course-scoped lesson engagement metrics including completion and drop-off.",
+		})
+		.input(analyticsCourseLessonEngagementInputSchema)
+		.output(analyticsCourseLessonEngagementOutputSchema)
+		.handler(({ context, input }) => {
+			return listCourseLessonEngagementAnalytics({
+				db: context.db,
+				input: analyticsCourseLessonEngagementInputSchema.parse(input),
+			});
+		}),
+	lessonViews: adminProcedure
+		.route({
+			method: "POST",
+			path: "/rpc/analytics/lessonViews",
+			tags: ["Analytics Admin"],
+			summary: "List Lesson View Analytics",
+			description:
+				"Requires admin role. Returns per-lesson view analytics for the requested window and filters.",
+		})
+		.input(analyticsLessonViewsInputSchema.optional())
+		.output(analyticsLessonViewsOutputSchema)
+		.handler(({ context, input }) => {
+			return listLessonViewsAnalytics({
+				db: context.db,
+				input: analyticsLessonViewsInputSchema.parse(input ?? {}),
 			});
 		}),
 	viewSessions: adminProcedure
@@ -55,7 +95,7 @@ export const analyticsRouter = router({
 			tags: ["Analytics Admin"],
 			summary: "List View Session Analytics",
 			description:
-				"Requires admin or superadmin role. Returns view session analytics for the requested window and filters.",
+				"Requires admin role. Returns lesson view session analytics for the requested window and filters.",
 		})
 		.input(analyticsViewSessionsInputSchema.optional())
 		.output(analyticsViewSessionsOutputSchema)

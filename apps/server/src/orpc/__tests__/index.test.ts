@@ -2,7 +2,7 @@ import { createRouterClient, ORPCError } from "@orpc/server";
 import { describe, expect, it, vi } from "vitest";
 import { CategoryNotFoundError } from "@/modules/category/category.types";
 import { publicProcedure, router } from "@/orpc";
-import { rpcErrorInterceptor } from "@/orpc/error-mapper";
+import { withRpcErrorHandling } from "@/orpc/error-mapper";
 import {
 	createCaller,
 	makeAuthenticatedContext,
@@ -81,34 +81,14 @@ describe("orpc procedures", () => {
 			expect(result.message).toBe("This is admin-only");
 			expect(result.user.id).toBe("test-admin-id");
 		});
-
-		it("should return data when role is superadmin", async () => {
-			const context = makeAuthenticatedContext(
-				"test-superadmin-id",
-				"superadmin"
-			);
-			const caller = createCaller(context);
-
-			const result = await caller.adminData();
-
-			expect(result.message).toBe("This is admin-only");
-			expect(result.user.id).toBe("test-superadmin-id");
-		});
 	});
 
-	describe("rpcErrorInterceptor", () => {
+	describe("withRpcErrorHandling", () => {
 		it("maps known domain errors to ORPCError", async () => {
 			const error = new CategoryNotFoundError();
+			const handler = withRpcErrorHandling(async () => Promise.reject(error));
 
-			await expect(
-				rpcErrorInterceptor({
-					request: {
-						method: "GET",
-						pathname: "/rpc/test",
-					},
-					next: () => Promise.reject(error),
-				} as never)
-			).rejects.toThrow(
+			await expect(handler({} as never)).rejects.toThrow(
 				expect.objectContaining({
 					code: "NOT_FOUND",
 					message: error.message,
@@ -122,16 +102,11 @@ describe("orpc procedures", () => {
 				.mockImplementation(() => undefined);
 
 			const nonErrorThrowable = "oops";
+			const handler = withRpcErrorHandling(async () =>
+				Promise.reject(nonErrorThrowable)
+			);
 
-			await expect(
-				rpcErrorInterceptor({
-					request: {
-						method: "GET",
-						pathname: "/rpc/test",
-					},
-					next: () => Promise.reject(nonErrorThrowable),
-				} as never)
-			).rejects.toThrow(
+			await expect(handler({} as never)).rejects.toThrow(
 				expect.objectContaining({
 					code: "INTERNAL_SERVER_ERROR",
 					message: "Internal server error",
@@ -145,16 +120,11 @@ describe("orpc procedures", () => {
 			const original = new ORPCError("FORBIDDEN", {
 				message: "No access",
 			});
+			const handler = withRpcErrorHandling(async () =>
+				Promise.reject(original)
+			);
 
-			await expect(
-				rpcErrorInterceptor({
-					request: {
-						method: "GET",
-						pathname: "/rpc/test",
-					},
-					next: () => Promise.reject(original),
-				} as never)
-			).rejects.toBe(original);
+			await expect(handler({} as never)).rejects.toBe(original);
 		});
 	});
 });

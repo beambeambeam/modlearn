@@ -1,8 +1,12 @@
 import { and, count, desc, eq, inArray, notInArray, sql } from "drizzle-orm";
-
 import type { DbClient } from "@/lib/db/orm";
-import { content, contentCategory, watchProgress } from "@/lib/db/schema";
-import { listPopularContent } from "@/modules/content/content.service";
+import {
+	course,
+	courseCategory,
+	courseLesson,
+	courseLessonView,
+	watchProgress,
+} from "@/lib/db/schema";
 import type {
 	ListPopularRecommendationsParams,
 	ListRecentlyAddedRecommendationsParams,
@@ -16,33 +20,50 @@ const AFFINITY_WEIGHT_MULTIPLIER = 1000;
 async function listPopularFallback(params: {
 	db: DbClient;
 	limit: number;
-	excludedContentIds?: string[];
+	excludedLessonIds?: string[];
 }): Promise<RecommendationItem[]> {
-	const { db, limit, excludedContentIds = [] } = params;
-	const popularItems = await listPopularContent({
-		db,
-		input: {
-			limit: limit + excludedContentIds.length,
-		},
-	});
+	const { db, limit, excludedLessonIds = [] } = params;
+	const excluded = new Set(excludedLessonIds);
 
-	if (excludedContentIds.length === 0) {
-		return popularItems.slice(0, limit);
-	}
+	const rows = await db
+		.select({
+			item: courseLesson,
+			views: count(courseLessonView.id),
+		})
+		.from(courseLesson)
+		.innerJoin(course, eq(courseLesson.courseId, course.id))
+		.leftJoin(
+			courseLessonView,
+			eq(courseLessonView.courseLessonId, courseLesson.id)
+		)
+		.where(
+			and(
+				eq(course.isDeleted, false),
+				eq(course.isPublished, true),
+				eq(course.isAvailable, true)
+			)
+		)
+		.groupBy(courseLesson.id, course.id)
+		.orderBy(
+			desc(count(courseLessonView.id)),
+			desc(courseLesson.createdAt),
+			desc(courseLesson.id)
+		)
+		.limit(limit + excludedLessonIds.length);
 
-	const excluded = new Set(excludedContentIds);
-	return popularItems.filter((item) => !excluded.has(item.id)).slice(0, limit);
+	return rows
+		.map((row) => row.item)
+		.filter((item) => !excluded.has(item.id))
+		.slice(0, limit);
 }
 
 export function listPopularRecommendations(
 	params: ListPopularRecommendationsParams
 ): Promise<RecommendationItem[]> {
 	const { db, input } = params;
-	return listPopularContent({
+	return listPopularFallback({
 		db,
-		input: {
-			limit: input.limit ?? 10,
-		},
+		limit: input.limit ?? 10,
 	});
 }
 
@@ -54,16 +75,18 @@ export function listRecentlyAddedRecommendations(
 
 	return db
 		.select()
-		.from(content)
+		.from(courseLesson)
+		.innerJoin(course, eq(courseLesson.courseId, course.id))
 		.where(
 			and(
-				eq(content.isDeleted, false),
-				eq(content.isPublished, true),
-				eq(content.isAvailable, true)
+				eq(course.isDeleted, false),
+				eq(course.isPublished, true),
+				eq(course.isAvailable, true)
 			)
 		)
-		.orderBy(desc(content.createdAt), desc(content.id))
-		.limit(limit);
+		.orderBy(desc(courseLesson.createdAt), desc(courseLesson.id))
+		.limit(limit)
+		.then((rows) => rows.map((row) => row.course_lesson ?? row));
 }
 
 export async function listRecommendationsForUser(
@@ -74,15 +97,20 @@ export async function listRecommendationsForUser(
 
 	const watchHistoryRows = await db
 		.select({
-			contentId: watchProgress.contentId,
+			courseId: watchProgress.courseId,
+			courseLessonId: watchProgress.courseLessonId,
 		})
 		.from(watchProgress)
 		.where(eq(watchProgress.userId, input.userId))
 		.orderBy(desc(watchProgress.updatedAt), desc(watchProgress.id))
 		.limit(MAX_HISTORY_ITEMS);
 
-	const watchedContentIds = watchHistoryRows.map((row) => row.contentId);
-	if (watchedContentIds.length === 0) {
+	const watchedLessonIds = watchHistoryRows.map((row) => row.courseLessonId);
+	const watchedCourseIds = Array.from(
+		new Set(watchHistoryRows.map((row) => row.courseId))
+	);
+
+	if (watchedLessonIds.length === 0) {
 		return listPopularFallback({
 			db,
 			limit,
@@ -91,60 +119,65 @@ export async function listRecommendationsForUser(
 
 	const affinityRows = await db
 		.select({
-			categoryId: contentCategory.categoryId,
+			categoryId: courseCategory.categoryId,
 			weight: count().as("weight"),
 		})
-		.from(contentCategory)
-		.where(inArray(contentCategory.contentId, watchedContentIds))
-		.groupBy(contentCategory.categoryId);
+		.from(courseCategory)
+		.where(inArray(courseCategory.courseId, watchedCourseIds))
+		.groupBy(courseCategory.categoryId);
 
 	if (affinityRows.length === 0) {
 		return listPopularFallback({
 			db,
 			limit,
-			excludedContentIds: watchedContentIds,
+			excludedLessonIds: watchedLessonIds,
 		});
 	}
 
 	const affinityByCategory = db
 		.select({
-			categoryId: contentCategory.categoryId,
+			categoryId: courseCategory.categoryId,
 			weight: count().as("weight"),
 		})
-		.from(contentCategory)
-		.where(inArray(contentCategory.contentId, watchedContentIds))
-		.groupBy(contentCategory.categoryId)
+		.from(courseCategory)
+		.where(inArray(courseCategory.courseId, watchedCourseIds))
+		.groupBy(courseCategory.categoryId)
 		.as("affinity_by_category");
 
 	const affinityScoreExpression = sql<number>`COALESCE(SUM(${affinityByCategory.weight}), 0)::int`;
-	const popularityScoreExpression = sql<number>`LN(1 + (${content.viewCount})::double precision)`;
+	const popularityScoreExpression = sql<number>`LN(1 + COUNT(${courseLessonView.id})::double precision)`;
 	const finalScoreExpression = sql<number>`(${affinityScoreExpression} * ${AFFINITY_WEIGHT_MULTIPLIER} + ${popularityScoreExpression})`;
 
 	const candidateRows = await db
 		.select({
-			item: content,
+			item: courseLesson,
 			affinityScore: affinityScoreExpression,
 		})
-		.from(content)
-		.leftJoin(contentCategory, eq(contentCategory.contentId, content.id))
+		.from(courseLesson)
+		.innerJoin(course, eq(courseLesson.courseId, course.id))
+		.leftJoin(courseCategory, eq(courseCategory.courseId, course.id))
 		.leftJoin(
 			affinityByCategory,
-			eq(affinityByCategory.categoryId, contentCategory.categoryId)
+			eq(affinityByCategory.categoryId, courseCategory.categoryId)
+		)
+		.leftJoin(
+			courseLessonView,
+			eq(courseLessonView.courseLessonId, courseLesson.id)
 		)
 		.where(
 			and(
-				eq(content.isDeleted, false),
-				eq(content.isPublished, true),
-				eq(content.isAvailable, true),
-				notInArray(content.id, watchedContentIds)
+				eq(course.isDeleted, false),
+				eq(course.isPublished, true),
+				eq(course.isAvailable, true),
+				notInArray(courseLesson.id, watchedLessonIds)
 			)
 		)
-		.groupBy(content.id)
+		.groupBy(courseLesson.id, course.id)
 		.orderBy(
 			desc(finalScoreExpression),
-			desc(content.viewCount),
-			desc(content.createdAt),
-			desc(content.id)
+			desc(count(courseLessonView.id)),
+			desc(courseLesson.createdAt),
+			desc(courseLesson.id)
 		)
 		.limit(limit);
 
@@ -156,7 +189,7 @@ export async function listRecommendationsForUser(
 		return listPopularFallback({
 			db,
 			limit,
-			excludedContentIds: watchedContentIds,
+			excludedLessonIds: watchedLessonIds,
 		});
 	}
 

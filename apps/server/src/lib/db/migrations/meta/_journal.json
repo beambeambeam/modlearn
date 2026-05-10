@@ -78,6 +78,20 @@
       "when": 1777474744384,
       "tag": "0010_secret_blue_shield",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1778139963949,
+      "tag": "0011_modern_talos",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1778142319994,
+      "tag": "0012_strong_justice",
+      "breakpoints": true
     }
   ]
 }
